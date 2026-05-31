@@ -1,0 +1,54 @@
+{
+  "t1": {
+    "items": [
+      {
+        "type": "cake",
+        "amount": 999
+      }
+    ],
+    "used_by": [
+      "Admin-999999999"
+    ],
+    "created_by": "\u6d41\u8424",
+    "target_user": "Admin-999999999",
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "t2": {
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "used_by": [
+      "Admin-999999999"
+    ],
+    "created_by": "\u6d41\u8424",
+    "target_user": "Admin-999999999",
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "cake:1": {
+    "items": [
+      {
+        "type": "clothes",
+        "id": "for"
+      }
+    ],
+    "used_by": [],
+    "created_by": "\u6d41\u8424",
+    "target_user": null,
+    "expire_time": "2026-05-20T12:46:46.134738",
+    "revoked": false,
+    "revoked_users": [],
+    "revoked_by": null,
+    "revoked_time": null
+  }
+}
