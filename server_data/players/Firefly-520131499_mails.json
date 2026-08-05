@@ -1,0 +1,21 @@
+[
+  {
+    "id": "edaae2ce-d55d-4940-8a51-29fa21b384ec",
+    "title": "\ud83c\udf89 \u6b22\u8fce\u52a0\u5165\uff01",
+    "content": "\u6b22\u8fce\u52a0\u5165\u6d41\u8424\u670d\u52a1\u5668\uff01\u8fd9\u662f\u4f60\u7684\u521d\u59cb\u5956\u52b1\u3002",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-08-03T18:27:11.025162+08:00",
+    "read": false,
+    "claimed": false,
+    "items": [
+      {
+        "type": "credit",
+        "amount": 1000
+      },
+      {
+        "type": "cake",
+        "amount": 5
+      }
+    ]
+  }
+]

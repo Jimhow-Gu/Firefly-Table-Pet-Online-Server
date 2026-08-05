@@ -1,0 +1,11 @@
+{
+  "timezone": "Asia/Shanghai",
+  "maintenance": {
+    "enabled": false,
+    "message": ""
+  },
+  "ai_enabled": true,
+  "chat_enabled": true,
+  "common_mute": false,
+  "server_name": "\u6d41\u8424\u684c\u5ba0\u670d\u52a1\u5668"
+}

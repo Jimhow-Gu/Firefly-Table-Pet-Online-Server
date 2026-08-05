@@ -1,0 +1,324 @@
+{
+  "t1": {
+    "items": [
+      {
+        "type": "cake",
+        "amount": 999
+      }
+    ],
+    "used_by": [
+      "Admin-999999999"
+    ],
+    "created_by": "\u6d41\u8424",
+    "target_user": "Admin-999999999",
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "t2": {
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "used_by": [
+      "Admin-999999999"
+    ],
+    "created_by": "\u6d41\u8424",
+    "target_user": "Admin-999999999",
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "cake:1": {
+    "items": [
+      {
+        "type": "clothes",
+        "id": "for"
+      }
+    ],
+    "used_by": [],
+    "created_by": "\u6d41\u8424",
+    "target_user": null,
+    "expire_time": "2026-05-20T12:46:46.134738",
+    "revoked": false,
+    "revoked_users": [],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "ZZZ2ND": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u63a7\u5236\u53f0",
+    "created_time": "2026-07-31T15:05:31.287460+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 100
+      },
+      {
+        "type": "clothes",
+        "id": "credit 2D"
+      }
+    ],
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [
+      "online-admin-123588912"
+    ],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "\u7edd\u533a\u96f62\u5468\u5e74": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u63a7\u5236\u53f0",
+    "created_time": "2026-07-31T15:13:28.561003+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      },
+      {
+        "type": "clothes",
+        "id": "credit 2d"
+      }
+    ],
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [
+      "online-admin-123588912"
+    ],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "ZZZ888": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u8424\u706b\u866b",
+    "created_time": "2026-07-31T15:17:49.237744+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      },
+      {
+        "type": "credit",
+        "amount": 1
+      }
+    ],
+    "expire_time": "2026-08-02T15:17:49.237744+08:00",
+    "revoked": false,
+    "revoked_users": [],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "666": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u63a7\u5236\u53f0",
+    "created_time": "2026-07-31T15:34:10.164628+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [
+      "online-admin-123588912"
+    ],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "667": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [],
+    "created_by": "\u8424\u706b\u866b",
+    "created_time": "2026-07-31T19:37:54.761439+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "expire_time": "2026-08-01T19:37:54.760428+08:00",
+    "revoked": false,
+    "revoked_users": [],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "\u6d41\u8424": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u63a7\u5236\u53f0",
+    "created_time": "2026-07-31T20:03:30.305970+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 9999
+      }
+    ],
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [
+      "online-admin-123588912"
+    ],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "222": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u63a7\u5236\u53f0",
+    "created_time": "2026-07-31T20:07:23.663307+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [
+      "online-admin-123588912"
+    ],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "233": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u63a7\u5236\u53f0",
+    "created_time": "2026-07-31T20:14:57.521731+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [
+      "online-admin-123588912"
+    ],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "244": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u63a7\u5236\u53f0",
+    "created_time": "2026-07-31T20:18:23.288246+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [
+      "online-admin-123588912"
+    ],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "245": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u63a7\u5236\u53f0",
+    "created_time": "2026-07-31T20:20:54.872707+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [
+      "online-admin-123588912"
+    ],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "255": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u63a7\u5236\u53f0",
+    "created_time": "2026-07-31T20:22:39.902711+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [
+      "online-admin-123588912"
+    ],
+    "revoked_by": null,
+    "revoked_time": null
+  },
+  "000": {
+    "max_uses": 0,
+    "used_count": 0,
+    "used_by": [
+      "online-admin-123588912"
+    ],
+    "created_by": "\u63a7\u5236\u53f0",
+    "created_time": "2026-07-31T20:25:22.280437+08:00",
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "expire_time": null,
+    "revoked": false,
+    "revoked_users": [
+      "online-admin-123588912"
+    ],
+    "revoked_by": null,
+    "revoked_time": null
+  }
+}

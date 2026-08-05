@@ -1,0 +1,358 @@
+[
+  {
+    "id": "9e3945e1-4ac1-415a-b2af-8304ac57125f",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 \u8424\u706b\u866b \u8d60\u9001\u4e86\u4f60\u7269\u54c1\u3002",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T01:43:13.543098+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 10
+      }
+    ]
+  },
+  {
+    "id": "eaac4c78-e67e-4450-b719-f7d167c9d8d3",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 \u8424\u706b\u866b \u8d60\u9001\u4e86\u4f60\u7269\u54c1\u3002",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T13:46:14.991673+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "clothes",
+        "id": "ruyi"
+      }
+    ]
+  },
+  {
+    "id": "fb4bf245-eebf-4121-b36a-e47bd6c8cc80",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 \u8424\u706b\u866b \u8d60\u9001\u4e86\u4f60\u7269\u54c1\u3002",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T13:53:28.434558+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "clothes",
+        "id": "ruyi"
+      }
+    ]
+  },
+  {
+    "id": "f7a202b1-ded8-4557-9d4f-c05696b34200",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 \u8424\u706b\u866b \u8d60\u9001\u4e86\u4f60\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u65f6\u88c5 [\u67ff\u67ff\u5982\u610f]",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T14:00:35.639934+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "clothes",
+        "id": "26_Newyear"
+      }
+    ]
+  },
+  {
+    "id": "87f37fea-30aa-4357-88a2-37495b48b3ec",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 \u8424\u706b\u866b \u8d60\u9001\u4e86\u4f60\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u65f6\u88c5 [\u67ff\u67ff\u5982\u610f]",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T14:02:48.231006+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "clothes",
+        "id": "26_Newyear"
+      }
+    ]
+  },
+  {
+    "id": "f896f479-be13-4198-951e-258ade2b19ce",
+    "title": "\u5151\u6362\u7801\u5151\u6362\u6210\u529f\uff01",
+    "content": "\u4f60\u6210\u529f\u5151\u6362\u4e86\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x100\n\u65f6\u88c5 [credit 2D]",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T15:05:47.777340",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 100
+      },
+      {
+        "type": "clothes",
+        "id": "credit 2D"
+      }
+    ]
+  },
+  {
+    "id": "36b06b67-20cc-4389-895c-135726a71be4",
+    "title": "\u5151\u6362\u7801\u5151\u6362\u6210\u529f\uff01",
+    "content": "\u4f60\u6210\u529f\u5151\u6362\u4e86\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x1\n\u65f6\u88c5 [credit 2d]",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T15:13:32.768721",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      },
+      {
+        "type": "clothes",
+        "id": "credit 2d"
+      }
+    ]
+  },
+  {
+    "id": "6b417666-d866-4912-b80b-9bffd013efd6",
+    "title": "\u5151\u6362\u7801\u5151\u6362\u6210\u529f\uff01",
+    "content": "\u4f60\u6210\u529f\u5151\u6362\u4e86\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x1\n\u4fe1\u7528\u70b9 x1",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T15:17:56.814075",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      },
+      {
+        "type": "credit",
+        "amount": 1
+      }
+    ]
+  },
+  {
+    "id": "1a013629-01f9-4a8b-993c-133ed3c354f6",
+    "title": "\u5151\u6362\u7801\u5151\u6362\u6210\u529f\uff01\uff08666\uff09",
+    "content": "\u4f60\u6210\u529f\u5151\u6362\u4e86\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x1",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T15:34:19.469383+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "code": "666"
+  },
+  {
+    "id": "f5cd792e-6e42-4595-aa42-4b69723a8186",
+    "title": "\u5151\u6362\u7801\u5151\u6362\u6210\u529f\uff01\uff08\u6d41\u8424\uff09",
+    "content": "\u4f60\u6210\u529f\u5151\u6362\u4e86\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x9999",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:03:55.714236+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 9999
+      }
+    ],
+    "code": "\u6d41\u8424"
+  },
+  {
+    "id": "f7d7307d-e254-4db5-902d-3464929121be",
+    "title": "\u5151\u6362\u7801\u5151\u6362\u6210\u529f\uff01\uff08222\uff09",
+    "content": "\u4f60\u6210\u529f\u5151\u6362\u4e86\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x1",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:07:26.896229+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "code": "222"
+  },
+  {
+    "id": "3853be45-48d2-4d67-83f5-74725d650684",
+    "title": "\u5151\u6362\u7801\u5151\u6362\u6210\u529f\uff01\uff08233\uff09",
+    "content": "\u4f60\u6210\u529f\u5151\u6362\u4e86\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x1",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:15:01.037528+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "code": "233"
+  },
+  {
+    "id": "be212ef4-20b7-4217-b8a9-7202a2f37be6",
+    "title": "\u5151\u6362\u7801\u5151\u6362\u6210\u529f\uff01\uff08244\uff09",
+    "content": "\u4f60\u6210\u529f\u5151\u6362\u4e86\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x1",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:18:33.414019+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "code": "244"
+  },
+  {
+    "id": "8f83f830-f2fd-4742-95f0-651a4bda60ff",
+    "title": "\u5151\u6362\u7801\u5151\u6362\u6210\u529f\uff01\uff08245\uff09",
+    "content": "\u4f60\u6210\u529f\u5151\u6362\u4e86\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x1",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:20:59.499776+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "code": "245"
+  },
+  {
+    "id": "d888b01a-3c47-4e88-9fc3-7181f83d94de",
+    "title": "\u5151\u6362\u7801\u5151\u6362\u6210\u529f\uff01\uff08255\uff09",
+    "content": "\u4f60\u6210\u529f\u5151\u6362\u4e86\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x1",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:22:58.440706+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1
+      }
+    ],
+    "code": "255"
+  },
+  {
+    "id": "abdf5c70-8778-49f6-8f48-eb5957a6efda",
+    "title": "\u5151\u6362\u7801\u64a4\u56de\u901a\u77e5\uff08000\uff09",
+    "content": "\u7ba1\u7406\u5458\u5df2\u64a4\u9500\u5151\u6362\u7801 000\u3002\u672a\u9886\u53d6\u7684\u90ae\u4ef6\u5df2\u88ab\u64a4\u56de\uff0c\u65e0\u7269\u54c1\u6263\u9664\u3002",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:25:43.851902+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [],
+    "code": "000"
+  },
+  {
+    "id": "3f1940b0-d4a4-4ad1-ae19-d5110bb816b8",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 \u8424\u706b\u866b \u8d60\u9001\u4e86\u4f60\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x1015",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:27:03.296855+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1015
+      }
+    ]
+  },
+  {
+    "id": "1518039a-782e-4e8a-9566-2cac36cb5c90",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 (\u63a7\u5236\u53f0) \u8d60\u9001\u4e86\u4f60\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x1015",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:36:27.523287+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 1015
+      }
+    ]
+  },
+  {
+    "id": "969893d5-82e1-48c3-879c-4087cc47f0bc",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 (\u63a7\u5236\u53f0) \u8d60\u9001\u4e86\u4f60\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x10150",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:38:23.783116+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "cake",
+        "amount": 10150
+      }
+    ]
+  },
+  {
+    "id": "30def880-15a5-4194-a9dc-0c35fdd16451",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 (\u63a7\u5236\u53f0) \u8d60\u9001\u4e86\u4f60\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u65f6\u88c5 [nsb]",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:40:25.623799+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "clothes",
+        "id": "nsb"
+      }
+    ]
+  },
+  {
+    "id": "8ba43669-fd4e-4d9f-a526-0a240efa8151",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 (\u63a7\u5236\u53f0) \u8d60\u9001\u4e86\u4f60\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u65f6\u88c5 [asjhd]",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:48:25.238545+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "clothes",
+        "id": "asjhd"
+      }
+    ]
+  },
+  {
+    "id": "13aa8105-9397-4bcc-9357-70943ef1bdad",
+    "title": "\u7ba1\u7406\u5458\u8d60\u9001\u7269\u54c1",
+    "content": "\u7ba1\u7406\u5458 (\u63a7\u5236\u53f0) \u8d60\u9001\u4e86\u4f60\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u65f6\u88c5 [2131ewq]",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T20:52:54.860751+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [
+      {
+        "type": "clothes",
+        "id": "2131ewq"
+      }
+    ]
+  },
+  {
+    "id": "09235254-79bc-4f04-bae9-5a0ecdee234c",
+    "title": "\u7269\u54c1\u6263\u9664\u901a\u77e5",
+    "content": "\u7ba1\u7406\u5458\u5df2\u4ece\u60a8\u7684\u8d26\u6237\u4e2d\u6263\u9664\u4ee5\u4e0b\u7269\u54c1\uff1a\n\u6a61\u6728\u86cb\u7cd5\u5377 x10",
+    "sender": "\u7cfb\u7edf",
+    "timestamp": "2026-07-31T23:12:01.496403+08:00",
+    "read": false,
+    "claimed": true,
+    "items": [],
+    "code": null
+  }
+]
