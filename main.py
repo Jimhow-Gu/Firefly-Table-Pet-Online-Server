@@ -14,10 +14,23 @@ import traceback
 import uuid
 import webbrowser
 from datetime import datetime, timedelta
+
+from PyQt5.QtWebChannel import QWebChannel
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import pytz
+
+def resource_path(relative_path):
+    """获取资源的绝对路径，支持开发环境和 PyInstaller 打包后的环境"""
+    if getattr(sys, 'frozen', False):
+        # 打包后的路径（PyInstaller 创建的临时目录）
+        base_path = sys._MEIPASS
+    else:
+        # 开发环境路径
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
 
 # ---------- 路径与时区配置 ----------
 if getattr(sys, 'frozen', False):
@@ -33,10 +46,18 @@ SERVER_CODES_FILE = os.path.join(SERVER_DATA, 'redeem_codes.json')
 BANNED_AREAS_FILE = os.path.join(SERVER_DATA, 'banned_areas.json')
 BANNED_TIMEZONES_FILE = os.path.join(SERVER_DATA, 'banned_timezones.json')
 SERVER_CONFIG_FILE = os.path.join(SERVER_DATA, 'server_config.json')
+# 添加自定义配置路径
+CUSTOM_MENU_FILE = os.path.join(SERVER_DATA, 'custom_menu.json')
+CUSTOM_ITEMS_FILE = os.path.join(SERVER_DATA, 'custom_items.json')
+WEB_RESOURCES_DIR = os.path.join(SERVER_DATA, 'web_resources')  # 存放抽卡HTML等
+os.makedirs(WEB_RESOURCES_DIR, exist_ok=True)
+
+WHITELIST_FILE = os.path.join(SERVER_DATA, 'whitelist.json')
+BLACKLIST_FILE = os.path.join(SERVER_DATA, 'blacklist.json')
 
 HOST = '0.0.0.0'
 PORT = 20082
-SERVER_VERSION = "4.4.1"
+SERVER_VERSION = "4.5.1"
 
 # 全局版本放行开关（默认关闭）
 ALLOW_ALL_VERSIONS = False
@@ -265,7 +286,21 @@ def load_player_data(server_uid):
         'current_month': None,
         'last_change_name_time': None,
         'change_name_count': 0,
-        'redeem_stats': {}
+        'redeem_stats': {},
+        'gacha_history': [],
+        'gacha_pity_5': 0,
+        'gacha_pity_4': 0,
+        'gacha_guaranteed_5': False,
+        'total_five_star': 0,
+        'gacha_pity_5': 0,
+        'gacha_pity_4': 0,
+        'gacha_guaranteed_5': False,
+        'monthly_jade_gained': 0,
+        'total_jade_gained': 0,
+        'monthly_ticket_gained': 0,
+        'total_ticket_gained': 0,
+        'birthday_reward_year': None,  # 记录已发生日奖励的年份
+        'last_achievement_month': None,  # 记录已发成就奖励的月份（格式 "YYYY-MM"）
     }
 
     if not os.path.exists(path):
@@ -322,8 +357,10 @@ def load_player_inventory(server_uid):
     default_inv = {
         'balance': 0,
         'credit': 0,
+        'jade': 0,
         'owned_clothes': ['normal'],
-        'star_rail_tickets': 0
+        'star_rail_tickets': 0,
+        'custom_items': {}   # 新增：用于存储自定义物品及其数量
     }
     if not os.path.exists(path):
         return default_inv
@@ -331,15 +368,18 @@ def load_player_inventory(server_uid):
     try:
         with open(path, 'r', encoding='utf-8') as f:
             content = f.read().strip()
-            if not content:  # 文件为空
+            if not content:
                 raise json.JSONDecodeError("Empty file", content, 0)
             data = json.loads(content)
-            # ★ 确保是字典，否则抛出异常
             if not isinstance(data, dict):
                 raise ValueError("Inventory data is not a dict")
+            # 补全缺失字段
+            for key in default_inv:
+                if key not in data:
+                    data[key] = default_inv[key]
             return data
     except (json.JSONDecodeError, OSError, ValueError) as e:
-        # 备份损坏文件
+        # 备份并重建
         import shutil
         backup_path = path + '.corrupted'
         try:
@@ -347,8 +387,6 @@ def load_player_inventory(server_uid):
             print(f"[警告] 库存文件 {path} 损坏，已备份至 {backup_path}")
         except Exception as backup_e:
             print(f"[错误] 无法备份损坏文件: {backup_e}")
-
-        # 写入默认库存，恢复服务
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(default_inv, f, indent=2)
         return default_inv
@@ -392,16 +430,55 @@ def save_banned_timezones(tzones):
     with open(BANNED_TIMEZONES_FILE, 'w', encoding='utf-8') as f:
         json.dump(tzones, f, indent=2)
 
+BANNED_IPS_FILE = os.path.join(SERVER_DATA, 'banned_ips.json')
+
+def load_banned_ips():
+    if not os.path.exists(BANNED_IPS_FILE):
+        return []
+    with open(BANNED_IPS_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def save_banned_ips(ips):
+    os.makedirs(SERVER_DATA, exist_ok=True)
+    with open(BANNED_IPS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(ips, f, indent=2)
+
 def load_server_config():
     if not os.path.exists(SERVER_CONFIG_FILE):
-        return {'server_name': '流萤服务器', 'ai_enabled': True, 'chat_enabled': True, 'common_mute': False}
+        return {'server_name': '流萤服务器', 'ai_enabled': True, 'chat_enabled': True, 'common_mute': False,
+                'max_players': 10, 'access_mode': 'none'}
     with open(SERVER_CONFIG_FILE, 'r', encoding='utf-8') as f:
         config = json.load(f)
         config.setdefault('server_name', '流萤服务器')
         config.setdefault('ai_enabled', True)
         config.setdefault('chat_enabled', True)
         config.setdefault('common_mute', False)
+        # ===== 新增两行 =====
+        config.setdefault('max_players', 10)
+        config.setdefault('access_mode', 'none')
         return config
+
+def load_whitelist():
+    if not os.path.exists(WHITELIST_FILE):
+        return []
+    with open(WHITELIST_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def save_whitelist(data):
+    os.makedirs(SERVER_DATA, exist_ok=True)
+    with open(WHITELIST_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+
+def load_blacklist():
+    if not os.path.exists(BLACKLIST_FILE):
+        return []
+    with open(BLACKLIST_FILE, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def save_blacklist(data):
+    os.makedirs(SERVER_DATA, exist_ok=True)
+    with open(BLACKLIST_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
 
 def save_server_config(config):
     os.makedirs(SERVER_DATA, exist_ok=True)
@@ -543,16 +620,34 @@ player_by_server_uid = {}
 server_lock = threading.Lock()
 
 def kick_all_players_for_maintenance(reason_message):
-    """踢出所有在线玩家，发送维护原因，并清理全局客户端字典"""
+    """踢出所有在线玩家（管理员除外），发送维护原因，并清理全局客户端字典"""
     with server_lock:
+        to_remove = []
         for client, player in list(clients.items()):
+            # 管理员保留
+            if player.get('permission') == 'admin':
+                # 可选：发送通知给管理员，但不踢出
+                try:
+                    TCPHandler.send_to(client, {
+                        'type': 'system_message',
+                        'data': {'text': f'【维护模式】服务器已进入维护模式，普通玩家已被踢出。你作为管理员仍可正常操作。'}
+                    })
+                except:
+                    pass
+                continue
             try:
-                TCPHandler.send_to(client, {'type': 'server_shutdown', 'data': {'reason': reason_message}})
+                TCPHandler.send_to(client, {'type': 'kick', 'data': {'reason': reason_message}})
+                time.sleep(0.1)
                 client.close()
             except:
                 pass
-        clients.clear()
-        player_by_server_uid.clear()
+            to_remove.append((client, player['server_uid']))
+        # 清理非管理员玩家
+        for client, server_uid in to_remove:
+            if client in clients:
+                del clients[client]
+            if server_uid in player_by_server_uid:
+                del player_by_server_uid[server_uid]
 
 class LogEmitter(QObject):
     log_signal = pyqtSignal(str)
@@ -578,13 +673,324 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return False
         return True
 
+    def _load_gacha_config(self):
+        config_path = os.path.join(SERVER_DATA, 'gacha_config.json')
+        # 新格式默认配置（增加 expiry 字段）
+        default_config = {
+            "name": "角色活动跃迁",
+            "description": "限定角色UP",
+            "icon": "✦",
+            "banner": "img/pool_banner.png",
+            "cost_type": "star_rail_ticket",
+            "cost_per_pull": 1,
+            "expiry": None,  # 卡池过期时间（ISO格式字符串），None 表示永久有效
+            "rules": {
+                "base_5star_rate": 0.006,
+                "base_4star_rate": 0.051,
+                "pity_hard_5star": 80,
+                "pity_hard_4star": 10,
+                "guarantee_up_5star": True
+            },
+            "five_star_items": [
+                {"id": "26_Newyear", "weight": 50, "up": True, "amount": 1},
+            ],
+            "four_star_items": [
+                {"id": "jade", "weight": 50, "amount": 10},
+                {"id": "cake", "weight": 20, "amount": 1},
+                {"id": "star_rail_ticket", "weight": 50, "amount": 1}
+            ],
+            "three_star_items": [
+                {"id": "credit", "weight": 70, "amount": 100},
+                {"id": "none", "weight": 70, "amount": 0}
+            ]
+        }
+
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                # 补全缺失字段（包括 expiry）
+                for key, val in default_config.items():
+                    if key not in config:
+                        config[key] = val
+                # 确保规则字段完整
+                for key in default_config["rules"]:
+                    if key not in config.get("rules", {}):
+                        config.setdefault("rules", {})[key] = default_config["rules"][key]
+                return config
+            except Exception as e:
+                print(f"[配置加载错误] {e}，使用默认配置")
+                return default_config
+        else:
+            # 不存在则创建默认配置
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(default_config, f, indent=2, ensure_ascii=False)
+            return default_config
+
+    def _do_gacha(self, server_uid, count):
+        config = self._load_gacha_config()
+        rules = config['rules']
+        pity5 = self._get_pity(server_uid, 'gacha_pity_5')
+        pity4 = self._get_pity(server_uid, 'gacha_pity_4')
+        guaranteed5 = self._get_guaranteed(server_uid)
+
+        results = []
+        for _ in range(count):
+            star = 3
+            # 五星硬保底
+            if pity5 >= rules['pity_hard_5star'] - 1:
+                star = 5
+                # 若大保底未触发则强制 UP，但大保底逻辑由 guaranteed 控制
+                # 后面根据 guaranteed 决定是否强制 up
+            elif pity4 >= rules['pity_hard_4star'] - 1:
+                star = 4
+            else:
+                # 随机概率
+                rand = random.random()
+                base_5 = rules.get('base_5star_rate', 0.006)
+                base_4 = rules.get('base_4star_rate', 0.051)
+                if rand < base_5:
+                    star = 5
+                elif rand < base_5 + base_4:
+                    star = 4
+                else:
+                    star = 3
+
+            # 根据星级选择物品池
+            if star == 5:
+                items_pool = config['five_star_items']
+                is_up_pool = True  # 五星池可能有 up 标记
+            elif star == 4:
+                items_pool = config['four_star_items']
+                is_up_pool = False
+            else:
+                items_pool = config['three_star_items']
+                is_up_pool = False
+
+            # 权重随机选择一个物品
+            total_weight = sum(item['weight'] for item in items_pool)
+            rand_weight = random.randint(1, total_weight)
+            cumulative = 0
+            selected = items_pool[0]
+            for item in items_pool:
+                cumulative += item['weight']
+                if rand_weight <= cumulative:
+                    selected = item
+                    break
+
+            # 判断是否为 UP（仅五星且标记 up=True 且未触发大保底）
+            is_up = False
+            is_guaranteed = False
+            if star == 5 and selected.get('up', False):
+                if guaranteed5:
+                    is_up = True
+                    is_guaranteed = True
+                    # 大保底触发后清除标志（由前端控制？但后端也需要重置）
+                    guaranteed5 = False
+                else:
+                    # 普通五星，随机是否 UP（按照物品池的 up 标记，但这里直接使用 selected 的 up 字段）
+                    # 实际我们应使用一个概率？传统是直接出 UP，这里我们简单些：只要 selected['up']==True 就视为 UP
+                    # 但如果没有大保底，出 UP 概率为 50%（由权重决定）
+                    # 因为权重已包含 up 和 non-up 物品，所以直接使用 selected['up']
+                    is_up = selected.get('up', False)
+                    if is_up:
+                        # 出 UP 时，大保底不会被消耗（除非触发大保底）
+                        pass
+                    else:
+                        # 出非UP五星，大保底标志不变
+                        pass
+            else:
+                # 非五星，up 不考虑
+                pass
+
+            # 构造结果物品
+            item_type = selected.get('id')  # 如 'ruyi', 'jade', 'credit' 等
+            amount = selected.get('amount', 1)
+            # 将 id 映射为实际存储的 type（用于库存处理）
+            # 如果是时装，type='clothes'，id=具体时装id
+            # 如果是通用物品，type=item_type，id=None
+            # 我们需要统一处理：
+            if item_type in AVAILABLE_CLOTHES:
+                real_type = 'clothes'
+                real_id = item_type
+            elif item_type in ('cake', 'credit', 'jade', 'star_rail_ticket'):
+                real_type = item_type
+                real_id = None
+            else:
+                # 自定义物品（可能由服务器提供）
+                real_type = 'custom'
+                real_id = item_type
+
+            result_item = {
+                'type': real_type,
+                'id': real_id,
+                'amount': amount,
+                'rarity': star,
+                'isUp': is_up,
+                'isGuaranteed': is_guaranteed
+            }
+            # 添加物品名称（方便前端）
+            result_item['name'] = self._get_item_name_by_id(real_type, real_id)
+            results.append(result_item)
+
+            # 更新保底计数
+            if star == 5:
+                pity5 = 0
+                pity4 = 0
+            elif star == 4:
+                pity4 = 0
+                pity5 += 1
+            else:
+                pity4 += 1
+                pity5 += 1
+
+        # 保存更新后的保底数据
+        pdata = load_player_data(server_uid)
+        pdata['gacha_pity_5'] = pity5
+        pdata['gacha_pity_4'] = pity4
+        pdata['gacha_guaranteed_5'] = guaranteed5
+        save_player_data(server_uid, pdata)
+
+        return results
+
+    def _get_pity(self, server_uid, key):
+        pdata = load_player_data(server_uid)
+        return pdata.get(key, 0)
+
+    def _get_guaranteed(self, server_uid):
+        pdata = load_player_data(server_uid)
+        return pdata.get('gacha_guaranteed_5', False)
+
+    def _get_item_name_by_id(self, real_type, real_id):
+        """根据类型和ID返回可读名称"""
+        if real_type == 'clothes':
+            return AVAILABLE_CLOTHES.get(real_id, {}).get('name', real_id)
+        elif real_type == 'custom':
+            # 从自定义物品列表查找
+            custom_items = self.server.load_custom_items() if hasattr(self.server, 'load_custom_items') else []
+            for ci in custom_items:
+                if ci.get('id') == real_id:
+                    return ci.get('name', real_id)
+            return real_id
+        else:
+            # 内置物品
+            name_map = {
+                'cake': '橡木蛋糕卷',
+                'credit': '信用点',
+                'jade': '星琼',
+                'star_rail_ticket': '星轨专票'
+            }
+            return name_map.get(real_type, real_type)
+
+    def _check_and_grant_achievement(self, server_uid):
+        """检查玩家是否达成月度四个进度 100%，若是则发放 10 专票并标记"""
+        import calendar
+        pdata = load_player_data(server_uid)
+        if not pdata:
+            return
+
+        now = datetime.now(SERVER_TIMEZONE)
+        current_month = now.strftime('%Y-%m')
+        days_in_month = calendar.monthrange(now.year, now.month)[1]
+
+        # 定义四个目标
+        credit_target = 7200 * days_in_month
+        sign_target = days_in_month
+        jade_target = 1600
+        cake_target = 72
+
+        credit_gained = pdata.get('monthly_credit_gained', 0)
+        sign_days = pdata.get('monthly_sign_days', 0)
+        jade_gained = pdata.get('monthly_jade_gained', 0)
+        cake_gained = pdata.get('monthly_cake_gained', 0)
+
+        # 检查是否全部达标（>= 目标）
+        if (credit_gained >= credit_target and
+                sign_days >= sign_target and
+                jade_gained >= jade_target and
+                cake_gained >= cake_target):
+
+            # 检查是否已发放
+            if pdata.get('last_achievement_month') == current_month:
+                return  # 已发放
+
+            # 发放 10 张星铁专票
+            items = [{"type": "star_rail_ticket", "amount": 10}]
+            mail = {
+                "id": str(uuid.uuid4()),
+                "title": "🎉 月度成就达成！",
+                "content": "恭喜你！本月所有养成进度均已达成 100%，获得 10 张星铁专票作为奖励！",
+                "sender": "系统",
+                "timestamp": now.isoformat(),
+                "read": False,
+                "claimed": False,
+                "items": items,
+            }
+            mails = load_player_mails(server_uid)
+            mails.append(mail)
+            save_player_mails(server_uid, mails)
+
+            # 标记已发放
+            pdata['last_achievement_month'] = current_month
+            save_player_data(server_uid, pdata)
+
+            # 如果玩家在线，推送邮箱更新
+            with server_lock:
+                player = player_by_server_uid.get(server_uid)
+            if player:
+                self.send_to(player['client'], {'type': 'mails_data', 'data': {'mails': mails}})
+                self.send_to(player['client'],
+                             {'type': 'system_message', 'data': {'text': '🎉 恭喜你达成月度全成就！请查看邮箱领取奖励。'}})
+
+    def _add_item_to_inventory(self, inv, item, pdata=None, skip_ticket_stat=False):
+        """
+        将物品添加到库存，并更新统计（如果提供 pdata）。
+
+        :param inv: 库存字典（会被修改）
+        :param item: 物品字典，包含 type, id, amount 等
+        :param pdata: 玩家数据字典（可选），若提供则更新星琼/专票统计
+        :param skip_ticket_stat: 是否跳过专票统计（用于兑换码场景）
+        """
+        # 忽略 'none' 物品（谢谢参与）
+        if item.get('type') == 'custom' and item.get('id') == 'none':
+            return
+
+        itype = item['type']
+        amount = item.get('amount', 0)
+
+        if itype == 'cake':
+            inv['balance'] = inv.get('balance', 0) + amount
+        elif itype == 'credit':
+            inv['credit'] = inv.get('credit', 0) + amount
+            if inv['credit'] > 99999999:
+                inv['credit'] = 99999999
+        elif itype == 'jade':
+            inv['jade'] = inv.get('jade', 0) + amount
+            # ★ 星琼统计（所有场景都统计）
+            if pdata:
+                pdata['monthly_jade_gained'] = pdata.get('monthly_jade_gained', 0) + amount
+                pdata['total_jade_gained'] = pdata.get('total_jade_gained', 0) + amount
+        elif itype == 'star_rail_ticket':
+            inv['star_rail_tickets'] = inv.get('star_rail_tickets', 0) + amount
+            # ★ 专票统计（除兑换码外）
+            if pdata and not skip_ticket_stat:
+                pdata['monthly_ticket_gained'] = pdata.get('monthly_ticket_gained', 0) + amount
+                pdata['total_ticket_gained'] = pdata.get('total_ticket_gained', 0) + amount
+        elif itype == 'clothes':
+            cid = item.get('id')
+            if cid and cid not in inv.get('owned_clothes', ['normal']):
+                inv.setdefault('owned_clothes', ['normal']).append(cid)
+        elif itype == 'custom':
+            custom_items = inv.setdefault('custom_items', {})
+            custom_items[item['id']] = custom_items.get(item['id'], 0) + amount
+
     def handle(self):
         global clients, player_by_server_uid
         peername = self.client_address
         log_emitter = self.server.log_emitter
-        log_emitter.log_signal.emit(f"[连接] {peername}")
+        # 不再输出 [连接] 日志，改为登录成功或失败时输出
 
-        buffer = b''  # ★ 缓冲区，用于拼接不完整的数据包
+        buffer = b''
         player = None
         while True:
             try:
@@ -592,7 +998,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 if not data:
                     break
                 buffer += data
-                # 按换行符分割完整的消息
                 while b'\n' in buffer:
                     line, buffer = buffer.split(b'\n', 1)
                     if not line:
@@ -609,11 +1014,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         continue
                     player = self.process_message(msg, player)
             except ConnectionResetError as e:
-                log_emitter.log_signal.emit(f"[连接断开] {peername}: 客户端异常断开 (可能因网络波动或主动关闭)")
+                # 不输出 [连接断开] 日志，因为可能未登录
+                break
+            except ConnectionAbortedError as e:
                 break
             except Exception as e:
                 log_emitter.log_signal.emit(f"[未处理异常] {peername}: {e}")
-                import traceback
                 traceback.print_exc()
                 break
 
@@ -622,12 +1028,30 @@ class TCPHandler(socketserver.BaseRequestHandler):
             with server_lock:
                 if server_uid in player_by_server_uid:
                     del player_by_server_uid[server_uid]
+                if self.request in clients:
+                    del clients[self.request]
             log_emitter.log_signal.emit(f"[断开] {player['name']} 离开了服务器")
             self.broadcast_system(f"{player['name']} 离开了服务器")
 
     def process_message(self, msg, player):
         mtype = msg['type']
         data = msg.get('data', {})
+        if mtype == 'status':
+            config = load_server_config()
+            max_players = config.get('max_players', 10)
+            with server_lock:
+                online = len(clients)
+            self.send_json({
+                'type': 'status_response',
+                'data': {
+                    'online': online,
+                    'max': max_players
+                }
+            })
+            return None
+
+        if player is not None and hasattr(self.server, 'last_activity'):
+            self.server.last_activity[player['server_uid']] = time.time()
         if not isinstance(data, dict):
             self.send_json({'type': 'login_fail', 'data': {'reason': '数据格式错误，请更新客户端'}})
             return None
@@ -635,6 +1059,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
             data = msg.get('data', {})
             if not isinstance(data, dict):
                 self.send_json({'type': 'login_fail', 'data': {'reason': '数据格式错误，请更新客户端'}})
+                self.server.log_emitter.log_signal.emit(
+                    f"[登录失败] {self.client_address[0]}:{self.client_address[1]} 数据格式错误")
                 return None
 
             userid = data.get('userid')
@@ -659,9 +1085,51 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 self.send_json({'type': 'login_fail', 'data': {'reason': reason}})
                 return None
 
-            # 维护模式
+            # ---- 提前判断管理员（用于维护模式豁免） ----
+            real_uid = data.get('uid')
+            is_admin_login = False
+            if real_uid and real_uid.lower().startswith('admin'):
+                is_admin_login = True
+            else:
+                # 如果 UID 不是 admin 开头，但玩家文件中可能已被提升为管理员
+                # 尝试通过 userid 或 real_uid 查找玩家文件
+                userid = data.get('userid')
+                # 先按 server_uid 格式查找（userid-uid_digits）
+                uid_digits = None
+                if real_uid and '-' in real_uid:
+                    parts = real_uid.split('-', 1)
+                    if len(parts) == 2 and parts[1].isdigit():
+                        uid_digits = parts[1]
+                if userid and uid_digits:
+                    possible_server_uid = f"{userid}-{uid_digits}"
+                    main_path = os.path.join(PLAYERS_DIR, f'{possible_server_uid}.json')
+                    if os.path.exists(main_path):
+                        try:
+                            with open(main_path, 'r', encoding='utf-8') as f:
+                                pdata = json.load(f)
+                            if pdata.get('permission') == 'admin':
+                                is_admin_login = True
+                        except:
+                            pass
+                # 如果还没找到，按 uid 字段查找
+                if not is_admin_login and real_uid:
+                    for filename in os.listdir(PLAYERS_DIR):
+                        if not filename.endswith('.json') or filename.endswith('_inv.json') or filename.endswith(
+                                '_mails.json'):
+                            continue
+                        filepath = os.path.join(PLAYERS_DIR, filename)
+                        try:
+                            with open(filepath, 'r', encoding='utf-8') as f:
+                                pdata = json.load(f)
+                            if pdata.get('uid') == real_uid and pdata.get('permission') == 'admin':
+                                is_admin_login = True
+                                break
+                        except:
+                            continue
+
+            # 维护模式（管理员可豁免）
             with maintenance_lock:
-                if maintenance_mode:
+                if maintenance_mode and not is_admin_login:
                     if maintenance_message and maintenance_message.strip():
                         msg_text = f"服务器正在维护\n{maintenance_message}"
                     else:
@@ -865,8 +1333,64 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     self.send_json({'type': 'login_fail', 'data': {'reason': '你已被永久封禁。'}})
                     return None
 
+            # ---------- 管理员豁免检查 ----------
+            is_admin = pdata.get('permission') == 'admin'
+
+            # ---- IP 封禁检查（管理员豁免） ----
+            banned_ips = load_banned_ips()
+            if self.client_address[0] in banned_ips and not is_admin:
+                self.send_json({'type': 'login_fail', 'data': {'reason': '你的IP已被服务器封禁'}})
+                self.server.log_emitter.log_signal.emit(
+                    f"[登录失败] {real_uid} IP被封禁: {self.client_address[0]}"
+                )
+                return None
+
+            # ---------- 人数上限检查（管理员豁免） ----------
+            if not is_admin:
+                config = load_server_config()
+                max_players = config.get('max_players', 10)
+                with server_lock:
+                    current_players = len(clients)
+                if current_players >= max_players:
+                    self.send_json({'type': 'login_fail', 'data': {'reason': '拒绝连接：人数已达上限'}})
+                    return None
+
+            # ---------- 访问控制（白名单/黑名单），管理员豁免 ----------
+            if not is_admin:
+                config = load_server_config()
+                access_mode = config.get('access_mode', 'none')
+                if access_mode == 'whitelist':
+                    whitelist = load_whitelist()
+                    self.server.log_emitter.log_signal.emit(
+                        f"[白名单检查] server_uid={server_uid}, uid={pdata.get('uid')}, 白名单列表={whitelist}")
+                    if server_uid not in whitelist and pdata.get('uid') not in whitelist:
+                        self.server.log_emitter.log_signal.emit(f"[白名单] 拒绝连接: {server_uid}")
+                        self.send_json({'type': 'login_fail', 'data': {'reason': '你不在白名单中，拒绝连接'}})
+                        return None
+
+                elif access_mode == 'blacklist':
+                    blacklist = load_blacklist()
+                    self.server.log_emitter.log_signal.emit(
+                        f"[黑名单检查] server_uid={server_uid}, uid={pdata.get('uid')}, 黑名单列表={blacklist}")
+                    if server_uid in blacklist or pdata.get('uid') in blacklist:
+                        self.server.log_emitter.log_signal.emit(f"[黑名单] 拒绝连接: {server_uid}")
+                        self.send_json({'type': 'login_fail', 'data': {'reason': '服务器拒绝连接，你已被列入黑名单！'}})
+                        return None
+
             # ---------- 防止重复登录 ----------
             with server_lock:
+                old_player = player_by_server_uid.get(server_uid)
+                if old_player:
+                    old_client = old_player['client']
+                    try:
+                        TCPHandler.send_to(old_client, {'type': 'kick', 'data': {'reason': '账号已在其他客户端登录'}})
+                        time.sleep(0.1)
+                        old_client.close()
+                    except:
+                        pass
+                    if old_client in clients:
+                        del clients[old_client]
+                    del player_by_server_uid[server_uid]
                 if server_uid in player_by_server_uid:
                     self.send_json({'type': 'login_fail', 'data': {'reason': '该账号已在其他客户端登录'}})
                     return None
@@ -932,8 +1456,14 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 'monthly_credit_gained': pdata.get('monthly_credit_gained', 0),
                 'monthly_cake_gained': pdata.get('monthly_cake_gained', 0),
                 'current_month': pdata.get('current_month', None),
+                # ★ 新增
+                'monthly_jade_gained': pdata.get('monthly_jade_gained', 0),
+                'total_jade_gained': pdata.get('total_jade_gained', 0),
+                'monthly_ticket_gained': pdata.get('monthly_ticket_gained', 0),
+                'total_ticket_gained': pdata.get('total_ticket_gained', 0),
             }
 
+            # 在 login 分支末尾，构造 data 字典前
             ai_enabled = load_server_config().get('ai_enabled', True)
             chat_enabled = load_server_config().get('chat_enabled', True)
             common_mute = load_server_config().get('common_mute', False)
@@ -942,7 +1472,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
             server_display_name = config.get('server_name', '流萤服务器')
             history = load_chat_history()
             recent = history[-50:] if len(history) > 50 else history
-            print(f"[登录] 发送给 {server_uid} 的历史消息数量: {len(recent)}")
+
+            # ---------- 新增：加载自定义菜单和物品 ----------
+            custom_menu = self.server.load_custom_menu()
+            custom_items = self.server.load_custom_items()
+            # ------------------------------------------
+
+            # 在 login 分支末尾，找到 self.send_json 调用，添加一行
             self.send_json({
                 'type': 'login_ok',
                 'data': {
@@ -956,7 +1492,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     'server_timezone_offset': offset_hours,
                     'chat_history': recent,
                     'server_name': server_name,
-                    'chat_history': recent,
                     'server_version': SERVER_VERSION,
                     'stats': stats,
                     'muted_until': muted_until,
@@ -964,55 +1499,333 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     'chat_enabled': chat_enabled,
                     'common_mute': common_mute,
                     'require_rename': pdata.get('first_login', False),
+                    'custom_menu': custom_menu,
+                    'custom_items': custom_items,
+                    'gacha_history': pdata.get('gacha_history', []),
                 }
             })
 
+            # ★ 新增：登录成功日志（简洁版）
+            self.server.log_emitter.log_signal.emit(
+                f"[登录] {player['name']} (UID: {player['uid']}) 从 {self.client_address[0]}:{self.client_address[1]} 进入"
+            )
+
             self.server.log_emitter.log_signal.emit(f"{player['name']} 进入了服务器 (UID: {player['uid']})")
+            if hasattr(self.server, 'last_activity'):
+                self.server.last_activity[server_uid] = time.time()
             if not pdata.get('first_login', False):
                 self.broadcast_system(f"{player['name']} 进入了服务器")
             return player
 
+
+
+
+
+        elif mtype == 'exchange' and player:
+
+            amount = data.get('amount', 1)
+
+            if amount <= 0:
+                self.send_json({'type': 'exchange_result', 'data': {'success': False, 'reason': '数量无效'}})
+
+                return player
+
+            with player_file_lock:
+
+                inv = player['inventory']
+
+                cost = amount * 160
+
+                if inv.get('jade', 0) < cost:
+                    self.send_json({'type': 'exchange_result', 'data': {'success': False, 'reason': '星琼不足'}})
+
+                    return player
+
+                inv['jade'] = inv.get('jade', 0) - cost
+
+                inv['star_rail_tickets'] = inv.get('star_rail_tickets', 0) + amount
+
+                # ★ 统计专票获取（兑换获得的专票计入统计）
+
+                pdata = load_player_data(player['server_uid'])
+
+                pdata['monthly_ticket_gained'] = pdata.get('monthly_ticket_gained', 0) + amount
+
+                pdata['total_ticket_gained'] = pdata.get('total_ticket_gained', 0) + amount
+
+                save_player_data(player['server_uid'], pdata)
+
+                save_player_inventory(player['server_uid'], inv)
+
+                self.send_json({
+
+                    'type': 'exchange_result',
+
+                    'data': {
+
+                        'success': True,
+
+                        'tickets': inv['star_rail_tickets'],
+
+                        'jade': inv['jade'],
+
+                        'pity': pdata.get('gacha_pity_5', 0),
+
+                        'guaranteed': pdata.get('gacha_guaranteed_5', False)
+
+                    }
+
+                })
+
+            return player
+
+
+        elif mtype == 'gacha' and player:
+
+            count = data.get('count', 1)
+
+            config = self._load_gacha_config()
+
+            expiry = config.get('expiry')
+
+            if expiry is not None:
+
+                try:
+
+                    expiry_dt = datetime.fromisoformat(expiry)
+
+                    if expiry_dt.tzinfo is None:
+                        expiry_dt = SERVER_TIMEZONE.localize(expiry_dt)
+
+                    now = datetime.now(SERVER_TIMEZONE)
+
+                    if now > expiry_dt:
+                        self.send_json({
+
+                            'type': 'gacha_result',
+
+                            'data': {'success': False, 'reason': '卡池已经结束'}
+
+                        })
+
+                        return player
+
+                except Exception as e:
+
+                    print(f"[卡池过期检查] 解析失败: {e}")
+
+            inv = player['inventory']
+
+            tickets = inv.get('star_rail_tickets', 0)
+
+            if count not in (1, 10):
+                self.send_json({'type': 'gacha_result', 'data': {'success': False, 'reason': '只支持单抽或十连'}})
+
+                return player
+
+            if tickets < count:
+                self.send_json(
+                    {'type': 'gacha_result', 'data': {'success': False, 'reason': f'专票不足，需要 {count} 张'}})
+
+                return player
+
+            with player_file_lock:
+
+                inv = player['inventory']
+
+                tickets = inv.get('star_rail_tickets', 0)
+
+                if tickets < count:
+                    self.send_json(
+                        {'type': 'gacha_result', 'data': {'success': False, 'reason': f'专票不足，需要 {count} 张'}})
+
+                    return player
+
+                results = self._do_gacha(player['server_uid'], count)
+
+                inv['star_rail_tickets'] = tickets - count
+
+                pdata = load_player_data(player['server_uid'])
+
+                total_five = pdata.get('total_five_star', 0)
+
+                final_add_items = []
+
+                converted_info = []
+
+                for idx, item in enumerate(results):
+
+                    if item['rarity'] == 5:
+
+                        if total_five >= 1:
+
+                            final_add_items.append({'type': 'star_rail_ticket', 'amount': 5})
+
+                            converted_info.append(f"第{idx + 1}个五星已转换为5张专票")
+
+                            item['converted'] = True
+
+                        else:
+
+                            final_add_items.append(item)
+
+                        total_five += 1
+
+                    else:
+
+                        final_add_items.append(item)
+
+                pdata['total_five_star'] = total_five
+
+                # ---- 添加物品到库存 & 统计 ----
+
+                for item in final_add_items:
+
+                    self._add_item_to_inventory(inv, item)
+
+                    # ★ 统计
+
+                    itype = item['type']
+
+                    if itype == 'jade':
+
+                        pdata['monthly_jade_gained'] = pdata.get('monthly_jade_gained', 0) + item.get('amount', 0)
+
+                        pdata['total_jade_gained'] = pdata.get('total_jade_gained', 0) + item.get('amount', 0)
+
+                    elif itype == 'star_rail_ticket':
+
+                        pdata['monthly_ticket_gained'] = pdata.get('monthly_ticket_gained', 0) + item.get('amount', 0)
+
+                        pdata['total_ticket_gained'] = pdata.get('total_ticket_gained', 0) + item.get('amount', 0)
+
+                    # clothes/custom 不统计
+
+                save_player_inventory(player['server_uid'], inv)
+
+                # 更新抽卡历史（保留30天）
+
+                history = pdata.get('gacha_history', [])
+
+                now = datetime.now(SERVER_TIMEZONE)
+
+                cutoff = now - timedelta(days=30)
+
+                history = [h for h in history if datetime.fromisoformat(h['time']) >= cutoff]
+
+                for item in results:
+                    history.append({
+
+                        'name': item['name'],
+
+                        'rarity': item['rarity'],
+
+                        'time': now.isoformat(),
+
+                        'isUp': item.get('isUp', False),
+
+                        'isGuaranteed': item.get('isGuaranteed', False)
+
+                    })
+
+                pdata['gacha_history'] = history
+
+                save_player_data(player['server_uid'], pdata)
+
+                extra_info = '；'.join(converted_info) if converted_info else ''
+
+                self.send_json({
+
+                    'type': 'gacha_result',
+
+                    'data': {
+
+                        'success': True,
+
+                        'results': results,
+
+                        'pity': pdata.get('gacha_pity_5', 0),
+
+                        'guaranteed': pdata.get('gacha_guaranteed_5', False),
+
+                        'extra_info': extra_info,
+
+                        'tickets': inv['star_rail_tickets'],
+
+                        'jade': inv.get('jade', 0),
+
+                    }
+
+                })
+
+            return player
+
+
         elif mtype == 'request_birthday_mail' and player:
+
             display_name = data.get('display_name', player['name'])
+
             server_uid = player['server_uid']
+
             pdata = load_player_data(server_uid)
+
             if not pdata:
                 self.send_json(
                     {'type': 'birthday_mail_result', 'data': {'success': False, 'message': '玩家数据不存在'}})
+
                 return player
 
             # 检查是否已祝福（服务端记录）
-            if pdata.get('last_birthday_greet_year') == datetime.now(SERVER_TIMEZONE).year:
+
+            current_year = datetime.now(SERVER_TIMEZONE).year
+
+            if pdata.get('birthday_reward_year') == current_year:
                 self.send_json({'type': 'birthday_mail_result', 'data': {'success': False, 'message': '今年已祝福过'}})
+
                 return player
 
-            # 构造邮件
-            items = [
-                {"type": "credit", "amount": 5200},
-                {"type": "star_rail_ticket", "amount": 1}
-            ]
+            # 构造邮件：发放 320 星琼
+
+            items = [{"type": "jade", "amount": 320}]
+
             mail_content = f"{display_name}，生日快乐！"
+
             new_mail = {
+
                 "id": str(uuid.uuid4()),
+
                 "title": "流萤的祝福",
+
                 "content": mail_content,
+
                 "sender": "系统",
+
                 "timestamp": datetime.now(SERVER_TIMEZONE).isoformat(),
+
                 "read": False,
+
                 "claimed": False,
+
                 "items": items,
+
             }
+
             mails = load_player_mails(server_uid)
+
             mails.append(new_mail)
+
             save_player_mails(server_uid, mails)
 
             # 记录祝福年份
-            pdata['last_birthday_greet_year'] = datetime.now(SERVER_TIMEZONE).year
+
+            pdata['birthday_reward_year'] = current_year
+
             save_player_data(server_uid, pdata)
 
             self.send_json({'type': 'birthday_mail_result', 'data': {'success': True, 'message': '生日邮件已发送'}})
-            # 可选：推送邮箱更新通知
+
             self.send_to(player['client'], {'type': 'mails_data', 'data': {'mails': mails}})
+
             return player
 
         elif mtype == 'send_mail' and player:
@@ -1153,15 +1966,36 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.handle_command(data['command'], player)
             return player
 
+
         elif mtype == 'get_player_list' and player:
+
+            now = time.time()
+
             with server_lock:
+
                 lst = []
+
                 for p in clients.values():
+
                     entry = {'name': p['name'], 'id': p['userid']}
+
                     if player['permission'] == 'admin':
                         entry['uid'] = p['server_uid']
+
+                    # 计算延迟（最后活动时间与当前时间的差值）
+
+                    last = self.server.last_activity.get(p['server_uid'], now)
+
+                    diff = now - last
+
+                    if diff < 10:  # 10秒内活跃视为有效，否则不添加（客户端显示"未知"）
+
+                        entry['latency'] = int(diff * 1000)  # 转换为毫秒
+
                     lst.append(entry)
+
             self.send_json({'type': 'player_list', 'data': {'players': lst}})
+
             return player
 
         elif mtype == 'check_name' and player:
@@ -1458,6 +2292,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
 
 
+
+
         elif mtype == 'claim_mail' and player:
 
             mail_id = data['mail_id']
@@ -1465,6 +2301,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
             mails = load_player_mails(player['server_uid'])
 
             claimed = False
+
+            pdata = load_player_data(player['server_uid'])
+
+            if not pdata:
+                self.send_json({'type': 'claim_mail_result', 'data': {'success': False, 'reason': '玩家数据不存在'}})
+
+                return player
 
             for mail in mails:
 
@@ -1476,29 +2319,27 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                     inv = player['inventory']
 
-                    # 统计变量
-
                     credit_gained = 0
 
                     cake_gained = 0
 
-                    # 发放物品
+                    jade_gained = 0
+
+                    ticket_gained = 0
 
                     for item in mail['items']:
 
                         itype = item['type']
 
-                        if itype == 'cake':
+                        amount = item.get('amount', 0)
 
-                            amount = item['amount']
+                        if itype == 'cake':
 
                             inv['balance'] = inv.get('balance', 0) + amount
 
                             cake_gained += amount
 
                         elif itype == 'credit':
-
-                            amount = item['amount']
 
                             inv['credit'] = inv.get('credit', 0) + amount
 
@@ -1507,16 +2348,95 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                             credit_gained += amount
 
+                        elif itype == 'jade':
+
+                            inv['jade'] = inv.get('jade', 0) + amount
+
+                            jade_gained += amount
+
+                        elif itype == 'star_rail_ticket':
+
+                            inv['star_rail_tickets'] = inv.get('star_rail_tickets', 0) + amount
+
+                            ticket_gained += amount
+
                         elif itype == 'clothes':
 
                             cid = item['id']
 
-                            if cid not in inv['owned_clothes']:
-                                inv['owned_clothes'].append(cid)
+                            if cid and cid not in inv.get('owned_clothes', []):
+                                inv.setdefault('owned_clothes', ['normal']).append(cid)
 
-                        elif itype == 'star_rail_ticket':
+                        elif itype == 'custom':
 
-                            inv['star_rail_tickets'] = inv.get('star_rail_tickets', 0) + item['amount']
+                            custom_items = inv.setdefault('custom_items', {})
+
+                            custom_items[item['id']] = custom_items.get(item['id'], 0) + amount
+
+                            stats = pdata.setdefault('redeem_stats', {})
+
+                            stats[item['id']] = stats.get(item['id'], 0) + amount
+
+                    # ---- 统计更新（只对非兑换码邮件） ----
+
+                    if 'code' not in mail:
+
+                        pdata['monthly_credit_gained'] = pdata.get('monthly_credit_gained', 0) + credit_gained
+
+                        pdata['monthly_cake_gained'] = pdata.get('monthly_cake_gained', 0) + cake_gained
+
+                        # ★ 新增
+
+                        pdata['monthly_jade_gained'] = pdata.get('monthly_jade_gained', 0) + jade_gained
+
+                        pdata['total_jade_gained'] = pdata.get('total_jade_gained', 0) + jade_gained
+
+                        pdata['monthly_ticket_gained'] = pdata.get('monthly_ticket_gained', 0) + ticket_gained
+
+                        pdata['total_ticket_gained'] = pdata.get('total_ticket_gained', 0) + ticket_gained
+
+                        # redeem_stats
+
+                        stats = pdata.setdefault('redeem_stats', {})
+
+                        for item in mail['items']:
+
+                            itype = item['type']
+
+                            if itype == 'clothes':
+
+                                cid = item.get('id')
+
+                                if cid:
+                                    stats[cid] = stats.get(cid, 0) + 1
+
+                            elif itype == 'custom':
+
+                                pass  # 已处理
+
+                            else:
+
+                                amount = item.get('amount', 1)
+
+                                stats[itype] = stats.get(itype, 0) + amount
+
+                        save_player_data(player['server_uid'], pdata)
+
+                        # 推送统计更新
+
+                        stats_data = {
+
+                            'monthly_credit_gained': pdata.get('monthly_credit_gained', 0),
+
+                            'monthly_cake_gained': pdata.get('monthly_cake_gained', 0),
+
+                            'monthly_jade_gained': pdata.get('monthly_jade_gained', 0),
+
+                            'monthly_ticket_gained': pdata.get('monthly_ticket_gained', 0),
+
+                        }
+
+                        self.send_to(player['client'], {'type': 'stats_data', 'data': {'stats': stats_data}})
 
                     player['inventory'] = inv
 
@@ -1524,77 +2444,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                     save_player_mails(player['server_uid'], mails)
 
-                    # ★ 统计更新：仅对非兑换码邮件（无 code 字段）进行统计
-
-                    # 兑换码邮件在兑换时已统计过，这里不再重复
-
-                    if 'code' not in mail:
-
-                        pdata = load_player_data(player['server_uid'])
-
-                        if pdata:
-
-                            # 月度信用点 & 蛋糕卷
-
-                            pdata['monthly_credit_gained'] = pdata.get('monthly_credit_gained', 0) + credit_gained
-
-                            pdata['monthly_cake_gained'] = pdata.get('monthly_cake_gained', 0) + cake_gained
-
-                            # redeem_stats 净获得统计
-
-                            stats = pdata.setdefault('redeem_stats', {})
-
-                            for item in mail['items']:
-
-                                itype = item['type']
-
-                                if itype == 'clothes':
-
-                                    cid = item['id']
-
-                                    if cid:
-                                        stats[cid] = stats.get(cid, 0) + 1
-
-                                else:
-
-                                    amount = item.get('amount', 1)
-
-                                    stats[itype] = stats.get(itype, 0) + amount
-
-                            save_player_data(player['server_uid'], pdata)
-
-                            # 打印日志方便调试
-
-                            self.server.log_emitter.log_signal.emit(
-
-                                f"[统计] 用户 {player['name']} 领取邮件，信用点 +{credit_gained}，蛋糕卷 +{cake_gained}"
-
-                            )
-
-                        else:
-
-                            self.server.log_emitter.log_signal.emit("[统计] 未找到玩家数据，统计更新失败")
-
-                    else:
-
-                        self.server.log_emitter.log_signal.emit("[统计] 兑换码邮件，跳过重复统计")
-
-                    # 推送库存更新给客户端
-
                     self.send_to(player['client'], {'type': 'inventory_update', 'data': {'inventory': inv}})
-
-                    # ★ 统计更新后，主动推送最新统计数据（让月度报告立即刷新）
-
-                    if 'code' not in mail and pdata:
-                        stats_data = {
-
-                            'monthly_credit_gained': pdata.get('monthly_credit_gained', 0),
-
-                            'monthly_cake_gained': pdata.get('monthly_cake_gained', 0),
-
-                        }
-
-                        self.send_to(player['client'], {'type': 'stats_data', 'data': {'stats': stats_data}})
 
                     break
 
@@ -1605,10 +2455,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
             else:
 
                 self.send_json(
-
                     {'type': 'claim_mail_result', 'data': {'success': False, 'reason': '邮件不存在或已领取'}})
 
             return player
+
 
 
 
@@ -1641,7 +2491,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     if player['name'] not in allowed and player['uid'] not in allowed and player[
                         'server_uid'] not in allowed:
                         self.send_json(
-
                             {'type': 'redeem_result', 'data': {'success': False, 'message': '该兑换码不属于你'}})
 
                         return player
@@ -1652,7 +2501,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                 try:
 
-                    if datetime.now() > datetime.fromisoformat(expire_time):
+                    if datetime.now(SERVER_TIMEZONE) > datetime.fromisoformat(expire_time):
                         self.send_json({'type': 'redeem_result', 'data': {'success': False, 'message': '兑换码已过期'}})
 
                         return player
@@ -1668,19 +2517,23 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
             inv = player['inventory']
 
+            pdata = load_player_data(player['server_uid'])  # 加载玩家数据用于统计
+
             try:
 
                 for item in cinfo.get('items', []):
 
                     itype = item.get('type', '')
 
+                    amount = item.get('amount', 0)
+
                     if itype == 'cake':
 
-                        inv['balance'] = inv.get('balance', 0) + item.get('amount', 0)
+                        inv['balance'] = inv.get('balance', 0) + amount
 
                     elif itype == 'credit':
 
-                        inv['credit'] = inv.get('credit', 0) + item.get('amount', 0)
+                        inv['credit'] = inv.get('credit', 0) + amount
 
                         if inv['credit'] > 99999999:
                             inv['credit'] = 99999999
@@ -1694,7 +2547,20 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                     elif itype == 'star_rail_ticket':
 
-                        inv['star_rail_tickets'] = inv.get('star_rail_tickets', 0) + item.get('amount', 0)
+                        inv['star_rail_tickets'] = inv.get('star_rail_tickets', 0) + amount
+
+                        # ★ 专票不统计（兑换码获得的专票不计）
+
+                    elif itype == 'jade':
+
+                        inv['jade'] = inv.get('jade', 0) + amount
+
+                        # ★ 星琼统计
+
+                        if pdata:
+                            pdata['monthly_jade_gained'] = pdata.get('monthly_jade_gained', 0) + amount
+
+                            pdata['total_jade_gained'] = pdata.get('total_jade_gained', 0) + amount
 
             except Exception as e:
 
@@ -1708,14 +2574,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
             save_player_inventory(player['server_uid'], inv)
 
-            # ★ 更新兑换码净统计
-
-            pdata = load_player_data(player['server_uid'])
+            # 更新 redeem_stats 和 redeemed_codes
 
             if pdata:
 
-                if code not in pdata['redeemed_codes']:
-                    pdata['redeemed_codes'].append(code)
+                if code not in pdata.get('redeemed_codes', []):
+                    pdata.setdefault('redeemed_codes', []).append(code)
 
                 stats = pdata.setdefault('redeem_stats', {})
 
@@ -1738,7 +2602,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                 save_player_data(player['server_uid'], pdata)
 
-            # 生成物品描述
+            # 生成物品描述，发送邮件
 
             items_desc = []
 
@@ -1764,6 +2628,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                     items_desc.append(f"星铁专票 x{item['amount']}")
 
+                elif item['type'] == 'jade':
+
+                    items_desc.append(f"星琼 x{item['amount']}")
+
             mail_content = "你成功兑换了以下物品：\n" + "\n".join(items_desc)
 
             mails = load_player_mails(player['server_uid'])
@@ -1786,13 +2654,30 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                 "items": cinfo['items'],
 
-                "code": code  # ★ 新增：记录兑换码
+                "code": code  # 标记兑换码，用于统计排除
 
             }
 
             mails.append(new_mail)
 
             save_player_mails(player['server_uid'], mails)
+
+            # 推送库存更新
+
+            self.send_to(player['client'], {'type': 'inventory_update', 'data': {'inventory': inv}})
+
+            # 推送统计更新
+
+            if pdata:
+                stats_data = {
+
+                    'monthly_jade_gained': pdata.get('monthly_jade_gained', 0),
+
+                    'monthly_ticket_gained': pdata.get('monthly_ticket_gained', 0),
+
+                }
+
+                self.send_to(player['client'], {'type': 'stats_data', 'data': {'stats': stats_data}})
 
             self.send_json({'type': 'redeem_result', 'data': {'success': True, 'message': '兑换成功！物品已发送至邮箱'}})
 
@@ -1822,32 +2707,67 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
             return None
 
+
         elif mtype == 'sign_in' and player:
+
             now = datetime.now(SERVER_TIMEZONE)
+
             if now.hour < 3:
+
                 sign_date = (now - timedelta(days=1)).strftime('%Y-%m-%d')
+
             else:
+
                 sign_date = now.strftime('%Y-%m-%d')
+
             last_sign = player.get('last_sign_date')
+
             if last_sign == sign_date:
                 self.send_json({'type': 'sign_result', 'data': {'success': False, 'message': '今日已签到'}})
+
                 return player
+
+            # 更新信用点
+
             player['inventory']['credit'] = player['inventory'].get('credit', 0) + 7200
+
             if player['inventory']['credit'] > 99999999:
                 player['inventory']['credit'] = 99999999
+
             player['last_sign_date'] = sign_date
+
             inv = player['inventory']
+
             inv['last_sign_date'] = sign_date
+
             save_player_inventory(player['server_uid'], inv)
+
+            # ★ 增加月度签到天数统计
+
+            pdata = load_player_data(player['server_uid'])
+
+            pdata['monthly_sign_days'] = pdata.get('monthly_sign_days', 0) + 1
+
+            save_player_data(player['server_uid'], pdata)
+
             self.send_json({
+
                 'type': 'sign_result',
+
                 'data': {
+
                     'success': True,
+
                     'message': '签到成功！获得 7200 信用点',
+
                     'last_sign_date': sign_date
+
                 }
+
             })
+
             self.send_json({'type': 'inventory_update', 'data': {'inventory': inv}})
+
             return player
 
         # ===== 新增：统计数据更新（客户端上报） =====
@@ -1860,6 +2780,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         if key in pdata:
                             pdata[key] = value
                     save_player_data(player['server_uid'], pdata)
+                    # ★ 检查月度成就
+                    self._check_and_grant_achievement(player['server_uid'])
                     self.send_json({'type': 'stats_update_ok', 'data': {'success': True}})
                 else:
                     self.send_json({'type': 'stats_update_ok', 'data': {'success': False, 'reason': '玩家数据不存在'}})
@@ -1887,13 +2809,16 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     'monthly_credit_gained': pdata.get('monthly_credit_gained', 0),
                     'monthly_cake_gained': pdata.get('monthly_cake_gained', 0),
                     'current_month': pdata.get('current_month', None),
+                    # ★ 新增
+                    'monthly_jade_gained': pdata.get('monthly_jade_gained', 0),
+                    'total_jade_gained': pdata.get('total_jade_gained', 0),
+                    'monthly_ticket_gained': pdata.get('monthly_ticket_gained', 0),
+                    'total_ticket_gained': pdata.get('total_ticket_gained', 0),
                 }
                 self.send_json({'type': 'stats_data', 'data': {'stats': stats}})
             else:
                 self.send_json({'type': 'stats_data', 'data': {'stats': {}}})
             return player
-
-        return player
 
     def send_player_list_to_all(self):
         for p in clients.values():
@@ -1921,7 +2846,10 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return False
 
     def _parse_items_spec(self, items_spec):
-        """解析物品列表，返回 items 列表，失败返回 None"""
+        """
+        解析物品列表，返回 items 列表，失败返回 None。
+        支持 cake, credit, ticket, star_rail_tickets, jade, 时装ID。
+        """
         items = []
         for part in items_spec.split('&'):
             part = part.strip()
@@ -1942,18 +2870,38 @@ class TCPHandler(socketserver.BaseRequestHandler):
             else:
                 itype = part
                 qty = 1
+
+            # ★ 关键修改：增加 jade 和 star_rail_tickets
             if itype == 'cake':
                 items.append({'type': 'cake', 'amount': qty})
             elif itype == 'credit':
                 items.append({'type': 'credit', 'amount': qty})
-            elif itype == 'ticket':
+            elif itype == 'ticket' or itype == 'star_rail_tickets':
                 items.append({'type': 'star_rail_ticket', 'amount': qty})
+            elif itype == 'jade':
+                items.append({'type': 'jade', 'amount': qty})
             else:
                 items.append({'type': 'clothes', 'id': itype})
+
         if not items:
             self.send_json({'type': 'command_result', 'data': {'success': False, 'message': '未指定有效物品'}})
             return None
         return items
+
+    def _get_player_name_by_uid(self, server_uid):
+        """根据 server_uid 返回玩家名字"""
+        with server_lock:
+            if server_uid in player_by_server_uid:
+                return player_by_server_uid[server_uid]['name']
+        path = os.path.join(PLAYERS_DIR, f'{server_uid}.json')
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data.get('name', server_uid)
+            except:
+                pass
+        return server_uid
 
     def handle_command(self, cmd, player):
         parts = cmd.strip().split()
@@ -1993,7 +2941,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 "  /give <用户> <物品id> <数量>\n"
                 "      给指定玩家发放物品（邮件形式）\n"
                 "      用户: @a(所有人) @s(自己) 或 玩家名\n"
-                "      物品: cake, credit, ruyi(时装), ticket 等\n"
+                "      物品: cake, credit, ruyi(时装), ticket, jade, star_rail_tickets\n"
                 "      示例: /give Gubwin credit 1000\n\n"
                 "  /set <用户> <物品id> <数量>\n"
                 "      直接设定玩家物品数量（覆盖）\n"
@@ -2030,15 +2978,35 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 "  /ban <玩家> [时长]         封禁玩家（时长如 30D, 2026-12-31）\n"
                 "  /unban <玩家>              解封玩家\n"
                 "  /op <玩家>                 提升为管理员\n"
-                "  /deop <玩家>               取消管理员\n\n"
+                "  /deop <玩家>               取消管理员\n"
+                "  /resetname <用户>          重置玩家的改名冷却时间\n\n"
                 "【区域与时区封禁】\n"
                 "  /ban area <国家代码>       封禁地区\n"
                 "  /unban area <国家代码>     解封地区\n"
                 "  /ban timezone <时区名>     封禁时区\n"
                 "  /unban timezone <时区名>   解封时区\n\n"
-                "【玩家重命名】\n"
-                "  /resetname <用户>   重置指定玩家的每月改名次数\n\n"
-                "💡 提示：服务器控制台命令仅管理员在控制台使用，客户端不可执行。"
+                "【IP 封禁】（管理员专用）\n"
+                "  /ban ip list              查看已封禁的 IP 列表\n"
+                "  /ban ip <IP>              直接封禁指定 IP（支持 IPv4）\n"
+                "  /ban ip <玩家名>          封禁在线玩家当前的 IP\n"
+                "  /unban ip <IP>            解封指定 IP\n"
+                "  ⚠️ 封禁 IP 后，所有使用该 IP 的非管理员玩家将被立即踢出。\n\n"
+                "【访问控制】（管理员专用）\n"
+                "  /maxplayers <人数>         设置服务器最大在线人数（默认10）\n"
+                "  /access <whitelist|blacklist|none> <on|off>\n"
+                "      开启/关闭白名单或黑名单模式，none 关闭所有限制\n"
+                "  /whitelist on|off          快捷开启/关闭白名单模式\n"
+                "  /blacklist on|off          快捷开启/关闭黑名单模式\n"
+                "  /whitelist add|remove|list [uuid]\n"
+                "      管理白名单（必须先开启白名单模式）\n"
+                "  /blacklist add|remove|list [uuid]\n"
+                "      管理黑名单（必须先开启黑名单模式）\n"
+                "  ⚠️ 管理员拥有完全豁免权，不受上述限制\n\n"
+                "【其他】\n"
+                "  /kick <玩家>               踢出玩家（需在线）\n"
+                "  /recall <消息ID>           撤回自己的消息（2分钟内）\n"
+                "  /redeemstats               查看自己的兑换码净获得统计\n\n"
+                "💡 提示：所有管理命令仅管理员可用。输入 /help 查看本帮助。"
             )
             self.send_json({'type': 'system_message', 'data': {'text': help_text}})
             self.server.log_emitter.log_signal.emit(f"[帮助] {player['name']} 查看了帮助")
@@ -2071,8 +3039,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     reason_text = "服务器正在维护"
                 kick_all_players_for_maintenance(reason_text)
                 self.send_json({'type': 'command_result', 'data': {'success': True,
-                                                                   'message': f'维护模式已开启，已踢出所有在线玩家。提示消息: {maintenance_message}'}})
-                self.broadcast_system(f"服务器已进入维护模式，所有玩家已被踢出。")
+                                                                   'message': f'⚠️维护模式已开启，已踢出所有在线玩家。提示消息: {maintenance_message}'}})
+                self.broadcast_system(f"⚠️服务器已进入维护模式，所有玩家已被踢出。")
             elif subcmd == 'off':
                 set_maintenance(False, '')
                 self.send_json({'type': 'command_result', 'data': {'success': True, 'message': '维护模式已关闭'}})
@@ -2126,10 +3094,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.send_json({'type': 'command_result', 'data': {'success': True, 'message': f'已封禁时区 {tzname}'}})
             with server_lock:
                 to_kick = [p for p in clients.values() if p.get('timezone') == tzname]
+            # 时区封禁踢出
             for p in to_kick:
                 try:
-                    self.send_to(p['client'], {'type': 'system_message',
-                                               'data': {'text': f'你的时区 {tzname} 已被服务器封禁，你将被踢出。'}})
+                    TCPHandler.send_to(p['client'], {'type': 'kick', 'data': {
+                        'reason': f'你的时区 {tzname} 已被服务器封禁，你将被踢出。'}})
+                    time.sleep(0.1)
                     p['client'].close()
                 except:
                     pass
@@ -2174,6 +3144,180 @@ class TCPHandler(socketserver.BaseRequestHandler):
             # 不广播，只返回结果
             self.send_json({'type': 'command_result',
                             'data': {'success': True, 'message': f'服务器名称已更新为: {new_name}，重启后生效'}})
+            return
+
+        if cmd_name == '/maxplayers':
+            if player['permission'] != 'admin':
+                self.send_json({'type': 'command_result', 'data': {'success': False, 'message': '只有管理员可以使用此命令'}})
+                return
+            if len(parts) != 2 or not parts[1].isdigit():
+                self.send_json({'type': 'command_result', 'data': {'success': False, 'message': '用法: /maxplayers <人数>'}})
+                return
+            new_limit = int(parts[1])
+            if new_limit < 1:
+                self.send_json({'type': 'command_result', 'data': {'success': False, 'message': '人数必须 ≥ 1'}})
+                return
+            config = load_server_config()
+            config['max_players'] = new_limit
+            save_server_config(config)
+            self.send_json({'type': 'command_result', 'data': {'success': True, 'message': f'最大人数已设为 {new_limit}，新连接立即生效'}})
+            return
+
+        if cmd_name == '/access':
+            if player['permission'] != 'admin':
+                self.send_json({'type': 'command_result', 'data': {'success': False, 'message': '只有管理员可以使用此命令'}})
+                return
+            if len(parts) < 3 or parts[1] not in ('whitelist', 'blacklist', 'none'):
+                self.send_json({'type': 'command_result', 'data': {'success': False, 'message': '用法: /access <whitelist|blacklist|none> <on|off>'}})
+                return
+            mode = parts[1]
+            action = parts[2].lower()
+            if mode == 'none':
+                config = load_server_config()
+                config['access_mode'] = 'none'
+                save_server_config(config)
+                self.send_json({'type': 'command_result', 'data': {'success': True, 'message': '访问控制已关闭（none模式）'}})
+                return
+            if action not in ('on', 'off'):
+                self.send_json({'type': 'command_result', 'data': {'success': False, 'message': '动作必须是 on 或 off'}})
+                return
+            config = load_server_config()
+            if action == 'on':
+                config['access_mode'] = mode
+                self.send_json({'type': 'command_result', 'data': {'success': True, 'message': f'{mode} 模式已启用'}})
+            else:
+                config['access_mode'] = 'none'
+                self.send_json({'type': 'command_result', 'data': {'success': True, 'message': f'{mode} 模式已关闭'}})
+            save_server_config(config)
+            return
+
+        if cmd_name == '/whitelist':
+            if player['permission'] != 'admin':
+                self.send_json(
+                    {'type': 'command_result', 'data': {'success': False, 'message': '只有管理员可以使用此命令'}})
+                return
+            if len(parts) < 2:
+                self.send_json({'type': 'command_result',
+                                'data': {'success': False, 'message': '用法: /whitelist add|remove|list [uuid]'}})
+                return
+            subcmd = parts[1].lower()
+            if subcmd == 'list':
+                wl = load_whitelist()
+                if wl:
+                    lines = []
+                    for uid in wl:
+                        name = self._get_player_name_by_uid(uid)
+                        lines.append(f"{name} ({uid})")
+                    text = '白名单列表:\n' + '\n'.join(lines)
+                else:
+                    text = '白名单为空'
+                self.send_json({'type': 'system_message', 'data': {'text': text}})
+                self.send_json({'type': 'command_result', 'data': {'success': True, 'message': text}})
+                return
+            if len(parts) < 3:
+                self.send_json({'type': 'command_result',
+                                'data': {'success': False, 'message': '请提供玩家标识符（名字、userid 或 uid）'}})
+                return
+            identifier = parts[2]
+            # 查找玩家文件或在线玩家，获取 server_uid
+            server_uid, pdata = self.find_player_file_by_identifier(identifier)
+            if server_uid is None:
+                with server_lock:
+                    for p in clients.values():
+                        if p['name'] == identifier or p['userid'] == identifier or p['uid'] == identifier or p[
+                            'server_uid'] == identifier:
+                            server_uid = p['server_uid']
+                            break
+            if server_uid is None:
+                self.send_json(
+                    {'type': 'command_result', 'data': {'success': False, 'message': f'未找到玩家 {identifier}'}})
+                return
+            wl = load_whitelist()
+            if subcmd == 'add':
+                if server_uid not in wl:
+                    wl.append(server_uid)
+                    save_whitelist(wl)
+                    self.send_json({'type': 'command_result',
+                                    'data': {'success': True, 'message': f'已添加 {server_uid} 到白名单'}})
+                else:
+                    self.send_json(
+                        {'type': 'command_result', 'data': {'success': False, 'message': f'{server_uid} 已在白名单中'}})
+            elif subcmd == 'remove':
+                if server_uid in wl:
+                    wl.remove(server_uid)
+                    save_whitelist(wl)
+                    self.send_json({'type': 'command_result',
+                                    'data': {'success': True, 'message': f'已从白名单移除 {server_uid}'}})
+                else:
+                    self.send_json(
+                        {'type': 'command_result', 'data': {'success': False, 'message': f'{server_uid} 不在白名单中'}})
+            else:
+                self.send_json({'type': 'command_result',
+                                'data': {'success': False, 'message': '未知子命令，可用 add/remove/list'}})
+            return
+
+        if cmd_name == '/blacklist':
+            if player['permission'] != 'admin':
+                self.send_json(
+                    {'type': 'command_result', 'data': {'success': False, 'message': '只有管理员可以使用此命令'}})
+                return
+            if len(parts) < 2:
+                self.send_json({'type': 'command_result',
+                                'data': {'success': False, 'message': '用法: /blacklist add|remove|list [uuid]'}})
+                return
+            subcmd = parts[1].lower()
+            if subcmd == 'list':
+                bl = load_blacklist()
+                if bl:
+                    lines = []
+                    for uid in bl:
+                        name = self._get_player_name_by_uid(uid)
+                        lines.append(f"{name} ({uid})")
+                    text = '黑名单列表:\n' + '\n'.join(lines)
+                else:
+                    text = '黑名单为空'
+                self.send_json({'type': 'system_message', 'data': {'text': text}})
+                self.send_json({'type': 'command_result', 'data': {'success': True, 'message': text}})
+                return
+            if len(parts) < 3:
+                self.send_json({'type': 'command_result',
+                                'data': {'success': False, 'message': '请提供玩家标识符（名字、userid 或 uid）'}})
+                return
+            identifier = parts[2]
+            server_uid, pdata = self.find_player_file_by_identifier(identifier)
+            if server_uid is None:
+                with server_lock:
+                    for p in clients.values():
+                        if p['name'] == identifier or p['userid'] == identifier or p['uid'] == identifier or p[
+                            'server_uid'] == identifier:
+                            server_uid = p['server_uid']
+                            break
+            if server_uid is None:
+                self.send_json(
+                    {'type': 'command_result', 'data': {'success': False, 'message': f'未找到玩家 {identifier}'}})
+                return
+            bl = load_blacklist()
+            if subcmd == 'add':
+                if server_uid not in bl:
+                    bl.append(server_uid)
+                    save_blacklist(bl)
+                    self.send_json({'type': 'command_result',
+                                    'data': {'success': True, 'message': f'已添加 {server_uid} 到黑名单'}})
+                else:
+                    self.send_json(
+                        {'type': 'command_result', 'data': {'success': False, 'message': f'{server_uid} 已在黑名单中'}})
+            elif subcmd == 'remove':
+                if server_uid in bl:
+                    bl.remove(server_uid)
+                    save_blacklist(bl)
+                    self.send_json({'type': 'command_result',
+                                    'data': {'success': True, 'message': f'已从黑名单移除 {server_uid}'}})
+                else:
+                    self.send_json(
+                        {'type': 'command_result', 'data': {'success': False, 'message': f'{server_uid} 不在黑名单中'}})
+            else:
+                self.send_json({'type': 'command_result',
+                                'data': {'success': False, 'message': '未知子命令，可用 add/remove/list'}})
             return
 
         # ---------- 地区封禁/解封 ----------
@@ -2265,13 +3409,14 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         pdata['banned_until'] = banned_until
                         save_player_data(server_uid, pdata)
                     try:
-                        msg = f'你已被管理员封禁。'
+                        reason = '你已被管理员封禁。'
                         if banned_until:
                             until_dt2 = datetime.fromisoformat(banned_until)
-                            msg += f' 解封时间：{until_dt2.strftime("UTC%z %Y-%m-%d %H:%M:%S")}'
+                            reason += f' 解封时间：{until_dt2.strftime("UTC%z %Y-%m-%d %H:%M:%S")}'
                         else:
-                            msg += ' 永久封禁。'
-                        self.send_to(target['client'], {'type': 'system_message', 'data': {'text': msg}})
+                            reason += ' 永久封禁。'
+                        self.send_to(target['client'], {'type': 'kick', 'data': {'reason': reason}})
+                        time.sleep(0.1)
                         target['client'].close()
                     except Exception as e:
                         self.server.log_emitter.log_signal.emit(f"发送封禁消息失败: {e}")
@@ -2318,7 +3463,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     continue
                 if not pdata.get('banned'):
                     self.send_json({'type': 'command_result',
-                                    'data': {'success': False, 'message': f'玩家 {identifier} 未被封禁'}})
+                                    'data': {'success': False, 'message': f'玩家 {identifier} 未被封禁(如果被禁可能是ip禁入!)'}})
                     continue
                 pdata['banned'] = False
                 pdata['banned_until'] = None
@@ -2370,23 +3515,29 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                     'data': {'success': False, 'message': f'玩家 {identifier} 数据不存在'}})
                     return
                 old_uid = pdata.get('uid', '')
+                # 正确转换前缀，保留数字部分
                 if old_uid.startswith('user-'):
                     new_uid = old_uid.replace('user-', 'admin-', 1)
                 elif old_uid.startswith('admin-'):
                     new_uid = old_uid
                 else:
-                    # 兼容情况，直接加 admin- 前缀
                     new_uid = 'admin-' + old_uid
                 pdata['uid'] = new_uid
                 pdata['permission'] = 'admin'
                 save_player_data(target['server_uid'], pdata)
 
                 target['permission'] = 'admin'
-                target['uid'] = new_uid  # 更新 player 对象中的 uid
+                target['uid'] = new_uid
 
-                self.send_to(target['client'], {'type': 'permission_changed',
-                                                'data': {'permission': 'admin', 'server_uid': target['server_uid'],
-                                                         'uid': new_uid}})
+                # 发送 permission_changed，必须包含 uid
+                self.send_to(target['client'], {
+                    'type': 'permission_changed',
+                    'data': {
+                        'permission': 'admin',
+                        'server_uid': target['server_uid'],
+                        'uid': new_uid
+                    }
+                })
                 self.broadcast_system(f"{identifier} 被提升为管理员")
                 self.send_player_list_to_all()
                 self.send_json(
@@ -2394,7 +3545,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 self.server.log_emitter.log_signal.emit(f"[OP] 成功提升 {identifier} 为管理员")
                 return
 
-            # 离线玩家
+            # 离线玩家（同样修改 uid 前缀）
             server_uid, pdata = self.find_player_file_by_identifier(identifier)
             if server_uid is None:
                 self.send_json({'type': 'command_result',
@@ -2427,7 +3578,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 return
 
             identifier = parts[1]
-            self.server.log_emitter.log_signal.emit(f"[DEOP] 管理员 {player['name']} 尝试取消 {identifier} 的管理员资格")
+            self.server.log_emitter.log_signal.emit(
+                f"[DEOP] 管理员 {player['name']} 尝试取消 {identifier} 的管理员资格")
 
             target = None
             with server_lock:
@@ -2460,14 +3612,39 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 target['permission'] = 'user'
                 target['uid'] = new_uid
 
-                self.send_to(target['client'], {'type': 'permission_changed',
-                                                'data': {'permission': 'user', 'server_uid': target['server_uid'],
-                                                         'uid': new_uid}})
+                # 发送 permission_changed，必须包含 uid
+                self.send_to(target['client'], {
+                    'type': 'permission_changed',
+                    'data': {
+                        'permission': 'user',
+                        'server_uid': target['server_uid'],
+                        'uid': new_uid
+                    }
+                })
                 self.broadcast_system(f"{identifier} 被取消管理员资格")
                 self.send_player_list_to_all()
                 self.send_json({'type': 'command_result',
                                 'data': {'success': True, 'message': f'已取消 {identifier} 的管理员资格'}})
                 self.server.log_emitter.log_signal.emit(f"[DEOP] 成功取消 {identifier} 的管理员资格")
+
+                # 如果维护模式开启，踢出该玩家
+                with maintenance_lock:
+                    if maintenance_mode:
+                        try:
+                            self.send_to(target['client'], {
+                                'type': 'kick',
+                                'data': {'reason': '维护模式已开启，你已被解除管理员权限，无法继续连接。'}
+                            })
+                            time.sleep(0.1)
+                            target['client'].close()
+                        except:
+                            pass
+                        with server_lock:
+                            if target['client'] in clients:
+                                del clients[target['client']]
+                            if target['server_uid'] in player_by_server_uid:
+                                del player_by_server_uid[target['server_uid']]
+                        self.server.log_emitter.log_signal.emit(f"[维护模式] 已踢出被 deop 的玩家 {target['name']}")
                 return
 
             # 离线玩家
@@ -2519,7 +3696,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                                                    'message': '用法: /All_Versions True 或 /All_Versions False'}})
             return
 
-        # ========== 以下为新增命令（新格式） ==========
+        # ---------- /give ----------
         if cmd_name == '/give':
             if player['permission'] != 'admin':
                 self.send_json(
@@ -2527,24 +3704,22 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 return
             if len(parts) < 3:
                 self.send_json({'type': 'command_result',
-                                'data': {'success': False,
-                                         'message': '格式错误，请使用 /give <用户> <物品id> [数量] (数量默认为1，时装自动为1)'}})
+                                'data': {'success': False, 'message': '格式错误，请使用 /give <用户> <物品id> [数量]'}})
                 return
             user_spec = parts[1]
             item_id = parts[2].lower()
-
-            # 别名映射（仅限已知时装）
+            # 别名映射（时装）
             fashion_alias = {'ruyi': '26_Newyear'}
             if item_id in fashion_alias:
                 item_id = fashion_alias[item_id]
 
-            # 物品合法性校验
+            # 1️⃣ 校验物品
             if not self.is_valid_item(item_id):
-                self.send_json({'type': 'command_result',
-                                'data': {'success': False,
-                                         'message': f'未知物品ID：{item_id}，请使用 cake/credit/ticket 或已注册的时装ID'}})
+                self.send_json(
+                    {'type': 'command_result', 'data': {'success': False, 'message': f'未知物品ID：{item_id}'}})
                 return
 
+            # 2️⃣ 解析数量
             if len(parts) >= 4:
                 try:
                     amount = int(parts[3])
@@ -2557,10 +3732,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
             else:
                 amount = 1
             # 时装强制数量为1
-            if item_id not in ['cake', 'credit', 'ticket']:
+            if item_id not in ('cake', 'credit', 'ticket', 'star_rail_tickets',
+                               'jade') and item_id in AVAILABLE_CLOTHES:
                 amount = 1
 
-            # 确定目标玩家
+            # 3️⃣ 获取目标玩家列表
             target_players = []
             if user_spec == '@a':
                 with server_lock:
@@ -2590,33 +3766,49 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         {'type': 'command_result', 'data': {'success': False, 'message': f'未找到用户 {user_spec}'}})
                     return
 
-            # 构造物品列表
+            # 4️⃣ ★★★ 构造 items 列表（支持 jade 和 star_rail_tickets）★★★
             items = []
             if item_id == 'cake':
                 items.append({'type': 'cake', 'amount': amount})
+            elif item_id == 'jade':
+                items.append({'type': 'jade', 'amount': amount})
+            elif item_id == 'star_rail_tickets' or item_id == 'ticket':
+                items.append({'type': 'star_rail_ticket', 'amount': amount})
             elif item_id == 'credit':
                 items.append({'type': 'credit', 'amount': amount})
-            elif item_id == 'ticket':
-                items.append({'type': 'star_rail_ticket', 'amount': amount})
-            else:
-                # 此时 item_id 已在 AVAILABLE_CLOTHES 中
+            elif item_id in AVAILABLE_CLOTHES:
                 items.append({'type': 'clothes', 'id': item_id})
+            else:
+                # 自定义物品（如果有）
+                custom_items = self.server.load_custom_items() if hasattr(self.server, 'load_custom_items') else []
+                item_info = next((it for it in custom_items if it.get('id') == item_id), None)
+                if item_info:
+                    items.append(
+                        {'type': 'custom', 'id': item_id, 'amount': amount, 'name': item_info.get('name', item_id)})
+                else:
+                    self.send_json(
+                        {'type': 'command_result', 'data': {'success': False, 'message': f'未知物品ID：{item_id}'}})
+                    return
 
-            # 生成物品描述
+            # 5️⃣ 生成物品描述（用于邮件正文）
             items_desc = []
             for item in items:
                 if item['type'] == 'cake':
                     items_desc.append(f"橡木蛋糕卷 x{item['amount']}")
-                elif item['type'] == 'credit':
-                    items_desc.append(f"信用点 x{item['amount']}")
+                elif item['type'] == 'jade':
+                    items_desc.append(f"星琼 x{item['amount']}")
                 elif item['type'] == 'star_rail_ticket':
                     items_desc.append(f"星铁专票 x{item['amount']}")
+                elif item['type'] == 'credit':
+                    items_desc.append(f"信用点 x{item['amount']}")
                 elif item['type'] == 'clothes':
                     cid = item['id']
                     name = AVAILABLE_CLOTHES.get(cid, {}).get('name', cid)
                     items_desc.append(f"时装 [{name}]")
+                elif item['type'] == 'custom':
+                    items_desc.append(f"{item.get('name', item['id'])} x{item['amount']}")
 
-            # 发送邮件给每个目标
+            # 6️⃣ 发送邮件给每个目标
             for p in target_players:
                 mails = load_player_mails(p['server_uid'])
                 mail = {
@@ -2627,10 +3819,11 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     "timestamp": datetime.now(SERVER_TIMEZONE).isoformat(),
                     "read": False,
                     "claimed": False,
-                    "items": items
+                    "items": items  # ← 必须传递非空列表
                 }
                 mails.append(mail)
                 save_player_mails(p['server_uid'], mails)
+                # 在线通知
                 if p.get('client') and p['client'] in clients:
                     try:
                         self.send_to(p['client'], {'type': 'system_message',
@@ -2638,7 +3831,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     except:
                         pass
             self.send_json({'type': 'command_result',
-                            'data': {'success': True, 'message': f'已向 {len(target_players)} 个玩家发送物品'}})
+                            'data': {'success': True, 'message': f'已向 {len(target_players)} 个玩家发送物品邮件'}})
             return
 
         # ---------- /set 处理（含 /set newcode） ----------
@@ -2657,7 +3850,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 code = parts[2]
                 args = parts[3:]
                 expire_str = None
-                # 使用 parse_time_spec 检测最后一个参数是否为有效期
                 if args:
                     delta, dt = parse_time_spec(args[-1])
                     if delta is not None or dt is not None:
@@ -2668,7 +3860,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 else:
                     items_spec = ''
 
-                # 解析物品列表并校验
                 items = []
                 for part in items_spec.split('&'):
                     part = part.strip()
@@ -2689,7 +3880,6 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     else:
                         itype = part
                         qty = 1
-                    # 物品类型校验
                     if itype == 'cake':
                         items.append({'type': 'cake', 'amount': qty})
                     elif itype == 'credit':
@@ -2798,16 +3988,19 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         {'type': 'command_result', 'data': {'success': False, 'message': f'未找到用户 {user_spec}'}})
                     return
 
-            is_fashion = item_id not in ['cake', 'credit', 'ticket']
+            is_fashion = item_id not in ['cake', 'credit', 'ticket', 'star_rail_tickets', 'jade']
             for p in target_players:
-                inv = load_player_inventory(p['server_uid'])
+                # 读取旧库存
+                old_inv = load_player_inventory(p['server_uid'])
+                new_inv = old_inv.copy()
+
                 if is_fashion:
                     if amount == 0:
-                        if item_id in inv.get('owned_clothes', []):
-                            inv['owned_clothes'].remove(item_id)
+                        if item_id in new_inv.get('owned_clothes', []):
+                            new_inv['owned_clothes'].remove(item_id)
                     elif amount == 1:
-                        if item_id not in inv.get('owned_clothes', []):
-                            inv['owned_clothes'].append(item_id)
+                        if item_id not in new_inv.get('owned_clothes', []):
+                            new_inv['owned_clothes'].append(item_id)
                     else:
                         self.send_json({'type': 'command_result',
                                         'data': {'success': False,
@@ -2815,16 +4008,41 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         return
                 else:
                     if item_id == 'cake':
-                        inv['balance'] = amount
+                        new_inv['balance'] = amount
                     elif item_id == 'credit':
-                        inv['credit'] = amount
-                    elif item_id == 'ticket':
-                        inv['star_rail_tickets'] = amount
-                save_player_inventory(p['server_uid'], inv)
+                        new_inv['credit'] = amount
+                    elif item_id == 'ticket' or item_id == 'star_rail_tickets':
+                        new_inv['star_rail_tickets'] = amount
+                    elif item_id == 'jade':
+                        new_inv['jade'] = amount
+
+                # ★ 统计差值（仅增加时统计，减少不统计）
+                pdata = load_player_data(p['server_uid'])
+                if not is_fashion:
+                    if item_id == 'jade':
+                        diff = new_inv.get('jade', 0) - old_inv.get('jade', 0)
+                        if diff > 0:
+                            pdata['monthly_jade_gained'] = pdata.get('monthly_jade_gained', 0) + diff
+                            pdata['total_jade_gained'] = pdata.get('total_jade_gained', 0) + diff
+                    elif item_id in ('ticket', 'star_rail_tickets'):
+                        diff = new_inv.get('star_rail_tickets', 0) - old_inv.get('star_rail_tickets', 0)
+                        if diff > 0:
+                            pdata['monthly_ticket_gained'] = pdata.get('monthly_ticket_gained', 0) + diff
+                            pdata['total_ticket_gained'] = pdata.get('total_ticket_gained', 0) + diff
+
+                save_player_data(p['server_uid'], pdata)
+                save_player_inventory(p['server_uid'], new_inv)
+
                 if p.get('client') and p['client'] in clients:
-                    p['inventory'] = inv
+                    p['inventory'] = new_inv
                     try:
-                        self.send_to(p['client'], {'type': 'inventory_update', 'data': {'inventory': inv}})
+                        self.send_to(p['client'], {'type': 'inventory_update', 'data': {'inventory': new_inv}})
+                        # 推送统计更新
+                        stats_data = {
+                            'monthly_jade_gained': pdata.get('monthly_jade_gained', 0),
+                            'monthly_ticket_gained': pdata.get('monthly_ticket_gained', 0),
+                        }
+                        self.send_to(p['client'], {'type': 'stats_data', 'data': {'stats': stats_data}})
                         if is_fashion:
                             self.send_to(p['client'], {'type': 'system_message',
                                                        'data': {
@@ -2834,8 +4052,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                                        'data': {'text': f'管理员已设置你的 {item_id} 为 {amount}'}})
                     except:
                         pass
-            self.send_json({'type': 'command_result', 'data': {'success': True,
-                                                               'message': f'已处理 {len(target_players)} 个玩家的 {item_id}'}})
+
+            self.send_json({'type': 'command_result',
+                            'data': {'success': True, 'message': f'已处理 {len(target_players)} 个玩家的 {item_id}'}})
             return
 
         # ---------- /clear [用户] [物品或*] ----------
@@ -3679,10 +4898,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         'data': {'success': False, 'message': f'未知指令 {cmd_name} 或该命令未完全实现'}})
 
     def is_valid_item(self, item_id):
-        """检查物品ID是否合法（cake, credit, ticket 或 AVAILABLE_CLOTHES 中的时装ID）"""
-        if item_id in ('cake', 'credit', 'ticket'):
+        if item_id in ('cake', 'credit', 'ticket', 'star_rail_tickets', 'jade'):
             return True
-        return item_id in AVAILABLE_CLOTHES
+        if item_id in AVAILABLE_CLOTHES:
+            return True
+        custom_items = self.server.load_custom_items() if hasattr(self.server, 'load_custom_items') else []
+        return any(it.get('id') == item_id for it in custom_items)
 
     def find_player_file_by_identifier(self, identifier):
         if not os.path.isdir(PLAYERS_DIR):
@@ -3699,9 +4920,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 continue
             server_uid = filename[:-5]
             if (server_uid == identifier or
-                data.get('name') == identifier or
-                data.get('userid') == identifier or
-                data.get('uid') == identifier):
+                    data.get('name') == identifier or
+                    data.get('userid') == identifier or
+                    data.get('uid') == identifier):
                 return server_uid, data
         return None, None
 
@@ -3791,7 +5012,537 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     def __init__(self, server_address, RequestHandlerClass, log_emitter):
         self.log_emitter = log_emitter
         super().__init__(server_address, RequestHandlerClass)
+        self.custom_menu_file = CUSTOM_MENU_FILE
+        self.custom_items_file = CUSTOM_ITEMS_FILE
+        self.last_activity = {}
 
+    def load_custom_menu(self):
+        if os.path.exists(self.custom_menu_file):
+            try:
+                with open(self.custom_menu_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        return data
+            except:
+                pass
+        return []
+
+    def load_custom_items(self):
+        if os.path.exists(self.custom_items_file):
+            try:
+                with open(self.custom_items_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if isinstance(data, list):
+                        return data
+            except:
+                pass
+        return []
+
+
+class ContentBridge(QObject):
+    dataChanged = pyqtSignal()
+
+    def __init__(self, window):
+        super().__init__()
+        self.window = window
+        print(f"[Bridge] 初始化，window = {window}")
+
+    @pyqtSlot(str, str, result=bool)
+    def uploadResource(self, menu_id, file_data_json):
+        """
+        接收前端上传的文件列表（JSON），打包为ZIP并保存到 server_data/webroot/resources/<menu_id>.zip
+        若传入单个 .zip 文件，则直接保存（不解压），完美保留目录结构。
+        """
+        import base64
+        import zipfile
+        import io
+        import os
+        import json
+
+        try:
+            files = json.loads(file_data_json)
+            if not isinstance(files, list) or len(files) == 0:
+                return False
+
+            # 如果只有一个文件且以 .zip 结尾，直接保存为 ZIP（无需重新打包）
+            if len(files) == 1:
+                f = files[0]
+                name = f.get('name', '')
+                if name.lower().endswith('.zip'):
+                    content_b64 = f.get('content')
+                    if content_b64:
+                        zip_data = base64.b64decode(content_b64)
+                        resources_dir = os.path.join(SERVER_DATA, 'webroot', 'resources')
+                        os.makedirs(resources_dir, exist_ok=True)
+                        zip_path = os.path.join(resources_dir, f"{menu_id}.zip")
+                        with open(zip_path, 'wb') as zf:
+                            zf.write(zip_data)
+                        # 自动更新菜单
+                        if self._update_menu_resource(menu_id, f'/resources/{menu_id}.zip'):
+                            self.window.save_files()
+                            self.dataChanged.emit()
+                        return True
+
+            # 否则（多个文件或非ZIP）按原来的方式打包
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for f in files:
+                    name = f.get('name')
+                    content_b64 = f.get('content')
+                    if not name or not content_b64:
+                        continue
+                    content = base64.b64decode(content_b64)
+                    zf.writestr(name, content)
+
+            zip_data = zip_buffer.getvalue()
+            resources_dir = os.path.join(SERVER_DATA, 'webroot', 'resources')
+            os.makedirs(resources_dir, exist_ok=True)
+            zip_path = os.path.join(resources_dir, f"{menu_id}.zip")
+            with open(zip_path, 'wb') as zf:
+                zf.write(zip_data)
+
+            if self._update_menu_resource(menu_id, f'/resources/{menu_id}.zip'):
+                self.window.save_files()
+                self.dataChanged.emit()
+            return True
+
+        except Exception as e:
+            print(f"[uploadResource] 错误: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    def _update_menu_resource(self, menu_id, resource_url):
+        """更新菜单的 resource_url 和 resource_required"""
+
+        def update(arr):
+            for item in arr:
+                if item.get('id') == menu_id:
+                    item['resource_url'] = resource_url
+                    item['resource_required'] = True
+                    return True
+                if 'children' in item:
+                    if update(item['children']):
+                        return True
+            return False
+
+        return update(self.window.menu_data)
+
+    @pyqtSlot(result=str)
+    def getGachaConfig(self):
+        try:
+            path = os.path.join(SERVER_DATA, 'gacha_config.json')
+            if os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                    if content:
+                        # 尝试解析，确保是合法 JSON
+                        json.loads(content)
+                        return content
+        except Exception as e:
+            print(f"[getGachaConfig] 读取失败: {e}")
+        # 任何错误都返回空对象
+        return "{}"
+
+    @pyqtSlot(str, result=bool)
+    def saveGachaConfig(self, config_json):
+        try:
+            path = os.path.join(SERVER_DATA, 'gacha_config.json')
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(config_json)
+            return True
+        except:
+            return False
+
+    @pyqtSlot(result=bool)
+    def ping(self):
+        print("[Bridge] ping() 被调用")
+        try:
+            print(f"[Bridge] self.window = {self.window}")
+            return True
+        except Exception as e:
+            print(f"[Bridge] ping 异常: {e}")
+            return False
+
+    @pyqtSlot()
+    def saveToDisk(self):
+        """静默保存配置到磁盘，不弹出消息框"""
+        self.window.save_files()
+
+    @pyqtSlot(result=str)
+    def getMenus(self):
+        try:
+            return json.dumps(self.window.menu_data)
+        except Exception as e:
+            return json.dumps({"error": str(e)})
+
+    @pyqtSlot(result=str)
+    def getItems(self):
+        try:
+            return json.dumps(self.window.items_data)
+        except Exception as e:
+            return json.dumps({"error": str(e)})
+
+    @pyqtSlot(str, str, str, str, str, bool, str, str, str, str, result=bool)
+    def saveMenu(self, menu_id, label, type_, data, tooltip, resource_required, resource_url, icon_type, icon, expiry):
+        try:
+            print(f"[saveMenu] 开始保存菜单: id={menu_id}, label={label}, expiry={expiry}")
+            # ----- 解析有效期 -----
+            expiry_iso = None
+            if expiry and expiry.strip().lower() not in ('永久', 'permanent', ''):
+                delta, until_dt = parse_time_spec(expiry)
+                if until_dt:
+                    expiry_iso = until_dt.isoformat()
+                elif delta:
+                    expiry_iso = (datetime.now(SERVER_TIMEZONE) + delta).isoformat()
+            print(f"[saveMenu] 解析后的 expiry_iso = {expiry_iso}")
+
+            # ----- 查找或创建菜单项 -----
+            def find_node(arr, target_id):
+                for item in arr:
+                    if item.get('id') == target_id:
+                        return item
+                    if 'children' in item:
+                        found = find_node(item['children'], target_id)
+                        if found:
+                            return found
+                return None
+
+            # ----- 唯一性检查（gacha） -----
+            if type_ == 'gacha':
+                def has_other_gacha(arr, exclude_id):
+                    for item in arr:
+                        if item.get('id') != exclude_id and item.get('type') == 'gacha':
+                            return True
+                        if 'children' in item and has_other_gacha(item['children'], exclude_id):
+                            return True
+                    return False
+
+                if has_other_gacha(self.window.menu_data, menu_id):
+                    print("[saveMenu] 拒绝保存：已存在其他 gacha 菜单项")
+                    return False
+
+            existing = find_node(self.window.menu_data, menu_id)
+            if existing:
+                print(f"[saveMenu] 找到现有菜单，更新字段")
+                existing['label'] = label
+                existing['type'] = type_
+                existing['data'] = data
+                existing['tooltip'] = tooltip
+                existing['resource_required'] = resource_required
+                existing['resource_url'] = resource_url
+                existing['icon_type'] = icon_type
+                existing['icon'] = icon
+                existing['expiry'] = expiry_iso
+            else:
+                print(f"[saveMenu] 未找到现有菜单，创建新菜单")
+                new_menu = {
+                    'id': menu_id,
+                    'label': label,
+                    'type': type_,
+                    'data': data,
+                    'tooltip': tooltip,
+                    'resource_required': resource_required,
+                    'resource_url': resource_url,
+                    'icon_type': icon_type,
+                    'icon': icon,
+                    'children': [],
+                    'expiry': expiry_iso
+                }
+                self.window.menu_data.append(new_menu)
+
+            # ★ 立即保存到磁盘
+            print("[saveMenu] 准备调用 save_files()")
+            self.window.save_files()
+            print("[saveMenu] save_files() 调用完成")
+            self.dataChanged.emit()
+            return True
+
+        except Exception as e:
+            print(f"saveMenu error: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    @pyqtSlot(str, str, str, str, int, result=bool)
+    def saveItem(self, item_id, name, icon, description, count):
+        try:
+            print(f"[saveItem] 保存物品: id={item_id}, name={name}")
+            if not item_id or item_id.strip() == '':
+                item_id = f"custom_{uuid.uuid4().hex[:8]}"
+            existing = next((it for it in self.window.items_data if it.get('id') == item_id), None)
+            if existing:
+                existing['name'] = name
+                existing['icon'] = icon
+                existing['description'] = description
+                existing['count'] = count
+            else:
+                self.window.items_data.append({
+                    'id': item_id,
+                    'name': name,
+                    'icon': icon,
+                    'description': description,
+                    'count': count
+                })
+            print("[saveItem] 准备调用 save_files()")
+            self.window.save_files()
+            print("[saveItem] save_files() 调用完成")
+            self.dataChanged.emit()
+            return True
+        except Exception as e:
+            print(f"saveItem error: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    @pyqtSlot(str, result=bool)
+    def deleteMenu(self, menu_id):
+        try:
+            def remove(arr):
+                for i, item in enumerate(arr):
+                    if item.get('id') == menu_id:
+                        del arr[i]
+                        return True
+                    if 'children' in item and remove(item['children']):
+                        return True
+                return False
+            if remove(self.window.menu_data):
+                self.dataChanged.emit()
+                return True
+            return False
+        except Exception as e:
+            print(f"deleteMenu error: {e}")
+            return False
+
+    @pyqtSlot(str, result=bool)
+    def deleteItem(self, item_id):
+        try:
+            for i, it in enumerate(self.window.items_data):
+                if it.get('id') == item_id:
+                    del self.window.items_data[i]
+                    self.dataChanged.emit()
+                    return True
+            return False
+        except Exception as e:
+            print(f"deleteItem error: {e}")
+            return False
+
+    @pyqtSlot(str, str, result=bool)
+    def addChildMenu(self, parent_id, child_data_json):
+        try:
+            child = json.loads(child_data_json)
+            def find_parent(arr):
+                for item in arr:
+                    if item.get('id') == parent_id:
+                        return item
+                    if 'children' in item:
+                        found = find_parent(item['children'])
+                        if found:
+                            return found
+                return None
+            parent = find_parent(self.window.menu_data)
+            if parent:
+                if 'children' not in parent:
+                    parent['children'] = []
+                parent['children'].append(child)
+                self.dataChanged.emit()
+                return True
+            return False
+        except Exception as e:
+            print(f"addChildMenu error: {e}")
+            return False
+
+    @pyqtSlot(str, str, result=bool)
+    def duplicateMenu(self, src_id, new_id):
+        try:
+            def find_copy(arr):
+                for item in arr:
+                    if item.get('id') == src_id:
+                        copy = json.loads(json.dumps(item))
+                        copy['id'] = new_id
+                        copy['label'] += ' (副本)'
+                        if 'children' in copy and len(copy['children']) > 0:
+                            copy['children'] = []
+                        return copy
+                    if 'children' in item:
+                        found = find_copy(item['children'])
+                        if found:
+                            return found
+                return None
+            cp = find_copy(self.window.menu_data)
+            if not cp:
+                return False
+            def insert_after(arr):
+                for i, item in enumerate(arr):
+                    if item.get('id') == src_id:
+                        arr.insert(i+1, cp)
+                        return True
+                    if 'children' in item and insert_after(item['children']):
+                        return True
+                return False
+            if insert_after(self.window.menu_data):
+                self.dataChanged.emit()
+                return True
+            return False
+        except Exception as e:
+            print(f"duplicateMenu error: {e}")
+            return False
+
+    @pyqtSlot(str, str, result=bool)
+    def duplicateItem(self, src_id, new_id):
+        try:
+            src = next((it for it in self.window.items_data if it.get('id') == src_id), None)
+            if not src:
+                return False
+            cp = json.loads(json.dumps(src))
+            cp['id'] = new_id
+            cp['name'] += ' (副本)'
+            self.window.items_data.append(cp)
+            self.dataChanged.emit()
+            return True
+        except Exception as e:
+            print(f"duplicateItem error: {e}")
+            return False
+
+    # ---------- 修复：调用窗口的方法 ----------
+    @pyqtSlot()
+    def hotUpdate(self):
+        self.window.hot_update()
+
+    @pyqtSlot()
+    def publish(self):
+        self.window.publish()
+
+    @pyqtSlot()
+    def refresh(self):
+        self.window.load_all_data()
+        self.dataChanged.emit()
+
+    # ---------- 新增：关闭窗口 ----------
+    @pyqtSlot()
+    def close(self):
+        self.window.close()
+
+class ContentManagerWindow(QDialog):
+    def __init__(self, server_window, parent=None):
+        super().__init__(parent)
+        self.server_window = server_window
+        self.setWindowTitle("服务器内容管理")
+        self.setMinimumSize(1100, 750)
+        self.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint)
+
+        self.menu_data = []
+        self.items_data = []
+        self.load_all_data()
+
+        self.bridge = ContentBridge(self)
+        self.bridge.dataChanged.connect(self.on_data_changed)
+
+        self.webview = QWebEngineView()
+        # 启用本地文件访问
+        settings = self.webview.settings()
+        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls, True)
+        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, True)
+        # 捕获 JS 控制台输出
+        self.webview.page().javaScriptConsoleMessage = lambda level, msg, line, source: print(f"[JS] {msg}")
+
+        html_path = resource_path("html/index.html")
+        if not os.path.exists(html_path):
+            self.webview.setHtml("<h1 style='color:white;'>错误：未找到 html/index.html</h1>")
+        else:
+            # 测试用：先注释 setUrl，改用 setHtml 读取文件内容
+            # self.webview.setUrl(QUrl.fromLocalFile(html_path))
+            with open(html_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            self.webview.setHtml(content, QUrl.fromLocalFile(os.path.dirname(html_path) + '/'))
+
+        self.channel = QWebChannel()
+        self.channel.registerObject("bridge", self.bridge)
+        self.webview.page().setWebChannel(self.channel)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.webview)
+        self.setLayout(layout)
+
+        self.webview.loadFinished.connect(self.on_load_finished)
+
+    def on_load_finished(self):
+        self.bridge.dataChanged.emit()
+        # 增加重试机制，确保前端 initBridge 被调用
+        self.webview.page().runJavaScript("""
+            (function retryInit(attempt) {
+                if (typeof initBridge === 'function') {
+                    initBridge();
+                } else if (attempt < 5) {
+                    setTimeout(function() { retryInit(attempt + 1); }, 500);
+                } else {
+                    console.error('initBridge 未定义，多次重试失败');
+                }
+            })(0);
+        """)
+
+    def on_data_changed(self):
+        pass
+
+    def load_all_data(self):
+        self.menu_data = self.load_json('custom_menu.json')
+        self.items_data = self.load_json('custom_items.json')
+
+    def load_json(self, filename):
+        path = os.path.join(SERVER_DATA, filename)
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except:
+                return []
+        return []
+
+    def save_json(self, filename, data):
+        path = os.path.join(SERVER_DATA, filename)
+        print(f"[save_json] 准备写入 {path}")
+        if os.path.exists(path):
+            shutil.copy2(path, path + '.bak')
+        tmp_path = path + '.tmp'
+        try:
+            with open(tmp_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            os.replace(tmp_path, path)
+            print(f"[save_json] 成功写入 {path}")
+        except Exception as e:
+            print(f"[save_json] 写入失败: {e}")
+            raise
+
+    def save_files(self):
+        """保存菜单和物品数据到文件（无界面提示）"""
+        try:
+            self.save_json('custom_menu.json', self.menu_data)
+            self.save_json('custom_items.json', self.items_data)
+            print("[save_files] 成功保存所有文件")
+        except Exception as e:
+            print(f"[save_files] 保存失败: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def publish(self):
+        self.save_files()
+        QMessageBox.information(self, "成功", "配置已保存至磁盘。\n服务端重启后对所有玩家生效。")
+
+    def hot_update(self):
+        self.save_files()
+        try:
+            if self.server_window and self.server_window.server:
+                self.server_window.broadcast_custom_config()
+                QMessageBox.information(self, "成功", "配置已保存并推送给所有在线玩家")
+            else:
+                QMessageBox.information(self, "成功", "配置已保存（服务器未运行，无法广播）")
+        except Exception as e:
+            QMessageBox.warning(self, "广播失败", f"热更新推送失败：{str(e)}\n配置已保存，新登录玩家将生效。")
+
+    def closeEvent(self, event):
+        self.save_files()
+        event.accept()
 
 # ==================== GUI 窗口 ====================
 class ServerWindow(QMainWindow):
@@ -3812,6 +5563,128 @@ class ServerWindow(QMainWindow):
         # 加载维护模式状态
         load_maintenance_state()
         os.makedirs(SERVER_DATA, exist_ok=True)
+
+        if maintenance_mode:
+            msg = "⚠️ 维护模式已开启(可通过/fix off关闭。)"
+            if maintenance_message:
+                msg += f": {maintenance_message}"
+            self.append_log(msg)
+
+    def _get_player_name_by_uid(self, server_uid):
+        with server_lock:
+            if server_uid in player_by_server_uid:
+                return player_by_server_uid[server_uid]['name']
+        path = os.path.join(PLAYERS_DIR, f'{server_uid}.json')
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data.get('name', server_uid)
+            except:
+                pass
+        return server_uid
+
+    def open_content_manager(self):
+        if hasattr(self, '_content_manager') and self._content_manager and self._content_manager.isVisible():
+            self._content_manager.raise_()
+            self._content_manager.activateWindow()
+            return
+        self._content_manager = ContentManagerWindow(self)
+        self._content_manager.show()
+
+    def start_web_server(self):
+        """启动轻量级 HTTP 服务器，自动分配空闲端口，根目录为 server_data/webroot"""
+        import socketserver
+        from http.server import SimpleHTTPRequestHandler
+        import threading
+        import socket
+
+        # 尝试从 8080 开始找空闲端口
+        port = 8080
+        max_port = 8099
+        while port <= max_port:
+            try:
+                test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                test_sock.settimeout(1)
+                test_sock.bind(('0.0.0.0', port))
+                test_sock.close()
+                break
+            except OSError:
+                port += 1
+        else:
+            self.append_log("[Web服务] 未找到可用端口 (8080-8099 均被占用)")
+            return
+
+        # Web 根目录
+        web_root = os.path.join(SERVER_DATA, 'webroot')
+        os.makedirs(web_root, exist_ok=True)
+        # 确保 resources 子目录存在（用于资源包）
+        resources_dir = os.path.join(web_root, 'resources')
+        os.makedirs(resources_dir, exist_ok=True)
+
+        # 自定义 Handler，不改变当前工作目录，直接基于 web_root 提供文件
+        class CustomHandler(SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                # 将目录设为 web_root，但不改变全局 os.getcwd()
+                super().__init__(*args, directory=web_root, **kwargs)
+
+            def do_GET(self):
+                # 处理 API 请求（可扩展）
+                if self.path.startswith('/api/'):
+                    self.handle_api()
+                    return
+                # 否则提供静态文件（SimpleHTTPRequestHandler 会自动处理）
+                return super().do_GET()
+
+            def do_POST(self):
+                if self.path.startswith('/api/'):
+                    self.handle_api_post()
+                    return
+                self.send_error(404)
+
+            def handle_api(self):
+                # 示例 API，可扩展
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(b'{"status":"ok"}')
+
+            def handle_api_post(self):
+                if self.path == '/api/echo':
+                    length = int(self.headers.get('Content-Length', 0))
+                    body = self.rfile.read(length)
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
+                self.send_error(404)
+
+            # 重写 log_message 避免控制台输出（可选）
+            def log_message(self, format, *args):
+                pass
+
+        # 创建服务器
+        self.web_server = socketserver.TCPServer(('0.0.0.0', port), CustomHandler)
+        self.web_server_port = port
+
+        # 在后台线程运行
+        self.web_thread = threading.Thread(target=self.web_server.serve_forever, daemon=True)
+        self.web_thread.start()
+
+        self.append_log(f"[Web服务] 已启动，端口 {port}，根目录 {web_root}")
+
+        # 保存端口到配置
+        config = load_server_config()
+        config['web_port'] = port
+        save_server_config(config)
+
+    def stop_web_server(self):
+        if hasattr(self, 'web_server') and self.web_server:
+            self.web_server.shutdown()
+            self.web_server.server_close()
+            self.web_server = None
+            self.append_log("[Web服务] 已停止")
 
     def find_player_file_by_identifier(self, identifier):
         # 直接复制 TCPHandler 中的实现
@@ -3870,12 +5743,12 @@ class ServerWindow(QMainWindow):
         self.cmd_edit = QLineEdit()
         self.cmd_edit.setPlaceholderText("输入命令 (/help获取用法)")
 
-        # ---- 新增：Tab命令补全 ----
         completer_list = [
             '/help', '/stop', '/restart',
             '/fix on', '/fix off',
             '/ban area', '/unban area',
             '/ban timezone', '/unban timezone',
+            '/ban ip list', '/ban ip add', '/ban ip', '/unban ip',
             '/op', '/deop', '/ban', '/unban', '/kick',
             '/All_Versions True', '/All_Versions False',
             '/give', '/set', '/clear', '/revoke', '/set newcode',
@@ -3885,7 +5758,13 @@ class ServerWindow(QMainWindow):
             '/function AI on', '/function AI off',
             '/function Chat on', '/function Chat off',
             '/change name',
-            '/resetname'
+            '/resetname',
+            '/maxplayers',
+            '/access whitelist on', '/access whitelist off',
+            '/access blacklist on', '/access blacklist off',
+            '/access none',
+            '/whitelist add', '/whitelist remove', '/whitelist list', '/whitelist on', '/whitelist off',
+            '/blacklist add', '/blacklist remove', '/blacklist list', '/blacklist on', '/blacklist off'
         ]
         completer = QCompleter(completer_list)
         completer.setCaseSensitivity(Qt.CaseInsensitive)
@@ -3899,6 +5778,10 @@ class ServerWindow(QMainWindow):
         layout.addLayout(cmd_layout)
 
         btn_layout = QHBoxLayout()
+        # 在 btn_layout 中添加
+        edit_content_btn = QPushButton("📝 管理内容")
+        edit_content_btn.clicked.connect(self.open_content_manager)
+        btn_layout.addWidget(edit_content_btn)
         self.start_btn = QPushButton("启动服务器")
         self.start_btn.clicked.connect(self.start_server)
         self.restart_btn = QPushButton("重启服务器")
@@ -3914,6 +5797,7 @@ class ServerWindow(QMainWindow):
         btn_layout.addWidget(self.stop_btn)
         btn_layout.addWidget(self.check_update_btn)
         layout.addLayout(btn_layout)
+
 
         self.log_emitter = LogEmitter()
         self.log_emitter.log_signal.connect(self.append_log)
@@ -3941,9 +5825,7 @@ class ServerWindow(QMainWindow):
                     'type': 'kick',
                     'data': {'reason': '你已被管理员踢出服务器，可重新连接。'}
                 })
-                target['client'].shutdown(socket.SHUT_WR)  # 关闭写端
-                import time
-                time.sleep(0.3)
+                time.sleep(0.1)
                 target['client'].close()
             except Exception as e:
                 self.append_log(f"踢出玩家时出错: {e}")
@@ -4017,8 +5899,11 @@ class ServerWindow(QMainWindow):
             self.server = ThreadedTCPServer((HOST, PORT), TCPHandler, self.log_emitter)
             self.server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
             self.server_thread.start()
+            # 启动 Web 服务器（如果尚未启动）
+            if not hasattr(self, 'web_server') or self.web_server is None:
+                self.start_web_server()
             self.append_log(f"服务器已启动，监听 {HOST}:{PORT}")
-            self.append_log("提示：输入 /help 查看全部命令，其中 /revoke 可直接扣除玩家物品。")
+            self.append_log("提示：输入 /help 查看命令提示")
             self.start_btn.setEnabled(False)
             self.restart_btn.setEnabled(True)
             self.stop_btn.setEnabled(True)
@@ -4028,13 +5913,11 @@ class ServerWindow(QMainWindow):
             self.append_log(f"启动失败: {e}")
 
     def _schedule_archive(self):
-        """计算下一个凌晨3点，启动归档定时器"""
-
+        """计算下一个凌晨4点，启动归档定时器"""
         def archive_and_broadcast():
             archive_chat_history()
             # 向所有在线玩家广播系统消息
             if self.server:
-                # 使用 TCPHandler 的广播方法
                 with server_lock:
                     for client in list(clients.keys()):
                         try:
@@ -4053,8 +5936,8 @@ class ServerWindow(QMainWindow):
             self._schedule_archive()
 
         now = datetime.now(SERVER_TIMEZONE)
-        # 下一个凌晨3点
-        next_run = now.replace(hour=3, minute=0, second=0, microsecond=0)
+        # 下一个凌晨4点（原为3点，现改为4点）
+        next_run = now.replace(hour=4, minute=0, second=0, microsecond=0)
         if now >= next_run:
             next_run += timedelta(days=1)
         delay = (next_run - now).total_seconds()
@@ -4066,12 +5949,7 @@ class ServerWindow(QMainWindow):
                 for client in list(clients.keys()):
                     try:
                         TCPHandler.send_to(client, {'type': 'server_shutdown', 'data': {'reason': '服务器已停止'}})
-                    except:
-                        pass
-                for client in list(clients.keys()):
-                    try:
-                        TCPHandler.send_to(client,
-                                           {'type': 'system_message', 'data': {'text': '服务器正在关闭，你已被踢出。'}})
+                        time.sleep(0.1)  # 等待消息发送
                         client.close()
                     except:
                         pass
@@ -4080,6 +5958,7 @@ class ServerWindow(QMainWindow):
             self.server.shutdown()
             self.server.server_close()
             self.server = None
+            self.stop_web_server()
             self.append_log("服务器已停止")
             self.start_btn.setEnabled(True)
             self.restart_btn.setEnabled(False)
@@ -4109,7 +5988,8 @@ class ServerWindow(QMainWindow):
             if not parts:
                 return
             cmd_name = parts[0].lower()
-            # 处理维护模式命令
+
+            # ---------- /fix 维护模式 ----------
             if cmd_name == '/fix' and len(parts) >= 2:
                 subcmd = parts[1].lower()
                 if subcmd == 'on':
@@ -4130,28 +6010,140 @@ class ServerWindow(QMainWindow):
                 else:
                     self.append_log("用法: /fix on [消息] 或 /fix off")
                 return
-            # 处理地区封禁/解封
+
+            # ---------- 地区封禁/解封 ----------
             if cmd_name == '/ban' and len(parts) >= 3 and parts[1].lower() == 'area':
                 self.exec_ban_area(parts[2])
+                return
             elif cmd_name == '/unban' and len(parts) >= 3 and parts[1].lower() == 'area':
                 self.exec_unban_area(parts[2])
+                return
             elif cmd_name == '/ban' and len(parts) >= 3 and parts[1].lower() == 'timezone':
                 self.exec_ban_timezone(parts[2])
+                return
             elif cmd_name == '/unban' and len(parts) >= 3 and parts[1].lower() == 'timezone':
                 self.exec_unban_timezone(parts[2])
-            elif cmd_name == '/op' and len(parts) == 2:
-                self.exec_op(parts[1])
-            elif cmd_name == '/deop' and len(parts) == 2:
-                self.exec_deop(parts[1])
-            elif cmd_name == '/ban' and len(parts) >= 2:
+                return
+
+            # ========== IP 封禁命令（必须在通用 /ban 之前） ==========
+            if cmd_name == '/ban' and len(parts) >= 2 and parts[1].lower() == 'ip':
+                if len(parts) < 3:
+                    self.append_log("用法: /ban ip list 或 /ban ip <IP> 或 /ban ip <玩家名>")
+                    return
+
+                subcmd = parts[2].lower()
+
+                if subcmd == 'list':
+                    ips = load_banned_ips()
+                    if ips:
+                        self.append_log("封禁IP列表:")
+                        for ip in ips:
+                            self.append_log(f"  {ip}")
+                    else:
+                        self.append_log("封禁IP列表为空")
+                    return
+
+                ip_pattern = r'^\d+\.\d+\.\d+\.\d+$'
+                if re.match(ip_pattern, parts[2]):
+                    ip = parts[2]
+                    ips = load_banned_ips()
+                    if ip in ips:
+                        self.append_log(f"IP {ip} 已在封禁列表中")
+                        return
+                    ips.append(ip)
+                    save_banned_ips(ips)
+                    self.append_log(f"已封禁IP: {ip}")
+                    # 踢出所有使用该IP的非管理员玩家
+                    with server_lock:
+                        to_kick = [p for p in clients.values() if
+                                   p['client'].getpeername()[0] == ip and p['permission'] != 'admin']
+                    for p in to_kick:
+                        try:
+                            TCPHandler.send_to(p['client'], {'type': 'kick', 'data': {'reason': '你的IP已被封禁'}})
+                            time.sleep(0.1)  # 等待消息发送完成
+                            p['client'].close()
+                        except:
+                            pass
+                        with server_lock:
+                            if p['client'] in clients:
+                                del clients[p['client']]
+                            if p['server_uid'] in player_by_server_uid:
+                                del player_by_server_uid[p['server_uid']]
+                    if to_kick:
+                        self.append_log(f"已踢出 {len(to_kick)} 个使用该IP的玩家")
+                    return
+
+                # 视为玩家名，封禁其当前IP（玩家必须在线）
+                user = parts[2]
+                with server_lock:
+                    target = next((p for p in clients.values() if
+                                   p['name'] == user or p['userid'] == user or p['server_uid'] == user), None)
+                if not target:
+                    self.append_log(f"未找到在线玩家 {user}")
+                    return
+                ip = target['client'].getpeername()[0]
+                ips = load_banned_ips()
+                if ip in ips:
+                    self.append_log(f"IP {ip} 已在封禁列表中")
+                    return
+                ips.append(ip)
+                save_banned_ips(ips)
+                try:
+                    TCPHandler.send_to(target['client'], {'type': 'kick', 'data': {'reason': '你的IP已被封禁'}})
+                    time.sleep(0.1)
+                    target['client'].close()
+                except:
+                    pass
+                with server_lock:
+                    if target['client'] in clients:
+                        del clients[target['client']]
+                    if target['server_uid'] in player_by_server_uid:
+                        del player_by_server_uid[target['server_uid']]
+                self.append_log(f"已封禁玩家 {user} 的IP: {ip}")
+                self.broadcast_to_all(f"{user} 的IP已被封禁")
+                return
+
+            if cmd_name == '/unban' and len(parts) >= 2 and parts[1].lower() == 'ip':
+                if len(parts) < 3:
+                    self.append_log("用法: /unban ip <IP>")
+                    return
+                ip = parts[2]
+                ips = load_banned_ips()
+                if ip in ips:
+                    ips.remove(ip)
+                    save_banned_ips(ips)
+                    self.append_log(f"已解封IP: {ip}")
+                else:
+                    self.append_log(f"IP {ip} 不在封禁列表中")
+                return
+
+            # ---------- 通用封禁/解封 ----------
+            if cmd_name == '/ban' and len(parts) >= 2:
                 target = parts[1]
                 duration = parts[2] if len(parts) > 2 else None
                 self.exec_ban(target, duration)
-            elif cmd_name == '/unban' and len(parts) == 2:
+                return
+
+            if cmd_name == '/unban' and len(parts) == 2:
                 self.exec_unban(parts[1])
-            elif cmd_name == '/kick' and len(parts) == 2:
+                return
+
+            # ---------- OP/DEOP ----------
+            if cmd_name == '/op' and len(parts) == 2:
+                self.exec_op(parts[1])
+                return
+
+            if cmd_name == '/deop' and len(parts) == 2:
+                self.exec_deop(parts[1])
+                return
+
+            # ---------- 踢出玩家 ----------
+            if cmd_name == '/kick' and len(parts) == 2:
                 self.exec_kick(parts[1])
-            elif cmd_name == '/all_versions' and len(parts) == 2:
+                return
+
+            # ---------- /all_versions ----------
+            if cmd_name == '/all_versions' and len(parts) == 2:
                 global ALLOW_ALL_VERSIONS
                 arg = parts[1].lower()
                 if arg == 'true':
@@ -4163,9 +6155,14 @@ class ServerWindow(QMainWindow):
                 else:
                     self.append_log("用法: /All_Versions True 或 /All_Versions False")
                 return
-            elif cmd_name == '/give':
+
+            # ---------- /give ----------
+            if cmd_name == '/give':
                 self.exec_give(cmd)
-            elif cmd_name == '/change':
+                return
+
+            # ---------- /change name ----------
+            if cmd_name == '/change':
                 if len(parts) >= 3 and parts[1].lower() == 'name':
                     new_name = ' '.join(parts[2:]).strip()
                     if not new_name or len(new_name) > 15:
@@ -4175,14 +6172,15 @@ class ServerWindow(QMainWindow):
                         config['server_name'] = new_name
                         save_server_config(config)
                         self.append_log(f"服务器名称已更新为 '{new_name}'，重启后生效")
-                        self.append_log(f"配置文件路径: {SERVER_CONFIG_FILE}")  # 新增
+                        self.append_log(f"配置文件路径: {SERVER_CONFIG_FILE}")
                 else:
                     self.append_log("用法: /change name <新服务器名称> (最多15个字符)")
                 return
-            elif cmd_name == '/resetname':
+
+            # ---------- /resetname ----------
+            if cmd_name == '/resetname':
                 if len(parts) == 2:
                     identifier = parts[1]
-                    # 查找玩家（在线或离线）
                     server_uid = None
                     pdata = None
                     with server_lock:
@@ -4191,8 +6189,7 @@ class ServerWindow(QMainWindow):
                                 server_uid = p['server_uid']
                                 break
                     if server_uid is None:
-                        server_uid, pdata = self.find_player_file_by_identifier(
-                            identifier)  # 需要调用 TCPHandler 的静态方法？实际上应在 TCPHandler 中实现，但控制台需调用相同逻辑
+                        server_uid, pdata = self.find_player_file_by_identifier(identifier)
                     else:
                         pdata = load_player_data(server_uid)
                     if server_uid is None or pdata is None:
@@ -4205,34 +6202,70 @@ class ServerWindow(QMainWindow):
                 else:
                     self.append_log("用法: /resetname <用户>")
                 return
-            elif cmd_name == '/set':
-                # 判断是否为 /set newcode
+
+            # ---------- /maxplayers ----------
+            if cmd_name == '/maxplayers':
+                self.exec_maxplayers(parts)
+                return
+
+            # ---------- /access ----------
+            if cmd_name == '/access':
+                self.exec_access(parts)
+                return
+
+            # ---------- /whitelist / /blacklist ----------
+            if cmd_name == '/whitelist':
+                self.exec_whitelist(parts)
+                return
+
+            if cmd_name == '/blacklist':
+                self.exec_blacklist(parts)
+                return
+
+            # ---------- /set ----------
+            if cmd_name == '/set':
                 if len(parts) >= 3 and parts[1].lower() == 'newcode':
                     self.exec_set_newcode(cmd)
                 else:
                     self.exec_set(cmd)
-            elif cmd_name == '/clear':
+                return
+
+            # ---------- /clear ----------
+            if cmd_name == '/clear':
                 self.exec_clear(cmd)
-            elif cmd_name == '/revoke':
-                # 判断是否为 /revoke code，如果是则走 exec_revoke_code，否则走 exec_revoke
+                return
+
+            # ---------- /revoke ----------
+            if cmd_name == '/revoke':
                 if len(parts) >= 3 and parts[1].lower() == 'code':
                     self.exec_revoke_code(cmd)
                 else:
                     self.exec_revoke(cmd)
-            elif cmd_name == '/revoke' and len(parts) >= 3 and parts[1].lower() == 'code':
-                self.exec_revoke_code(cmd)
-            elif cmd_name == '/mute':
+                return
+
+            # ---------- /mute / /unmute ----------
+            if cmd_name == '/mute':
                 self.exec_mute(parts)
-            elif cmd_name == '/unmute':
+                return
+
+            if cmd_name == '/unmute':
                 self.exec_unmute(parts)
-            elif cmd_name == '/function' and len(parts) >= 2 and parts[1].lower() == 'ai':
-                self.exec_function_ai(parts)
-            elif cmd_name == '/function' and len(parts) >= 2 and parts[1].lower() == 'chat':
-                self.exec_function_chat(parts)
-            else:
-                # 未知命令只记录到日志，不在控制台弹出错误（可选）
-                self.append_log(f"未知控制台指令: {cmd}")
+                return
+
+            # ---------- /function ----------
+            if cmd_name == '/function' and len(parts) >= 2:
+                if parts[1].lower() == 'ai':
+                    self.exec_function_ai(parts)
+                elif parts[1].lower() == 'chat':
+                    self.exec_function_chat(parts)
+                else:
+                    self.append_log("用法: /function AI on|off 或 /function Chat on|off")
+                return
+
+            # ---------- 未知命令 ----------
+            self.append_log(f"未知控制台指令: {cmd}")
         else:
+            # 非命令前缀，当作聊天广播（如控制台发言）
             if self.server:
                 with server_lock:
                     if clients:
@@ -4248,16 +6281,23 @@ class ServerWindow(QMainWindow):
                 self.append_log("服务器未启动")
 
     def show_help_dialog(self):
-        """显示控制台帮助对话框（包含所有支持的命令）"""
+        """显示控制台帮助对话框（支持滚轮滚动）"""
         help_text = (
             "═══════════════════════════════════════════\n"
-            "         流萤联机服务器 命令帮助\n"
+            "         流萤联机服务器 控制台帮助\n"
             "═══════════════════════════════════════════\n\n"
-            "【常用管理命令】\n"
+            "【服务器控制台专用命令】（仅在控制台有效）\n"
+            "  /restart           重启服务器（断开所有玩家）\n"
+            "  /close             关闭服务器（停止服务）\n"
+            "  /change name <新名称>  修改服务器名称（最多15字符）\n"
+            "  /fix on [消息]      开启维护模式并踢出所有玩家\n"
+            "  /fix off            关闭维护模式\n"
+            "  /All_Versions True/False  调试用，放行所有版本\n\n"
+            "【常用管理命令】（客户端可用）\n"
             "  /give <用户> <物品id> <数量>\n"
             "      给指定玩家发放物品（邮件形式）\n"
             "      用户: @a(所有人) @s(自己) 或 玩家名\n"
-            "      物品: cake, credit, ruyi(时装), ticket 等\n"
+            "      物品: cake, credit, ruyi(时装), ticket, jade, star_rail_tickets\n"
             "      示例: /give Gubwin credit 1000\n\n"
             "  /set <用户> <物品id> <数量>\n"
             "      直接设定玩家物品数量（覆盖）\n"
@@ -4294,47 +6334,90 @@ class ServerWindow(QMainWindow):
             "  /ban <玩家> [时长]         封禁玩家（时长如 30D, 2026-12-31）\n"
             "  /unban <玩家>              解封玩家\n"
             "  /op <玩家>                 提升为管理员\n"
-            "  /deop <玩家>               取消管理员\n\n"
+            "  /deop <玩家>               取消管理员\n"
+            "  /resetname <用户>          重置玩家的改名冷却时间\n\n"
             "【区域与时区封禁】\n"
             "  /ban area <国家代码>       封禁地区\n"
             "  /unban area <国家代码>     解封地区\n"
             "  /ban timezone <时区名>     封禁时区\n"
             "  /unban timezone <时区名>   解封时区\n\n"
-            "【服务器维护】\n"
-            "  /fix on [消息]             开启维护模式（可带自定义消息）\n"
-            "  /fix off                   关闭维护模式\n"
-            "  /All_Versions True/False   允许所有版本连接（调试用）\n\n"
-            "💡 提示：所有命令仅管理员可用，输入 /help 查看本帮助。"
+            "【IP 封禁】（管理员专用）\n"
+            "  /ban ip list              查看已封禁的 IP 列表\n"
+            "  /ban ip <IP>              直接封禁指定 IP（支持 IPv4）\n"
+            "  /ban ip <玩家名>          封禁在线玩家当前的 IP\n"
+            "  /unban ip <IP>            解封指定 IP\n"
+            "  ⚠️ 封禁 IP 后，所有使用该 IP 的非管理员玩家将被立即踢出。\n\n"
+            "【访问控制】（管理员专用）\n"
+            "  /maxplayers <人数>         设置服务器最大在线人数（默认10）\n"
+            "  /access <whitelist|blacklist|none> <on|off>\n"
+            "      开启/关闭白名单或黑名单模式，none 关闭所有限制\n"
+            "  /whitelist on|off          快捷开启/关闭白名单模式\n"
+            "  /blacklist on|off          快捷开启/关闭黑名单模式\n"
+            "  /whitelist add|remove|list [uuid]\n"
+            "      管理白名单（必须先开启白名单模式）\n"
+            "  /blacklist add|remove|list [uuid]\n"
+            "      管理黑名单（必须先开启黑名单模式）\n"
+            "  ⚠️ 管理员拥有完全豁免权，不受上述限制\n\n"
+            "【其他】\n"
+            "  /kick <玩家>               踢出玩家（需在线）\n"
+            "  /recall <消息ID>           撤回自己的消息（2分钟内）\n"
+            "  /redeemstats               查看自己的兑换码净获得统计\n\n"
+            "💡 提示：所有管理命令仅管理员可用。输入 /help 查看本帮助。"
         )
-        msg_box = QMessageBox(self)
-        msg_box.setWindowTitle("帮助")
-        msg_box.setText(help_text)
-        msg_box.setIcon(QMessageBox.Information)
-        msg_box.setStandardButtons(QMessageBox.Ok)
-        msg_box.setStyleSheet("""
-            QMessageBox {
+
+        # 创建自定义对话框
+        dialog = QDialog(self)
+        dialog.setWindowTitle("帮助")
+        dialog.setMinimumSize(600, 450)  # 足够大以显示内容
+        dialog.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint | Qt.WindowStaysOnTopHint)
+        dialog.setStyleSheet("""
+            QDialog {
                 background-color: #1E1E1E;
-                color: #E0E0E0;
+                border-radius: 10px;
             }
-            QMessageBox QLabel {
+            QTextEdit {
+                background-color: #2D2D2D;
                 color: #E0E0E0;
-                background-color: #1E1E1E;
+                border: 1px solid #555555;
+                border-radius: 6px;
+                padding: 10px;
+                font-family: Consolas, monospace;
+                font-size: 13px;
             }
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
                 border: none;
-                border-radius: 4px;
-                padding: 5px 10px;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: 14px;
             }
             QPushButton:hover {
                 background-color: #45A049;
             }
         """)
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(10)
+
+        # 文本框（只读）
+        text_edit = QTextEdit()
+        text_edit.setPlainText(help_text)
+        text_edit.setReadOnly(True)
+        text_edit.setLineWrapMode(QTextEdit.NoWrap)  # 不换行，水平滚动条会自动出现
+        layout.addWidget(text_edit, 1)
+
+        # 关闭按钮
+        btn_close = QPushButton("关闭")
+        btn_close.clicked.connect(dialog.accept)
+        layout.addWidget(btn_close, alignment=Qt.AlignCenter)
+
         # 居中显示
         screen_center = QApplication.primaryScreen().availableGeometry().center()
-        msg_box.move(screen_center - msg_box.rect().center())
-        msg_box.exec_()
+        dialog.move(screen_center - dialog.rect().center())
+
+        dialog.exec_()
 
     def exec_function_chat(self, parts):
         if len(parts) < 3:
@@ -4484,7 +6567,8 @@ class ServerWindow(QMainWindow):
             banned_until = None
 
         with server_lock:
-            target = next((p for p in clients.values() if p['name'] == identifier or p['uid'] == identifier or p['server_uid'] == identifier), None)
+            target = next((p for p in clients.values() if
+                           p['name'] == identifier or p['uid'] == identifier or p['server_uid'] == identifier), None)
         if target:
             server_uid = target['server_uid']
             pdata = load_player_data(server_uid)
@@ -4493,13 +6577,14 @@ class ServerWindow(QMainWindow):
                 pdata['banned_until'] = banned_until
                 save_player_data(server_uid, pdata)
             try:
-                msg = '你已被管理员封禁。'
+                reason = '你已被管理员封禁。'
                 if banned_until:
                     until_dt2 = datetime.fromisoformat(banned_until)
-                    msg += f' 解封时间：{until_dt2.strftime("UTC%z %Y-%m-%d %H:%M:%S")}'
+                    reason += f' 解封时间：{until_dt2.strftime("UTC%z %Y-%m-%d %H:%M:%S")}'
                 else:
-                    msg += ' 永久封禁。'
-                TCPHandler.send_to(target['client'], {'type': 'system_message', 'data': {'text': msg}})
+                    reason += ' 永久封禁。'
+                TCPHandler.send_to(target['client'], {'type': 'kick', 'data': {'reason': reason}})
+                time.sleep(0.1)
                 target['client'].close()
             except Exception as e:
                 self.append_log(f"发送封禁消息失败: {e}")
@@ -4572,7 +6657,9 @@ class ServerWindow(QMainWindow):
             to_kick = [p for p in clients.values() if p.get('country') == area_code]
         for p in to_kick:
             try:
-                TCPHandler.send_to(p['client'], {'type': 'system_message', 'data': {'text': f'你的地区 {area_code} 已被服务器封禁，你将被踢出。'}})
+                TCPHandler.send_to(p['client'],
+                                   {'type': 'kick', 'data': {'reason': f'你的地区/时区已被封禁，你将被踢出。'}})
+                time.sleep(0.1)
                 p['client'].close()
             except:
                 pass
@@ -4617,7 +6704,9 @@ class ServerWindow(QMainWindow):
             to_kick = [p for p in clients.values() if p.get('timezone') == tzname]
         for p in to_kick:
             try:
-                TCPHandler.send_to(p['client'], {'type': 'system_message', 'data': {'text': f'你的时区 {tzname} 已被服务器封禁，你将被踢出。'}})
+                TCPHandler.send_to(p['client'],
+                                   {'type': 'kick', 'data': {'reason': f'你的地区/时区已被封禁，你将被踢出。'}})
+                time.sleep(0.1)
                 p['client'].close()
             except:
                 pass
@@ -4641,8 +6730,214 @@ class ServerWindow(QMainWindow):
         self.append_log(f"已解封时区 {tzname}")
         self.broadcast_to_all(f"时区 {tzname} 已被解封")
 
+    def exec_maxplayers(self, parts):
+        """控制台执行 /maxplayers <人数>"""
+        if len(parts) != 2 or not parts[1].isdigit():
+            self.append_log("用法: /maxplayers <人数>")
+            return
+        new_limit = int(parts[1])
+        if new_limit < 1:
+            self.append_log("人数必须 ≥ 1")
+            return
+        config = load_server_config()
+        config['max_players'] = new_limit
+        save_server_config(config)
+        self.append_log(f"最大人数已设为 {new_limit}，新连接立即生效")
+
+    def exec_access(self, parts):
+        """执行访问控制命令：/access <whitelist|blacklist|none> <on|off>"""
+        if len(parts) < 3 or parts[1] not in ('whitelist', 'blacklist', 'none'):
+            self.append_log("用法: /access <whitelist|blacklist|none> <on|off>")
+            return
+        mode = parts[1]
+        action = parts[2].lower()
+        config = load_server_config()
+
+        if mode == 'none':
+            config['access_mode'] = 'none'
+            save_server_config(config)
+            self.append_log("访问控制已关闭（none模式）")
+            return
+
+        if action not in ('on', 'off'):
+            self.append_log("动作必须是 on 或 off")
+            return
+
+        if action == 'on':
+            config['access_mode'] = mode
+            self.append_log(f"{mode} 模式已启用")
+            kicked = []
+            with server_lock:
+                for client, player in list(clients.items()):
+                    if player.get('permission') == 'admin':
+                        continue
+                    server_uid = player['server_uid']
+                    uid = player.get('uid', '')
+                    allow = False
+                    if mode == 'whitelist':
+                        wl = load_whitelist()
+                        if server_uid in wl or uid in wl:
+                            allow = True
+                    elif mode == 'blacklist':
+                        bl = load_blacklist()
+                        if server_uid not in bl and uid not in bl:
+                            allow = True
+                    if not allow:
+                        try:
+                            TCPHandler.send_to(client, {'type': 'kick',
+                                                        'data': {'reason': f'服务器已启用{mode}模式，你不在允许列表中'}})
+                            time.sleep(0.1)  # 等待消息发送完成
+                            client.close()
+                        except:
+                            pass
+                        if client in clients:
+                            del clients[client]
+                        if server_uid in player_by_server_uid:
+                            del player_by_server_uid[server_uid]
+                        kicked.append(player['name'])
+            if kicked:
+                self.append_log(f"已踢出不符合条件的玩家: {', '.join(kicked)}")
+            else:
+                self.append_log("没有需要踢出的玩家")
+        else:
+            config['access_mode'] = 'none'
+            self.append_log(f"{mode} 模式已关闭")
+        save_server_config(config)
+
+    def exec_whitelist(self, parts):
+        """执行白名单管理命令：/whitelist on|off|add|remove|list [uuid]"""
+        if len(parts) < 2:
+            self.append_log("用法: /whitelist on|off|add|remove|list [uuid]")
+            return
+        subcmd = parts[1].lower()
+
+        # 处理 on/off 开关（直接调用 exec_access 以复用踢出逻辑）
+        if subcmd == 'on':
+            self.exec_access(['/access', 'whitelist', 'on'])
+            return
+        elif subcmd == 'off':
+            self.exec_access(['/access', 'whitelist', 'off'])
+            return
+
+        # 以下命令（add/remove/list）要求先开启白名单模式
+        config = load_server_config()
+        if config.get('access_mode') != 'whitelist':
+            self.append_log("错误：白名单模式未开启，请先执行 /whitelist on")
+            return
+
+        wl = load_whitelist()
+        if subcmd == 'list':
+            if wl:
+                lines = []
+                for uid in wl:
+                    name = self._get_player_name_by_uid(uid)
+                    lines.append(f"{name} ({uid})")
+                self.append_log("白名单列表:\n" + "\n".join(lines))
+            else:
+                self.append_log("白名单为空")
+            return
+
+        if len(parts) < 3:
+            self.append_log("请提供玩家标识符（名字、userid 或 uid）")
+            return
+        identifier = parts[2]
+        server_uid, pdata = self.find_player_file_by_identifier(identifier)
+        if server_uid is None:
+            with server_lock:
+                for p in clients.values():
+                    if p['name'] == identifier or p['userid'] == identifier or p['uid'] == identifier or p[
+                        'server_uid'] == identifier:
+                        server_uid = p['server_uid']
+                        break
+        if server_uid is None:
+            self.append_log(f"未找到玩家 {identifier}")
+            return
+
+        if subcmd == 'add':
+            if server_uid not in wl:
+                wl.append(server_uid)
+                save_whitelist(wl)
+                self.append_log(f"已添加 {server_uid} 到白名单")
+            else:
+                self.append_log(f"{server_uid} 已在白名单中")
+        elif subcmd == 'remove':
+            if server_uid in wl:
+                wl.remove(server_uid)
+                save_whitelist(wl)
+                self.append_log(f"已从白名单移除 {server_uid}")
+            else:
+                self.append_log(f"{server_uid} 不在白名单中")
+        else:
+            self.append_log("未知子命令，可用 on/off/add/remove/list")
+
+    def exec_blacklist(self, parts):
+        """执行黑名单管理命令：/blacklist on|off|add|remove|list [uuid]"""
+        if len(parts) < 2:
+            self.append_log("用法: /blacklist on|off|add|remove|list [uuid]")
+            return
+        subcmd = parts[1].lower()
+
+        # 处理 on/off 开关（直接调用 exec_access）
+        if subcmd == 'on':
+            self.exec_access(['/access', 'blacklist', 'on'])
+            return
+        elif subcmd == 'off':
+            self.exec_access(['/access', 'blacklist', 'off'])
+            return
+
+        # 以下命令（add/remove/list）要求先开启黑名单模式
+        config = load_server_config()
+        if config.get('access_mode') != 'blacklist':
+            self.append_log("错误：黑名单模式未开启，请先执行 /blacklist on")
+            return
+
+        bl = load_blacklist()
+        if subcmd == 'list':
+            if bl:
+                lines = []
+                for uid in bl:
+                    name = self._get_player_name_by_uid(uid)
+                    lines.append(f"{name} ({uid})")
+                self.append_log("黑名单列表:\n" + "\n".join(lines))
+            else:
+                self.append_log("黑名单为空")
+            return
+
+        if len(parts) < 3:
+            self.append_log("请提供玩家标识符（名字、userid 或 uid）")
+            return
+        identifier = parts[2]
+        server_uid, pdata = self.find_player_file_by_identifier(identifier)
+        if server_uid is None:
+            with server_lock:
+                for p in clients.values():
+                    if p['name'] == identifier or p['userid'] == identifier or p['uid'] == identifier or p[
+                        'server_uid'] == identifier:
+                        server_uid = p['server_uid']
+                        break
+        if server_uid is None:
+            self.append_log(f"未找到玩家 {identifier}")
+            return
+
+        if subcmd == 'add':
+            if server_uid not in bl:
+                bl.append(server_uid)
+                save_blacklist(bl)
+                self.append_log(f"已添加 {server_uid} 到黑名单")
+            else:
+                self.append_log(f"{server_uid} 已在黑名单中")
+        elif subcmd == 'remove':
+            if server_uid in bl:
+                bl.remove(server_uid)
+                save_blacklist(bl)
+                self.append_log(f"已从黑名单移除 {server_uid}")
+            else:
+                self.append_log(f"{server_uid} 不在黑名单中")
+        else:
+            self.append_log("未知子命令，可用 on/off/add/remove/list")
+
     def exec_give(self, cmd):
-        """控制台执行 /give <用户> <物品id> [数量]（支持物品校验）"""
+        """控制台执行 /give <用户> <物品id> [数量]（支持 jade 和 star_rail_tickets）"""
         parts = cmd.split()
         if len(parts) < 3:
             self.append_log("用法: /give <用户> <物品id> [数量] (数量默认为1，时装自动为1)")
@@ -4655,14 +6950,20 @@ class ServerWindow(QMainWindow):
         if item_id in fashion_alias:
             item_id = fashion_alias[item_id]
 
-        # ★★★ 物品合法性校验（与游戏内命令保持一致）
+        # ★★★ 物品合法性校验（扩展支持 jade 和 star_rail_tickets）★★★
         def is_valid_item(iid):
-            if iid in ('cake', 'credit', 'ticket'):
+            if iid in ('cake', 'credit', 'ticket', 'star_rail_tickets', 'jade'):
                 return True
-            return iid in AVAILABLE_CLOTHES
+            if iid in AVAILABLE_CLOTHES:
+                return True
+            # 自定义物品
+            if hasattr(self, 'server') and self.server:
+                custom_items = self.server.load_custom_items() if hasattr(self.server, 'load_custom_items') else []
+                return any(it.get('id') == iid for it in custom_items)
+            return False
 
         if not is_valid_item(item_id):
-            self.append_log(f"未知物品ID：{item_id}，请使用 cake/credit/ticket 或已注册的时装ID")
+            self.append_log(f"未知物品ID：{item_id}，请使用 cake/credit/ticket/star_rail_tickets/jade 或已注册的时装ID")
             return
 
         amount = 1
@@ -4676,7 +6977,7 @@ class ServerWindow(QMainWindow):
                 self.append_log("数量必须大于0")
                 return
         # 时装强制数量为1
-        if item_id not in ['cake', 'credit', 'ticket']:
+        if item_id not in ('cake', 'credit', 'ticket', 'star_rail_tickets', 'jade'):
             amount = 1
 
         # 确定目标玩家列表（支持 @a，不支持 @s）
@@ -4713,10 +7014,28 @@ class ServerWindow(QMainWindow):
             items.append({'type': 'cake', 'amount': amount})
         elif item_id == 'credit':
             items.append({'type': 'credit', 'amount': amount})
-        elif item_id == 'ticket':
+        elif item_id == 'ticket' or item_id == 'star_rail_tickets':
             items.append({'type': 'star_rail_ticket', 'amount': amount})
+        elif item_id == 'jade':
+            items.append({'type': 'jade', 'amount': amount})
         else:
-            items.append({'type': 'clothes', 'id': item_id})
+            # 时装或自定义
+            if item_id in AVAILABLE_CLOTHES:
+                items.append({'type': 'clothes', 'id': item_id})
+            else:
+                # 尝试自定义物品
+                if hasattr(self, 'server') and self.server:
+                    custom_items = self.server.load_custom_items() if hasattr(self.server, 'load_custom_items') else []
+                    item_info = next((it for it in custom_items if it.get('id') == item_id), None)
+                    if item_info:
+                        items.append(
+                            {'type': 'custom', 'id': item_id, 'amount': amount, 'name': item_info.get('name', item_id)})
+                    else:
+                        self.append_log(f"未知物品: {item_id}")
+                        return
+                else:
+                    self.append_log(f"未知物品: {item_id}")
+                    return
 
         # 生成物品描述
         items_desc = []
@@ -4727,10 +7046,14 @@ class ServerWindow(QMainWindow):
                 items_desc.append(f"信用点 x{item['amount']}")
             elif item['type'] == 'star_rail_ticket':
                 items_desc.append(f"星铁专票 x{item['amount']}")
+            elif item['type'] == 'jade':
+                items_desc.append(f"星琼 x{item['amount']}")
             elif item['type'] == 'clothes':
                 cid = item['id']
                 name = AVAILABLE_CLOTHES.get(cid, {}).get('name', cid)
                 items_desc.append(f"时装 [{name}]")
+            elif item['type'] == 'custom':
+                items_desc.append(f"{item.get('name', item['id'])} x{item['amount']}")
 
         # 发送邮件给每个目标
         for p in target_players:
@@ -5564,6 +7887,39 @@ class ServerWindow(QMainWindow):
         url = "https://github.com/Jimhow-Gu/Firefly-Table-Pet-Online-Server/releases"
         webbrowser.open(url)
         self.append_log(f"已打开浏览器: {url}")
+
+    def load_json(self, filename):
+        """加载 server_data 目录下的 JSON 文件，返回列表或字典"""
+        path = os.path.join(SERVER_DATA, filename)
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except:
+                return []
+        return []
+
+    def broadcast_custom_config(self):
+        """广播自定义配置给所有在线玩家（热更新）"""
+        global server_lock, clients  # ← 必须声明全局变量
+        if not self.server:
+            return
+        menu = self.load_json('custom_menu.json')
+        items = self.load_json('custom_items.json')
+        msg = {
+            'type': 'update_custom_config',
+            'data': {
+                'custom_menu': menu,
+                'custom_items': items
+            }
+        }
+        with server_lock:
+            for client in list(clients.keys()):
+                try:
+                    TCPHandler.send_to(client, msg)
+                except:
+                    pass
+        self.append_log(f"[热更新] 已广播配置给 {len(clients)} 个在线玩家")
 
     def closeEvent(self, event):
         self.stop_server()

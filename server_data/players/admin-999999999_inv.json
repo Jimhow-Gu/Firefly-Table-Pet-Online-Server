@@ -1,14 +1,17 @@
 {
-  "balance": -9,
-  "credit": 18002,
+  "balance": 121,
+  "credit": 94402,
   "owned_clothes": [
     "normal",
     "ruyi",
     "credit 2d",
     "2131ewq",
     "nsb",
-    "asjhd"
+    "asjhd",
+    "26_Newyear"
   ],
-  "star_rail_tickets": 0,
-  "last_sign_date": "2026-07-31"
+  "star_rail_tickets": 10,
+  "last_sign_date": "2026-08-30",
+  "custom_items": {},
+  "jade": 0
 }

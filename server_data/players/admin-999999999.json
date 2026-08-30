@@ -18,31 +18,2651 @@
     "255"
   ],
   "timezone": null,
-  "total_interactions": 8,
-  "total_open_count": 0,
-  "total_sign_days": 2,
-  "total_affection_up": 2,
+  "total_interactions": 11,
+  "total_open_count": 36,
+  "total_sign_days": 4,
+  "total_affection_up": 3,
   "total_sleep_count": 0,
   "total_chat_count": 4,
-  "monthly_interactions": 3,
-  "monthly_open_count": 32,
-  "monthly_sign_days": 0,
-  "monthly_affection_up": 0,
+  "monthly_interactions": 6,
+  "monthly_open_count": 379,
+  "monthly_sign_days": 2,
+  "monthly_affection_up": 1,
   "monthly_sleep_count": 0,
   "monthly_chat_count": 3,
-  "monthly_credit_gained": 0,
-  "monthly_cake_gained": 0,
+  "monthly_credit_gained": 14400,
+  "monthly_cake_gained": 5,
   "current_month": "2026-08",
   "redeem_stats": {
     "cake": 11167,
-    "credit 2D": 0,
-    "credit 2d": 0,
     "credit": 1,
-    "2131ewq": 1,
-    "nsb": 1,
-    "asjhd": 1
+    "jade": 104900,
+    "star_rail_ticket": 100010
   },
   "muted_until": null,
   "last_change_name_time": null,
-  "change_name_count": 0
+  "change_name_count": 0,
+  "gacha_pity_5": 54,
+  "gacha_pity_4": 3,
+  "gacha_guaranteed_5": false,
+  "total_five_star": 5,
+  "gacha_history": [
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:22.080772+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:22.080772+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:22.080772+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:22.080772+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:22.080772+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T21:42:22.080772+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:22.080772+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:22.080772+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:22.080772+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:22.080772+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:26.047569+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:26.047569+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:26.047569+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:26.047569+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:26.047569+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T21:42:26.047569+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:26.047569+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:26.047569+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:26.047569+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:42:26.047569+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:49:15.116359+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:49:15.116359+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:49:15.116359+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:49:15.116359+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:49:15.116359+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-11T21:49:15.116359+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:49:15.116359+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:49:15.116359+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:49:15.116359+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:49:15.116359+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:53:38.507039+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:53:38.507039+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T21:53:38.507039+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:53:38.507039+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:53:38.507039+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:53:38.507039+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:53:38.507039+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T21:53:38.507039+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:53:38.507039+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T21:53:38.507039+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:14:11.476688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:14:11.476688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u6a61\u6728\u86cb\u7cd5\u5377",
+      "rarity": 4,
+      "time": "2026-08-11T22:14:11.476688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:14:11.476688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:14:11.476688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:14:11.476688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:14:11.476688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:14:11.476688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:14:11.476688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:14:11.476688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:24:56.064059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:24:56.064059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-11T22:24:56.064059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:24:56.064059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:24:56.064059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:24:56.064059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:24:56.064059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:24:56.064059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:24:56.064059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:24:56.064059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:25:02.430445+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:25:02.430445+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:25:02.430445+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u6a61\u6728\u86cb\u7cd5\u5377",
+      "rarity": 4,
+      "time": "2026-08-11T22:25:02.430445+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:25:02.430445+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:25:02.430445+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:25:02.430445+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:25:02.430445+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:25:02.430445+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:25:02.430445+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:04.715378+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:04.715378+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:04.715378+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:04.715378+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:04.715378+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:04.715378+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:04.715378+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:04.715378+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u67ff\u67ff\u5982\u610f",
+      "rarity": 5,
+      "time": "2026-08-11T22:26:04.715378+08:00",
+      "isUp": true,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:04.715378+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:11.202259+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:11.202259+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:11.202259+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:11.202259+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:11.202259+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:11.202259+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:11.202259+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:11.202259+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:11.202259+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:11.202259+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:13.415923+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:13.415923+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:13.415923+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:13.415923+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:13.415923+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:13.415923+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:13.415923+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:13.415923+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:13.415923+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:13.415923+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:15.332965+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:15.332965+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:15.332965+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:15.332965+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:15.332965+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:15.332965+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:15.332965+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:15.332965+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:15.332965+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:15.332965+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:24.076080+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:24.076080+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:24.076080+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:24.076080+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:24.076080+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u6a61\u6728\u86cb\u7cd5\u5377",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:24.076080+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:24.076080+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:24.076080+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:24.076080+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:24.076080+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:28.714182+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:28.714182+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:28.714182+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:28.714182+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:28.714182+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:28.714182+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:28.714182+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:28.714182+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:28.714182+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:28.714182+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:31.195731+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:33.348805+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:33.348805+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:33.348805+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:33.348805+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:33.348805+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:33.348805+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:33.348805+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:33.348805+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:33.348805+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:33.348805+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:36.036447+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:36.036447+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:36.036447+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:36.036447+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:36.036447+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:36.036447+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:36.036447+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:36.036447+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:36.036447+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:36.036447+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:39.904999+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:39.904999+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:39.904999+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:39.904999+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:39.904999+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:39.904999+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:39.904999+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u67ff\u67ff\u5982\u610f",
+      "rarity": 5,
+      "time": "2026-08-11T22:26:39.904999+08:00",
+      "isUp": true,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:39.904999+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:39.904999+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:47.569893+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:47.569893+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:47.569893+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:47.569893+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:47.569893+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:47.569893+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:47.569893+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u6a61\u6728\u86cb\u7cd5\u5377",
+      "rarity": 4,
+      "time": "2026-08-11T22:26:47.569893+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:47.569893+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:26:47.569893+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:31:56.918662+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:31:56.918662+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:31:56.918662+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:31:56.918662+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:31:56.918662+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:31:56.918662+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:31:56.918662+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:31:56.918662+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:31:56.918662+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:31:56.918662+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:55:45.636076+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:55:45.636076+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:55:45.636076+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:55:45.636076+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T22:55:45.636076+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:55:45.636076+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:55:45.636076+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T22:55:45.636076+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:55:45.636076+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T22:55:45.636076+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:14.480089+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:14.480089+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:14.480089+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:14.480089+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:14.480089+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:14.480089+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:14.480089+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T23:26:14.480089+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:14.480089+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:14.480089+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:19.427741+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:19.427741+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:19.427741+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:19.427741+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:19.427741+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:19.427741+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:19.427741+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-11T23:26:19.427741+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:19.427741+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:19.427741+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:23.545425+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:23.545425+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:23.545425+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:23.545425+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:23.545425+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:23.545425+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:23.545425+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-11T23:26:23.545425+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:23.545425+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:23.545425+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:37.885654+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:37.885654+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:37.885654+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:37.885654+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:37.885654+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:37.885654+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:37.885654+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T23:26:37.885654+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:37.885654+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:26:37.885654+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:32:00.743567+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-11T23:32:00.743567+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:32:00.743567+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:32:00.743567+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:32:00.743567+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:32:00.743567+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:32:00.743567+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u67ff\u67ff\u5982\u610f",
+      "rarity": 5,
+      "time": "2026-08-11T23:32:00.743567+08:00",
+      "isUp": true,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:32:00.743567+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-11T23:32:00.743567+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:54.451617+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:54.451617+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:54.451617+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:54.451617+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:54.451617+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:54.451617+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:54.451617+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:54.451617+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:54.451617+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u6a61\u6728\u86cb\u7cd5\u5377",
+      "rarity": 4,
+      "time": "2026-08-11T23:33:54.451617+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:56.367374+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:56.367374+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:56.367374+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:56.367374+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:56.367374+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:56.367374+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:56.367374+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:56.367374+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:56.367374+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T23:33:56.367374+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:57.997311+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:57.997311+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:57.997311+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:57.997311+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:57.997311+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:57.997311+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:57.997311+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:57.997311+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:33:57.997311+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-11T23:33:57.997311+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:24.951059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:24.951059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:24.951059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:24.951059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:24.951059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:24.951059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:24.951059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:24.951059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:24.951059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-11T23:35:24.951059+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:38.722540+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:38.722540+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:38.722540+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:38.722540+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:38.722540+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:38.722540+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:38.722540+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:38.722540+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:35:38.722540+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u6a61\u6728\u86cb\u7cd5\u5377",
+      "rarity": 4,
+      "time": "2026-08-11T23:35:38.722540+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:42.379235+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:42.379235+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:42.379235+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:42.379235+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:42.379235+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:42.379235+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:42.379235+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:42.379235+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:42.379235+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-11T23:36:42.379235+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:46.432563+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:46.432563+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:46.432563+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:46.432563+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:46.432563+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:46.432563+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:46.432563+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:46.432563+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:46.432563+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u6a61\u6728\u86cb\u7cd5\u5377",
+      "rarity": 4,
+      "time": "2026-08-11T23:36:46.432563+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:53.978411+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:53.978411+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-11T23:36:53.978411+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:53.978411+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:53.978411+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:53.978411+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:53.978411+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u67ff\u67ff\u5982\u610f",
+      "rarity": 5,
+      "time": "2026-08-11T23:36:53.978411+08:00",
+      "isUp": true,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:53.978411+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-11T23:36:53.978411+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:11:31.127941+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-12T23:11:31.127941+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:11:31.127941+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:11:31.127941+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:11:31.127941+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:11:31.127941+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-12T23:11:31.127941+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-12T23:11:31.127941+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-12T23:11:31.127941+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-12T23:11:31.127941+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:21:57.229424+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:21:57.229424+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:21:57.229424+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-12T23:21:57.229424+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-12T23:21:57.229424+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-12T23:21:57.229424+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u6a61\u6728\u86cb\u7cd5\u5377",
+      "rarity": 4,
+      "time": "2026-08-12T23:21:57.229424+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:21:57.229424+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:21:57.229424+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-12T23:21:57.229424+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-12T23:22:15.114214+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-12T23:22:15.114214+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-12T23:22:15.114214+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-12T23:22:15.114214+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-12T23:22:15.114214+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u6a61\u6728\u86cb\u7cd5\u5377",
+      "rarity": 4,
+      "time": "2026-08-12T23:22:15.114214+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:22:15.114214+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-12T23:22:15.114214+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:22:15.114214+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-12T23:22:15.114214+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:45:50.117688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:45:50.117688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-16T13:45:50.117688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-16T13:45:50.117688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-16T13:45:50.117688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-16T13:45:50.117688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:45:50.117688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:45:50.117688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-16T13:45:50.117688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:45:50.117688+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-16T13:46:21.217953+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u8f68\u4e13\u7968",
+      "rarity": 4,
+      "time": "2026-08-16T13:46:21.217953+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:46:21.217953+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:46:21.217953+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:46:21.217953+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:46:21.217953+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:46:21.217953+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T13:46:21.217953+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u661f\u743c",
+      "rarity": 4,
+      "time": "2026-08-16T13:46:21.217953+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "\u4fe1\u7528\u70b9",
+      "rarity": 3,
+      "time": "2026-08-16T13:46:21.217953+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T14:07:13.446624+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-16T14:15:56.360166+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    }
+  ],
+  "monthly_jade_gained": 1600,
+  "total_jade_gained": 1600,
+  "monthly_ticket_gained": 0,
+  "total_ticket_gained": 0,
+  "birthday_reward_year": null,
+  "last_achievement_month": null
 }

@@ -1,0 +1,15 @@
+[
+  {
+    "id": "menu_1",
+    "label": "新菜单",
+    "type": "none",
+    "data": "",
+    "tooltip": "",
+    "resource_required": false,
+    "resource_url": "",
+    "icon_type": "emoji",
+    "icon": "📁",
+    "children": [],
+    "expiry": null
+  }
+]

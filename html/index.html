@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>服务器内容管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<style>
+*{box-sizing:border-box;}
+body {
+    background-color:#1e1e1e;
+    color:#E0E0E0;
+    font-family:Segoe UI,system-ui,sans-serif;
+    margin:0;
+    padding:8px;
+    height:100vh;
+    overflow:hidden;
+}
+.group-box {
+    border:1px solid #444;
+    border-radius:4px;
+    padding:14px 10px 10px 10px;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+}
+.group-box-title{
+    position:absolute;
+    left:8px;
+    top:-9px;
+    background:#1E1E1E;
+    padding:0 5px;
+    font-weight:bold;
+    font-size:13px;
+}
+.tree-widget,.list-widget{
+    background:#2c2c2c;
+    border:1px solid #444;
+    border-radius:3px;
+    padding:4px;
+    overflow:auto;
+    flex:1;
+    min-height:80px;
+}
+.tree-item,.list-item{
+    padding:5px 7px;
+    border-radius:2px;
+    cursor:pointer;
+    user-select:none;
+    font-size:13px;
+}
+.tree-item:hover,.list-item:hover{background:#383838;}
+.tree-item.selected,.list-item.selected{
+    background:#2e7d32;
+    color:#ffffff;
+}
+.tree-children{
+    padding-left:22px;
+}
+input[type="text"],select,input[type="number"]{
+    width:100%;
+    background:#2c2c2c;
+    color:#E0E0E0;
+    border:1px solid #555;
+    border-radius:3px;
+    padding:4px 7px;
+    font-size:13px;
+}
+input::placeholder{color:#999;}
+input:focus,select:focus{
+    outline:none;
+    border-color:#4CAF50;
+}
+.btn{
+    border:none;
+    border-radius:3px;
+    padding:5px 10px;
+    font-weight:500;
+    color:#fff;
+    cursor:pointer;
+    font-size:13px;
+}
+.btn-green{background:#43a047;}
+.btn-green:hover{background:#388e3c;}
+.btn-red{background:#d32f2f;}
+.btn-red:hover{background:#c62828;}
+.btn-orange{background:#fb8c00;}
+.btn-orange:hover{background:#f57c00;}
+.btn:disabled{background:#505050;cursor:not-allowed;color:#aaa;}
+.checkbox-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+    font-size:13px;
+}
+.form-scroll{
+    overflow-y:auto;
+    flex:1;
+    padding-right:6px;
+    min-height:0;
+}
+.hidden{display:none !important;}
+.empty-hint{
+    color:#888;
+    padding:8px;
+    font-size:13px;
+}
+.main-window{
+    display:flex;
+    gap:12px;
+    height:calc(100vh - 16px);
+}
+.left-panel{
+    width:280px;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    min-height:0;
+}
+.right-panel{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+}
+.bottom-bar{
+    display:flex;
+    gap:6px;
+    margin-top:8px;
+    flex-shrink:0;
+    flex-wrap:wrap;
+}
+#gachaConfigOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.7);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+#gachaConfigOverlay.open {
+    display: flex !important;
+}
+#gachaConfigOverlay .config-box {
+    background: #2c2c2c;
+    border-radius: 8px;
+    padding: 24px;
+    width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    border: 1px solid #555;
+}
+#gachaConfigOverlay .config-box h2 {
+    color:#fff;
+    margin:0 0 12px 0;
+}
+#gachaConfigOverlay .config-box label {
+    color:#ccc;
+    display:block;
+    margin:6px 0;
+}
+#gachaConfigOverlay .config-box input[type="number"],
+#gachaConfigOverlay .config-box textarea {
+    width:100%;
+    background:#1e1e1e;
+    color:#e0e0e0;
+    border:1px solid #555;
+    border-radius:4px;
+    padding:4px 6px;
+}
+#gachaConfigOverlay .config-box textarea {
+    font-family:monospace;
+    font-size:13px;
+    resize:vertical;
+}
+#gachaConfigOverlay .config-box .btn-group {
+    margin-top:12px;
+    display:flex;
+    gap:8px;
+}
+#uploadStatus {
+    display:none;
+    margin-top:4px;
+    font-size:12px;
+    color:#aaa;
+}
+</style>
+</head>
+<body>
+<div class="main-window">
+    <div class="left-panel">
+        <div class="group-box flex-grow">
+            <div class="group-box-title">📁 菜单结构</div>
+            <div class="tree-widget" id="menuTree">
+                <div class="empty-hint" id="treeEmptyHint">📭 暂无菜单，请添加根菜单</div>
+                <div id="treeContainer"></div>
+            </div>
+            <div class="flex gap-[8px] mt-[8px] flex-shrink-0">
+                <button class="btn btn-green flex-1" id="btnAddRoot">➕ 根菜单</button>
+                <button class="btn btn-green flex-1" id="btnAddChild">📎 子菜单</button>
+            </div>
+        </div>
+        <div class="group-box flex-grow">
+            <div class="group-box-title">🎒 物品列表</div>
+            <div class="list-widget" id="itemList">
+                <div class="empty-hint" id="itemEmptyHint">📭 暂无物品，请添加</div>
+                <div id="itemContainer"></div>
+            </div>
+            <button class="btn btn-green w-full mt-[8px] flex-shrink-0" id="btnAddItem">➕ 添加物品</button>
+        </div>
+    </div>
+    <div class="right-panel">
+        <h2 class="text-base font-bold text-white mb-2 flex-shrink-0" id="editTitle">✏️ 未选中项</h2>
+        <div class="form-scroll">
+            <div id="menuFormHint" class="text-yellow-400 text-sm mb-2 hidden">⚠️ 该菜单包含子菜单，仅可修改名称和图标，不可配置功能。</div>
+            <div id="menuForm">
+                <div class="grid gap-y-2 gap-x-[10px]" style="grid-template-columns:90px 1fr;align-items:center;">
+                    <label class="text-right pr-2 text-sm">名称</label>
+                    <input id="f_label" type="text" placeholder="菜单显示名称">
+                    <label class="text-right pr-2 text-sm">图标 (emoji)</label>
+                    <input id="f_icon" type="text" placeholder="例如：📂">
+                    <label class="text-right pr-2 text-sm">悬浮提示</label>
+                    <input id="f_tooltip" type="text" placeholder="留空则无提示">
+                </div>
+                <div id="advancedFields">
+                    <div class="grid gap-y-2 gap-x-[10px] mt-3" style="grid-template-columns:90px 1fr;align-items:center;">
+                        <label class="text-right pr-2 text-sm">操作类型</label>
+                        <select id="f_type">
+                            <option value="none">无（仅显示）</option>
+                            <option value="url">url - 打开网页</option>
+                            <option value="command">command - 发送命令</option>
+                            <option value="download">download - 下载资源包</option>
+                            <option value="gacha">gacha - 抽卡功能</option>
+                            <option value="action">action - 自定义动作</option>
+                            <option value="html">html - 打开本地HTML</option>
+                            <option value="webview">webview - 内置浏览器</option>
+                            <option value="folder">folder - 打开文件夹</option>
+                        </select>
+                        <label class="text-right pr-2 text-sm">参数数据</label>
+                        <input id="f_data" type="text" placeholder="url / 命令字符串">
+                        <div></div>
+                        <div class="checkbox-row">
+                            <input type="checkbox" id="f_resource_required">
+                            <label for="f_resource_required">需要资源包</label>
+                        </div>
+                        <label class="text-right pr-2 text-sm">资源URL</label>
+                        <div class="flex gap-[6px] items-center">
+                            <input id="f_resource_url" type="text" placeholder="/resources/xxx.zip" disabled>
+                            <button class="btn btn-green text-xs py-1 px-2" id="btnUploadResource">📤 上传资源</button>
+                        </div>
+                        <div id="uploadStatus">上传中...</div>
+                        <!-- 新增：有效期输入 -->
+                        <label class="text-right pr-2 text-sm">有效期</label>
+                        <input id="f_expiry" type="text" placeholder="永久 或 30D 或 2026-12-31">
+                    </div>
+                </div>
+            </div>
+            <div id="itemForm" class="hidden">
+                <div class="grid gap-y-2 gap-x-[10px]" style="grid-template-columns:90px 1fr;align-items:center;">
+                    <label class="text-right pr-2 text-sm">物品名称</label>
+                    <input id="i_name" type="text" placeholder="客户端背包显示的物品名称">
+                    <label class="text-right pr-2 text-sm">图标</label>
+                    <input id="i_icon" type="text" placeholder="emoji 例如：🎁">
+                    <label class="text-right pr-2 text-sm">描述文本</label>
+                    <input id="i_desc" type="text" placeholder="鼠标悬浮显示的物品描述">
+                    <label class="text-right pr-2 text-sm">数量</label>
+                    <input id="i_count" type="number" value="0" step="1">
+                    <label class="text-right pr-2 text-sm">物品ID</label>
+                    <input id="i_id" type="text" placeholder="留空自动生成（指令使用此ID）">
+                </div>
+                <div class="text-gray-400 text-xs mt-3">
+                    提示：物品作为模板，实际玩家背包数据由服务端业务逻辑生成。物品ID将作为 /give 等命令中的物品名称。
+                </div>
+            </div>
+        </div>
+        <div class="bottom-bar">
+            <button class="btn btn-green" id="btnRefresh">🔄 刷新</button>
+            <button class="btn btn-green" id="btnApply">✅ 确定</button>
+            <button class="btn btn-orange" id="btnGachaConfig">🎲 抽卡配置</button>
+            <button class="btn btn-orange" id="btnHotUpdate">🔥 热更新</button>
+            <button class="btn btn-green" id="btnPublish">📦 发布</button>
+            <button class="btn btn-red" id="btnDelete">🗑️ 删除</button>
+            <button class="btn btn-green" id="btnDuplicate">📋 复制</button>
+            <button class="btn btn-green" id="btnClose">✖ 关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 抽卡配置弹窗 -->
+<div id="gachaConfigOverlay">
+    <div class="config-box">
+        <h2>🎲 抽卡配置</h2>
+        <label>五星保底抽数：<input id="cfg_pity5" type="number" value="90" /></label>
+        <label>四星保底抽数：<input id="cfg_pity4" type="number" value="10" /></label>
+        <label>五星基础概率（小数）：<input id="cfg_rate5" type="number" step="0.001" value="0.006" /></label>
+        <label>四星基础概率（小数）：<input id="cfg_rate4" type="number" step="0.001" value="0.051" /></label>
+        <hr style="border-color:#555; margin:10px 0;" />
+        <label style="font-weight:bold;">物品池（JSON格式）</label>
+        <textarea id="cfg_poolItems" rows="10" style="width:100%; background:#1e1e1e; color:#e0e0e0; border:1px solid #555; border-radius:4px; padding:4px; font-family:monospace; font-size:13px;">{"5":[{"type":"star_rail_ticket","amount":1}],"4":[{"type":"jade","amount":100}],"3":[{"type":"jade","amount":10}]}</textarea>
+        <div class="btn-group">
+            <button class="btn btn-green" id="cfgSave">保存</button>
+            <button class="btn btn-red" id="cfgCancel">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- 文件输入：只允许选择 ZIP -->
+<input type="file" id="fileInput" accept=".zip" style="display:none;">
+
+<script>
+let bridge = null;
+let gachaConfigCache = null;
+let bridgeReady = false;
+let menus = [];
+let items = [];
+let selectedType = null;
+let selectedId = null;
+let seq = 0;
+
+const treeContainer = document.getElementById('treeContainer');
+const treeEmptyHint = document.getElementById('treeEmptyHint');
+const itemContainer = document.getElementById('itemContainer');
+const itemEmptyHint = document.getElementById('itemEmptyHint');
+const editTitle = document.getElementById('editTitle');
+const menuForm = document.getElementById('menuForm');
+const itemForm = document.getElementById('itemForm');
+const f_label = document.getElementById('f_label');
+const f_type = document.getElementById('f_type');
+const f_data = document.getElementById('f_data');
+const f_tooltip = document.getElementById('f_tooltip');
+const f_resource_required = document.getElementById('f_resource_required');
+const f_resource_url = document.getElementById('f_resource_url');
+const f_icon = document.getElementById('f_icon');
+const f_expiry = document.getElementById('f_expiry');  // 新增
+const i_name = document.getElementById('i_name');
+const i_icon = document.getElementById('i_icon');
+const i_desc = document.getElementById('i_desc');
+const i_id = document.getElementById('i_id');
+const i_count = document.getElementById('i_count');
+
+const cfgOverlay = document.getElementById('gachaConfigOverlay');
+const cfgPity5 = document.getElementById('cfg_pity5');
+const cfgPity4 = document.getElementById('cfg_pity4');
+const cfgRate5 = document.getElementById('cfg_rate5');
+const cfgRate4 = document.getElementById('cfg_rate4');
+const cfgPool = document.getElementById('cfg_poolItems');
+const uploadStatus = document.getElementById('uploadStatus');
+
+function initBridge() {
+    console.log('initBridge called');
+    if (typeof qt !== 'undefined' && qt.webChannelTransport) {
+        console.log('qt.webChannelTransport available');
+        try {
+            new QWebChannel(qt.webChannelTransport, function(channel) {
+                bridge = channel.objects.bridge;
+                console.log('bridge object:', bridge);
+                if (!bridge) {
+                    console.error('桥接对象为空');
+                    alert('❌ 桥接对象为空！请检查服务端注册。');
+                    bridgeReady = false;
+                    return;
+                }
+                bridgeReady = true;
+                bridge.dataChanged.connect(function() {
+                    console.log('dataChanged signal received');
+                    loadDataAndRender();
+                });
+                loadDataAndRender();
+            });
+        } catch(e) {
+            console.error('QWebChannel 初始化异常:', e);
+            alert('❌ QWebChannel 初始化异常：' + e.message);
+            bridgeReady = false;
+        }
+    } else {
+        console.error('qt.webChannelTransport 不可用');
+        alert('❌ QWebChannel 不可用！请确保在 Qt WebEngine 环境中运行。');
+        bridgeReady = false;
+    }
+}
+
+function loadDataAndRender() {
+    if (!bridge) {
+        console.warn('bridge not ready');
+        return;
+    }
+    Promise.resolve(bridge.getMenus()).then(menusStr => {
+        return Promise.resolve(bridge.getItems()).then(itemsStr => {
+            let menusData, itemsData;
+            try {
+                menusData = JSON.parse(menusStr);
+                if (menusData && menusData.error) throw new Error('菜单数据错误：' + menusData.error);
+            } catch(e) {
+                throw new Error('菜单数据解析失败：' + e.message + '\n原始数据：' + menusStr);
+            }
+            try {
+                itemsData = JSON.parse(itemsStr);
+                if (itemsData && itemsData.error) throw new Error('物品数据错误：' + itemsData.error);
+            } catch(e) {
+                throw new Error('物品数据解析失败：' + e.message + '\n原始数据：' + itemsStr);
+            }
+            menus = menusData || [];
+            items = itemsData || [];
+            renderAll();
+            if (selectedType === 'menu' && selectedId) {
+                selectMenu(selectedId);
+            } else if (selectedType === 'item' && selectedId) {
+                selectItem(selectedId);
+            } else {
+                setEditMode(null);
+                clearAllForm();
+            }
+        });
+    }).catch(e => {
+        console.error('loadDataAndRender error:', e);
+        alert('❌ 数据加载失败：\n' + e.message);
+    });
+}
+
+function renderAll() {
+    renderTree();
+    renderItems();
+}
+
+function renderTree() {
+    treeContainer.innerHTML = '';
+    function renderNode(node, parentDom) {
+        const div = document.createElement('div');
+        div.className = 'tree-item';
+        div.dataset.id = node.id;
+        const icon = node.icon || (node.children && node.children.length > 0 ? '📂' : '📄');
+        div.innerText = `${icon} ${node.label}`;
+        if (selectedType === 'menu' && selectedId === node.id) {
+            div.classList.add('selected');
+        }
+        div.onclick = (e) => {
+            e.stopPropagation();
+            selectMenu(node.id);
+        };
+        parentDom.appendChild(div);
+        if (node.children && node.children.length > 0) {
+            const childWrap = document.createElement('div');
+            childWrap.className = 'tree-children';
+            node.children.forEach(child => renderNode(child, childWrap));
+            parentDom.appendChild(childWrap);
+        }
+    }
+    menus.forEach(root => renderNode(root, treeContainer));
+    treeEmptyHint.classList.toggle('hidden', menus.length > 0);
+}
+
+function renderItems() {
+    itemContainer.innerHTML = '';
+    items.forEach(it => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.dataset.id = it.id;
+        const count = (it.count !== undefined) ? it.count : 0;
+        div.innerText = '🎒 ' + it.name + ' ×' + count;
+        if (selectedType === 'item' && selectedId === it.id) {
+            div.classList.add('selected');
+        }
+        div.onclick = () => selectItem(it.id);
+        itemContainer.appendChild(div);
+    });
+    itemEmptyHint.classList.toggle('hidden', items.length > 0);
+}
+
+function selectMenu(id) {
+    selectedType = 'menu';
+    selectedId = id;
+    const node = findMenuById(id, menus);
+    if (!node) {
+        setEditMode(null);
+        clearAllForm();
+        renderAll();
+        return;
+    }
+    setEditMode('menu');
+    fillMenuForm(node);
+    const hasChildren = node.children && node.children.length > 0;
+    const hint = document.getElementById('menuFormHint');
+    const advanced = document.getElementById('advancedFields');
+    if (hasChildren) {
+        hint.classList.remove('hidden');
+        advanced.classList.add('hidden');
+    } else {
+        hint.classList.add('hidden');
+        advanced.classList.remove('hidden');
+    }
+    renderAll();
+}
+
+function selectItem(id) {
+    selectedType = 'item';
+    selectedId = id;
+    const it = items.find(x => x.id === id);
+    if (it) {
+        setEditMode('item');
+        fillItemForm(it);
+    }
+    renderAll();
+}
+
+function setEditMode(mode) {
+    if (mode === 'menu') {
+        editTitle.innerText = '✏️ 编辑菜单';
+        menuForm.classList.remove('hidden');
+        itemForm.classList.add('hidden');
+    } else if (mode === 'item') {
+        editTitle.innerText = '✏️ 编辑物品';
+        menuForm.classList.add('hidden');
+        itemForm.classList.remove('hidden');
+    } else {
+        editTitle.innerText = '✏️ 未选中项';
+        menuForm.classList.add('hidden');
+        itemForm.classList.add('hidden');
+    }
+}
+
+function fillMenuForm(node) {
+    f_label.value = node.label || '';
+    f_type.value = node.type || 'none';
+    f_data.value = node.data || '';
+    f_tooltip.value = node.tooltip || '';
+    f_resource_required.checked = !!node.resource_required;
+    f_resource_url.value = node.resource_url || '';
+    f_resource_url.disabled = !node.resource_required;
+    f_icon.value = node.icon || '';
+    f_expiry.value = node.expiry || '';  // 新增
+}
+
+function fillItemForm(it) {
+    i_name.value = it.name || '';
+    i_icon.value = it.icon || '';
+    i_desc.value = it.description || '';
+    i_id.value = it.id || '';
+    i_count.value = (it.count !== undefined) ? it.count : 0;
+}
+
+function clearAllForm() {
+    f_label.value = '';
+    f_type.value = 'none';
+    f_data.value = '';
+    f_tooltip.value = '';
+    f_resource_required.checked = false;
+    f_resource_url.value = '';
+    f_resource_url.disabled = true;
+    f_icon.value = '';
+    f_expiry.value = '';
+    i_name.value = '';
+    i_icon.value = '';
+    i_desc.value = '';
+    i_id.value = '';
+    i_count.value = 0;
+}
+
+function findMenuById(id, arr=menus) {
+    for (let n of arr) {
+        if (n.id === id) return n;
+        if (n.children && n.children.length > 0) {
+            const res = findMenuById(id, n.children);
+            if (res) return res;
+        }
+    }
+    return null;
+}
+
+function generateId(prefix) {
+    return prefix + (++seq);
+}
+
+function safeBridgeCall(method, ...args) {
+    if (!bridge) {
+        alert('❌ 桥接未初始化，请刷新页面或重启程序。');
+        return Promise.resolve(null);
+    }
+    return Promise.resolve(method.apply(bridge, args)).catch(e => {
+        console.error('Bridge call error:', e);
+        alert('❌ 操作失败：' + e.message);
+        return null;
+    });
+}
+
+// ========== 抽卡配置相关（保持不变） ==========
+function loadGachaConfig() {
+    if (!bridge) {
+        alert('桥接未就绪');
+        return;
+    }
+    bridge.getGachaConfig(function(configJson) {
+        try {
+            let config;
+            if (typeof configJson === 'string') {
+                config = JSON.parse(configJson);
+            } else if (typeof configJson === 'object' && configJson !== null) {
+                config = configJson;
+            } else {
+                config = {};
+            }
+            // 若为空，初始化默认值（与服务端 default_config 保持一致）
+            if (Object.keys(config).length === 0) {
+                config = {
+                    name: "角色活动跃迁",
+                    description: "限定角色UP",
+                    icon: "✦",
+                    banner: "img/pool_banner.png",
+                    cost_type: "star_rail_ticket",
+                    cost_per_pull: 1,
+                    expiry: null,
+                    rules: {
+                        base_5star_rate: 0.006,
+                        base_4star_rate: 0.051,
+                        pity_hard_5star: 80,
+                        pity_hard_4star: 10,
+                        guarantee_up_5star: true
+                    },
+                    five_star_items: [{ "id": "26_Newyear", "weight": 50, "up": true, "amount": 1 }],
+                    four_star_items: [
+                        { "id": "jade", "weight": 50, "amount": 10 },
+                        { "id": "cake", "weight": 20, "amount": 1 },
+                        { "id": "star_rail_ticket", "weight": 50, "amount": 1 }
+                    ],
+                    three_star_items: [
+                        { "id": "credit", "weight": 70, "amount": 100 },
+                        { "id": "none", "weight": 70, "amount": 0 }
+                    ]
+                };
+            }
+            // 缓存完整配置
+            gachaConfigCache = config;
+
+            // 回填表单字段
+            cfgPity5.value = config.rules?.pity_hard_5star || 80;
+            cfgPity4.value = config.rules?.pity_hard_4star || 10;
+            cfgRate5.value = config.rules?.base_5star_rate || 0.006;
+            cfgRate4.value = config.rules?.base_4star_rate || 0.051;
+            // ★ 回填有效期
+            document.getElementById('cfg_expiry').value = config.expiry || '';
+
+            // 组合物品池（为显示方便，可提取为JSON，但这里保持原样）
+            const poolDisplay = {
+                "5": config.five_star_items || [],
+                "4": config.four_star_items || [],
+                "3": config.three_star_items || []
+            };
+            cfgPool.value = JSON.stringify(poolDisplay, null, 2);
+        } catch(e) {
+            alert('加载配置失败：' + e.message);
+        }
+    });
+}
+
+function saveGachaConfig() {
+    try {
+        // 从表单读取数值
+        const pity5 = parseInt(cfgPity5.value);
+        const pity4 = parseInt(cfgPity4.value);
+        const rate5 = parseFloat(cfgRate5.value);
+        const rate4 = parseFloat(cfgRate4.value);
+        const expiry = document.getElementById('cfg_expiry').value.trim() || null;  // 空字符串转为null
+
+        if (isNaN(pity5) || isNaN(pity4) || isNaN(rate5) || isNaN(rate4)) {
+            alert('请填写有效的数字');
+            return;
+        }
+
+        // 解析物品池
+        let poolItems;
+        try {
+            poolItems = JSON.parse(cfgPool.value);
+        } catch(e) {
+            alert('物品池JSON格式错误：' + e.message);
+            return;
+        }
+
+        // 更新缓存配置对象
+        if (!gachaConfigCache) {
+            gachaConfigCache = {};
+        }
+        // 更新规则
+        gachaConfigCache.rules = gachaConfigCache.rules || {};
+        gachaConfigCache.rules.pity_hard_5star = pity5;
+        gachaConfigCache.rules.pity_hard_4star = pity4;
+        gachaConfigCache.rules.base_5star_rate = rate5;
+        gachaConfigCache.rules.base_4star_rate = rate4;
+        // 更新有效期
+        gachaConfigCache.expiry = expiry;
+        // 更新物品池
+        gachaConfigCache.five_star_items = poolItems["5"] || [];
+        gachaConfigCache.four_star_items = poolItems["4"] || [];
+        gachaConfigCache.three_star_items = poolItems["3"] || [];
+
+        // 保存完整配置
+        bridge.saveGachaConfig(JSON.stringify(gachaConfigCache), function(success) {
+            if (success) {
+                alert('配置保存成功！\n有效期修改后，下次抽卡立即生效。');
+                cfgOverlay.classList.remove('open');
+            } else {
+                alert('保存失败，请检查服务端日志');
+            }
+        });
+    } catch(e) {
+        alert('保存失败：' + e.message);
+    }
+}
+
+// ========== 文件上传（打包资源）- 仅支持 ZIP ==========
+document.getElementById('btnUploadResource').addEventListener('click', function() {
+    if (!selectedId || selectedType !== 'menu') {
+        alert('请先选中一个菜单项');
+        return;
+    }
+    document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    // 检查是否为 ZIP 文件
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+        alert('请选择 ZIP 文件（.zip）');
+        this.value = '';
+        return;
+    }
+
+    // 检查大小（1GB 限制）
+    if (file.size > 1024 * 1024 * 1024) {
+        alert('资源包大小超过 1GB，请压缩后重试。');
+        this.value = '';
+        return;
+    }
+
+    // 显示上传状态
+    uploadStatus.style.display = 'block';
+    uploadStatus.textContent = '正在读取 ZIP 文件...';
+
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        try {
+            const base64 = ev.target.result.split(',')[1];
+            // 构造单个文件的 JSON 数据（保持与原接口兼容）
+            const fileData = [{
+                name: file.name,
+                content: base64
+            }];
+            const jsonData = JSON.stringify(fileData);
+
+            uploadStatus.textContent = '正在上传...';
+            const menuId = selectedId;
+
+            if (!bridge) {
+                alert('桥接未就绪');
+                uploadStatus.style.display = 'none';
+                return;
+            }
+
+            bridge.uploadResource(menuId, jsonData, function(success) {
+                uploadStatus.style.display = 'none';
+                if (success) {
+                    alert('ZIP 资源上传成功！\n资源URL已自动设置为 /resources/' + menuId + '.zip');
+                    document.getElementById('f_resource_url').value = '/resources/' + menuId + '.zip';
+                    document.getElementById('f_resource_required').checked = true;
+                    // 自动保存菜单
+                    document.getElementById('btnApply').click();
+                } else {
+                    alert('上传失败，请查看服务端日志。');
+                }
+            });
+        } catch (err) {
+            uploadStatus.style.display = 'none';
+            alert('读取 ZIP 文件失败：' + err.message);
+        }
+    };
+    reader.onerror = function(ev) {
+        uploadStatus.style.display = 'none';
+        const errorMsg = ev.target.error ? ev.target.error.message : '未知错误';
+        alert('读取 ZIP 文件失败：' + errorMsg);
+    };
+    reader.readAsDataURL(file);
+
+    this.value = '';
+});
+
+// ========== 事件绑定 ==========
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化桥接
+    initBridge();
+
+    // 添加根菜单
+    document.getElementById('btnAddRoot').addEventListener('click', function() {
+        const id = generateId('menu_');
+        const newNode = {
+            id: id,
+            label: '新菜单',
+            type: 'none',
+            data: '',
+            tooltip: '',
+            resource_required: false,
+            resource_url: '',
+            icon_type: 'emoji',
+            icon: '📁',
+            children: [],
+            expiry: ''  // 新增
+        };
+        menus.push(newNode);
+        selectedType = 'menu';
+        selectedId = id;
+        fillMenuForm(newNode);
+        renderAll();
+        document.getElementById('btnApply').click();
+    });
+
+    // 添加子菜单
+    document.getElementById('btnAddChild').addEventListener('click', function() {
+        if (!selectedId || selectedType !== 'menu') {
+            alert('请先选中一个父菜单');
+            return;
+        }
+        const parent = findMenuById(selectedId);
+        if (!parent) {
+            alert('父菜单不存在');
+            return;
+        }
+        const id = generateId('menu_');
+        const child = {
+            id: id,
+            label: '子菜单',
+            type: 'none',
+            data: '',
+            tooltip: '',
+            resource_required: false,
+            resource_url: '',
+            icon_type: 'emoji',
+            icon: '📄',
+            children: [],
+            expiry: ''
+        };
+        if (!parent.children) parent.children = [];
+        parent.children.push(child);
+        selectedType = 'menu';
+        selectedId = id;
+        fillMenuForm(child);
+        renderAll();
+        document.getElementById('btnApply').click();
+    });
+
+    // 添加物品
+    document.getElementById('btnAddItem').addEventListener('click', function() {
+        const id = generateId('item_');
+        const newItem = {
+            id: id,
+            name: '新物品',
+            icon: '🎁',
+            description: '',
+            count: 0
+        };
+        items.push(newItem);
+        selectedType = 'item';
+        selectedId = id;
+        fillItemForm(newItem);
+        renderAll();
+        document.getElementById('btnApply').click();
+    });
+
+    // 确定（保存当前编辑）
+    document.getElementById('btnApply').addEventListener('click', function() {
+            if (!selectedId) {
+                alert('请先选择一个项目');
+                return;
+            }
+
+            if (selectedType === 'menu') {
+                const label = f_label.value.trim() || '未命名';
+                const type = f_type.value;
+                const data = f_data.value.trim();
+                const tooltip = f_tooltip.value.trim();
+                const resource_required = f_resource_required.checked;
+                const resource_url = f_resource_url.value.trim();
+                const icon_type = 'emoji';
+                const icon = f_icon.value.trim() || '📄';
+                const expiry = f_expiry.value.trim();
+
+                if (!bridge) {
+                    alert('桥接未就绪');
+                    return;
+                }
+
+                bridge.saveMenu(selectedId, label, type, data, tooltip, resource_required, resource_url, icon_type, icon, expiry, function(success) {
+                    if (success) {
+                        loadDataAndRender();
+                    } else {
+                        alert('保存失败！可能原因：已存在其他抽卡菜单项，请先删除或修改原有的抽卡菜单。');
+                    }
+                });
+            } else if (selectedType === 'item') {
+                const name = i_name.value.trim() || '未命名';
+                const icon = i_icon.value.trim() || '🎁';
+                const description = i_desc.value.trim();
+                const count = parseInt(i_count.value) || 0;
+                const id = i_id.value.trim() || selectedId;
+
+                if (id !== selectedId && items.some(it => it.id === id)) {
+                    alert('物品ID已存在');
+                    return;
+                }
+
+                const existing = items.find(it => it.id === selectedId);
+                if (existing) {
+                    existing.id = id;
+                    existing.name = name;
+                    existing.icon = icon;
+                    existing.description = description;
+                    existing.count = count;
+                    if (id !== selectedId) {
+                        selectedId = id;
+                    }
+                } else {
+                    items.push({ id, name, icon, description, count });
+                    selectedId = id;
+                }
+
+                if (!bridge) {
+                    alert('桥接未就绪');
+                    return;
+                }
+
+                bridge.saveItem(selectedId, name, icon, description, count, function(success) {
+                    if (success) {
+                        loadDataAndRender();
+                    } else {
+                        alert('保存物品失败，请检查服务端日志');
+                    }
+                });
+            }
+        });
+
+    // 删除
+    document.getElementById('btnDelete').addEventListener('click', function() {
+        if (!selectedId) {
+            alert('请先选择一个项目');
+            return;
+        }
+        if (!confirm('确定要删除此项吗？')) return;
+        if (selectedType === 'menu') {
+            if (!bridge) { alert('桥接未就绪'); return; }
+            bridge.deleteMenu(selectedId);
+        } else if (selectedType === 'item') {
+            if (!bridge) { alert('桥接未就绪'); return; }
+            bridge.deleteItem(selectedId);
+        }
+        selectedId = null;
+        selectedType = null;
+        setEditMode(null);
+        clearAllForm();
+        renderAll();
+    });
+
+    // 复制
+    document.getElementById('btnDuplicate').addEventListener('click', function() {
+        if (!selectedId) {
+            alert('请先选择一个项目');
+            return;
+        }
+        const newId = generateId(selectedType === 'menu' ? 'menu_' : 'item_');
+        if (selectedType === 'menu') {
+            if (!bridge) { alert('桥接未就绪'); return; }
+            bridge.duplicateMenu(selectedId, newId);
+            selectedId = newId;
+        } else if (selectedType === 'item') {
+            if (!bridge) { alert('桥接未就绪'); return; }
+            bridge.duplicateItem(selectedId, newId);
+            selectedId = newId;
+        }
+        renderAll();
+    });
+
+    // 刷新
+    document.getElementById('btnRefresh').addEventListener('click', function() {
+        loadDataAndRender();
+    });
+
+    // 热更新
+    document.getElementById('btnHotUpdate').addEventListener('click', function() {
+        if (!bridge) { alert('桥接未就绪'); return; }
+        bridge.hotUpdate();
+    });
+
+    // 发布
+    document.getElementById('btnPublish').addEventListener('click', function() {
+        if (!bridge) { alert('桥接未就绪'); return; }
+        bridge.publish();
+    });
+
+    // 关闭
+    document.getElementById('btnClose').addEventListener('click', function() {
+        if (!bridge) { alert('桥接未就绪'); return; }
+        bridge.close();
+    });
+
+    // 抽卡配置
+    document.getElementById('btnGachaConfig').addEventListener('click', function() {
+    loadGachaConfig();
+    document.getElementById('gachaConfigOverlay').classList.add('open');
+    });
+    document.getElementById('cfgCancel').addEventListener('click', function() {
+        cfgOverlay.classList.remove('open');
+    });
+    document.getElementById('cfgSave').addEventListener('click', saveGachaConfig);
+    cfgOverlay.addEventListener('click', function(e) {
+        if (e.target === this) this.classList.remove('open');
+    });
+
+    // 资源包上传按钮已经绑定
+});
+</script>
+</body>
+</html>

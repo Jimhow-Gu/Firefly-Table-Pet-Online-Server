@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>星穹铁道 · 群星跃迁</title>
+    <script src="qrc:///qtwebchannel/qwebchannel.js">
+    </script>
+    <style>
+        /* ===== 全局重置 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "DIN Medium", "DINPro-Medium", "HYQiHei 65S", "HYQiHei-65S", "汉仪旗黑 65", "PingFang SC", "Microsoft Yahei", sans-serif;
+            font-weight: 500;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #0e101a;
+            color: #fff;
+            user-select: none;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        .gacha-wrap {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 30% 40%, #1a1e32, #0d0f1a);
+            position: relative;
+            overflow: hidden;
+        }
+        .gacha-wrap.disabled {
+            pointer-events: none;
+        }
+        .gacha-wrap::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 12, 26, 0.40);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .header-title {
+            position: absolute;
+            top: 20px;
+            left: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+        }
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #d4bc88, #b89f6a);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #1a1a2e;
+            font-size: 22px;
+            box-shadow: 0 4px 16px rgba(212, 188, 136, 0.2);
+        }
+        .title-text h3 {
+            font-size: 20px;
+            color: #e6d7b8;
+            letter-spacing: 3px;
+            font-weight: 500;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+        }
+        .title-text p {
+            font-size: 12px;
+            color: rgba(201, 184, 152, 0.7);
+            letter-spacing: 2px;
+        }
+        .res-top-right {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            z-index: 10;
+        }
+        .res-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 4px 12px;
+            border-radius: 8px;
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 14px;
+        }
+        .res-item img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            display: block;
+        }
+        .res-num {
+            font-weight: 500;
+            min-width: 20px;
+            text-align: center;
+            color: #e6d7b8;
+        }
+        .left-pool-list {
+            position: absolute;
+            top: 84px;
+            left: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 5;
+            width: 156px;
+        }
+        .pool-item {
+            width: 100%;
+            height: 64px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: default;
+            position: relative;
+            background: rgba(26, 30, 50, 0.7);
+            border: 2px solid rgba(74, 74, 106, 0.5);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+        }
+        .pool-item.active {
+            border-color: #e6c87a;
+            box-shadow: 0 0 0 1px rgba(230, 200, 122, 0.2), 0 6px 28px rgba(230, 200, 122, 0.06);
+        }
+        .pool-item .ticket-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e6d7b8;
+            text-align: center;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            z-index: 2;
+            padding: 0 8px;
+            line-height: 1.3;
+        }
+        .pool-item .ticket-text small {
+            display: block;
+            font-size: 11px;
+            font-weight: 400;
+            color: rgba(201, 184, 152, 0.6);
+            letter-spacing: 0.5px;
+        }
+        .pool-item::before,
+        .pool-item::after {
+            content: "";
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            width: 5px;
+            background: repeating-conic-gradient(rgba(26, 30, 50, 0.6) 0% 25%, transparent 0% 50%) 0 0 / 5px 10px;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .pool-item::before {
+            left: 4px;
+        }
+        .pool-item::after {
+            right: 4px;
+        }
+        .pool-item .ticket-inner {
+            position: absolute;
+            top: 5px;
+            left: 13px;
+            right: 13px;
+            bottom: 5px;
+            border: 1px solid rgba(230, 200, 122, 0.06);
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .center-modal {
+            position: absolute;
+            left: 200px;
+            right: 24px;
+            top: 84px;
+            bottom: 156px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 14px;
+            overflow: hidden;
+            backdrop-filter: blur(3px);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.3);
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .center-modal img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .bottom-area {
+            position: absolute;
+            bottom: 24px;
+            left: 200px;
+            right: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 5;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .bottom-left-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .btn-base {
+            padding: 8px 28px;
+            border-radius: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: #c9b898;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.5px;
+        }
+        .btn-base:hover {
+            background: rgba(255, 255, 255, 0.10);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #e6d7b8;
+        }
+        .gacha-buttons {
+            display: flex;
+            gap: 14px;
+        }
+        .gacha-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 24px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            cursor: pointer;
+            transition: all 0.25s;
+            backdrop-filter: blur(4px);
+            color: #e6d7b8;
+            font-size: 14px;
+        }
+        .gacha-btn:hover {
+            background: rgba(255, 255, 255, 0.10);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+        }
+        .gacha-btn:active {
+            transform: scale(0.96) translateY(0);
+        }
+        .gacha-btn .icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+        .gacha-btn .icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .uid-text {
+            position: absolute;
+            bottom: 6px;
+            left: 18px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.08);
+            letter-spacing: 1px;
+            z-index: 3;
+            font-family: monospace;
+        }
+        .pity-badge {
+            position: absolute;
+            bottom: 80px;
+            right: 28px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            z-index: 4;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pity-badge span {
+            color: #e6c87a;
+            font-weight: 600;
+        }
+        #guaranteeHint {
+            position: absolute;
+            bottom: 128px;
+            right: 28px;
+            font-size: 12px;
+            color: #f7c948;
+            background: rgba(247, 201, 72, 0.1);
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(247, 201, 72, 0.15);
+            z-index: 4;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+        }
+
+        /* ===== 视频遮罩 ===== */
+        .video-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background: #0a0c18;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            cursor: pointer;
+            touch-action: none;
+        }
+        .video-overlay.open {
+            display: flex;
+        }
+        .video-overlay video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+            display: block;
+            pointer-events: none;
+        }
+        .video-overlay .skip-hint {
+            position: absolute;
+            bottom: 40px;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 13px;
+            letter-spacing: 2px;
+            animation: pulse 1.8s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 0.2;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* ===== 抽卡结果弹窗 ===== */
+        .gacha-result-popup {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(6px);
+        }
+        .gacha-result-popup.show {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .gacha-result-popup .close-btn {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 10000;
+            font-size: 28px;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            font-weight: 300;
+        }
+        .gacha-result-popup .close-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: rotate(90deg);
+            color: #fff;
+        }
+        .gacha-result-popup .popup-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            max-width: 94vw;
+            max-height: 94vh;
+            width: 100%;
+            padding: 20px 24px 12px;
+        }
+        .gacha-result-popup .result-grid {
+            display: grid;
+            gap: 14px;
+            justify-content: center;
+            align-items: center;
+            width: fit-content;
+            max-width: 100%;
+            padding: 12px 0;
+        }
+        .gacha-result-popup .result-grid.ten {
+            grid-template-columns: repeat(5, 200px);
+            grid-template-rows: repeat(2, 240px);
+        }
+        .gacha-result-popup .result-grid.single {
+            grid-template-columns: 260px;
+            grid-template-rows: 308px;
+        }
+        .gacha-result-popup .r-item {
+            width: 200px;
+            height: 240px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .gacha-result-popup .r-item:hover {
+            transform: scale(1.02);
+        }
+        .gacha-result-popup .r-item img {
+            width: 100%;
+            height: 80%;
+            object-fit: contain;
+            display: block;
+            border: none;
+            flex-shrink: 0;
+        }
+        .gacha-result-popup .r-item .item-label {
+            height: 20%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 500;
+            color: #e6d7b8;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.2);
+            width: 100%;
+            padding: 0 4px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .gacha-result-popup .r-item .empty-placeholder {
+            color: rgba(255, 255, 255, 0.05);
+            font-size: 36px;
+        }
+        .gacha-result-popup .r-item.rarity-5 {
+            border-color: rgba(247, 201, 72, 0.4);
+            box-shadow: 0 0 50px rgba(247, 201, 72, 0.1);
+        }
+        .gacha-result-popup .r-item.rarity-4 {
+            border-color: rgba(167, 139, 250, 0.3);
+            box-shadow: 0 0 40px rgba(167, 139, 250, 0.06);
+        }
+        .gacha-result-popup .r-item.rarity-3 {
+            border-color: rgba(107, 114, 128, 0.15);
+        }
+        .gacha-result-popup .exchange-info {
+            width: 100%;
+            text-align: center;
+            padding: 8px 16px;
+            background: rgba(247, 201, 72, 0.08);
+            border: 1px solid rgba(247, 201, 72, 0.15);
+            border-radius: 8px;
+            color: #f7c948;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+            flex-shrink: 0;
+            max-width: 820px;
+        }
+        .gacha-result-popup .exchange-info.hidden {
+            display: none;
+        }
+
+        /* ===== 历史记录 ===== */
+        .history-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(6, 8, 18, 0.85);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .history-overlay.open {
+            display: flex;
+        }
+        .history-modal {
+            background: #181c30;
+            border-radius: 16px;
+            width: 90vw;
+            max-width: 720px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+        }
+        .history-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .history-header h2 {
+            font-size: 18px;
+            color: #e6d7b8;
+            letter-spacing: 2px;
+            font-weight: 500;
+        }
+        .history-header .close-history {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 0 6px;
+        }
+        .history-header .close-history:hover {
+            color: #fff;
+        }
+        .history-body {
+            padding: 16px 24px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .history-body .empty-msg {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 15px;
+            padding: 40px 0;
+            letter-spacing: 1px;
+        }
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 4px;
+            border-left: 3px solid transparent;
+            font-size: 13px;
+        }
+        .history-item .h-name {
+            font-weight: 500;
+        }
+        /* 星级颜色 */
+        .history-item.rarity-5 .h-name {
+            color: #f7c948;
+            text-shadow: 0 0 10px rgba(247, 201, 72, 0.2);
+        }
+        .history-item.rarity-4 .h-name {
+            color: #a78bfa;
+            text-shadow: 0 0 8px rgba(167, 139, 250, 0.15);
+        }
+        .history-item.rarity-3 .h-name {
+            color: #60a5fa;
+            text-shadow: 0 0 6px rgba(96, 165, 250, 0.1);
+        }
+        .history-item .h-time {
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 11px;
+            font-family: monospace;
+        }
+        .history-item .h-rarity {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.15);
+            margin-left: 8px;
+        }
+        .history-item .h-tag {
+            font-size: 10px;
+            padding: 0 6px;
+            border-radius: 3px;
+            margin-left: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.2);
+        }
+        .history-item .h-tag.up {
+            background: rgba(247, 201, 72, 0.15);
+            color: #f7c948;
+        }
+        .history-item .h-tag.guaranteed {
+            background: rgba(167, 139, 250, 0.15);
+            color: #a78bfa;
+        }
+        .history-pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 0 4px;
+            flex-shrink: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .history-pagination button {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.3);
+            padding: 4px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .history-pagination button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08);
+            color: #e6d7b8;
+        }
+        .history-pagination button:disabled {
+            opacity: 0.2;
+            cursor: not-allowed;
+        }
+        .history-pagination .page-info {
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+        }
+        .history-pagination .page-info span {
+            color: #e6d7b8;
+            margin: 0 4px;
+        }
+
+        /* ===== 兑换 ===== */
+        .exchange-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 3000;
+            background: rgba(6, 8, 18, 0.7);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .exchange-overlay.open {
+            display: flex;
+        }
+        .exchange-modal {
+            background: linear-gradient(145deg, #1e2238, #15182b);
+            border-radius: 16px;
+            width: 460px;
+            max-width: 92vw;
+            padding: 0;
+            border: 1px solid rgba(230, 200, 122, 0.15);
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .exchange-header {
+            padding: 18px 24px 12px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .exchange-header h2 {
+            font-size: 18px;
+            color: #e6d7b8;
+            letter-spacing: 2px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .exchange-header h2 .icon {
+            font-size: 22px;
+        }
+        .exchange-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 0 4px;
+            line-height: 1;
+        }
+        .exchange-close:hover {
+            color: #fff;
+        }
+        .exchange-body {
+            padding: 20px 24px 24px;
+        }
+        .exchange-body .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        .exchange-body .info-row .label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .exchange-body .info-row .value {
+            color: #e6d7b8;
+            font-weight: 500;
+        }
+        .exchange-body .info-row .value.need {
+            color: #f7c948;
+        }
+        .exchange-body .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(230, 200, 122, 0.1), transparent);
+            margin: 12px 0;
+        }
+        .exchange-body .insufficient {
+            text-align: center;
+            padding: 8px 0;
+            color: rgba(255, 100, 100, 0.6);
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+        .exchange-body .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 12px 0 8px;
+        }
+        .exchange-body .slider-container input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            outline: none;
+            transition: background 0.2s;
+        }
+        .exchange-body .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #f7c948;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(247, 201, 72, 0.3);
+            border: 2px solid #1e2238;
+        }
+        .exchange-body .slider-container input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #f7c948;
+            cursor: pointer;
+            border: 2px solid #1e2238;
+        }
+        .exchange-body .slider-value {
+            min-width: 48px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: #f7c948;
+            letter-spacing: 1px;
+        }
+        .exchange-body .slider-limits {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.2);
+            padding: 0 2px;
+        }
+        .exchange-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .exchange-buttons button {
+            flex: 1;
+            padding: 10px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: #c9b898;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.25s;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        .exchange-buttons button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .exchange-buttons .btn-confirm {
+            background: rgba(247, 201, 72, 0.1);
+            border-color: rgba(247, 201, 72, 0.2);
+            color: #f7c948;
+        }
+        .exchange-buttons .btn-confirm:hover {
+            background: rgba(247, 201, 72, 0.2);
+            border-color: rgba(247, 201, 72, 0.35);
+            box-shadow: 0 4px 20px rgba(247, 201, 72, 0.05);
+        }
+        .exchange-buttons .btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #e6d7b8;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width:1100px) {
+            .gacha-result-popup .result-grid.ten {
+                grid-template-columns: repeat(4, 170px);
+                grid-template-rows: repeat(3, 200px);
+            }
+            .gacha-result-popup .r-item {
+                width: 170px;
+                height: 200px;
+            }
+            .gacha-result-popup .result-grid.single {
+                grid-template-columns: 220px;
+                grid-template-rows: 260px;
+            }
+            .gacha-result-popup .result-grid.single .r-item {
+                width: 220px;
+                height: 260px;
+            }
+        }
+        @media (max-width:760px) {
+            .gacha-result-popup .result-grid.ten {
+                grid-template-columns: repeat(3, 140px);
+                grid-template-rows: repeat(4, 170px);
+            }
+            .gacha-result-popup .r-item {
+                width: 140px;
+                height: 170px;
+            }
+            .gacha-result-popup .result-grid.single {
+                grid-template-columns: 180px;
+                grid-template-rows: 220px;
+            }
+            .gacha-result-popup .result-grid.single .r-item {
+                width: 180px;
+                height: 220px;
+            }
+            .gacha-result-popup .r-item .item-label {
+                font-size: 12px;
+            }
+            .gacha-result-popup .close-btn {
+                top: 12px;
+                right: 12px;
+                width: 38px;
+                height: 38px;
+                font-size: 22px;
+            }
+        }
+        @media (max-width:500px) {
+            .gacha-result-popup .result-grid.ten {
+                grid-template-columns: repeat(2, 120px);
+                grid-template-rows: repeat(5, 150px);
+                gap: 8px;
+            }
+            .gacha-result-popup .r-item {
+                width: 120px;
+                height: 150px;
+            }
+            .gacha-result-popup .result-grid.single {
+                grid-template-columns: 150px;
+                grid-template-rows: 190px;
+            }
+            .gacha-result-popup .result-grid.single .r-item {
+                width: 150px;
+                height: 190px;
+            }
+            .gacha-result-popup .r-item .item-label {
+                font-size: 11px;
+            }
+            .gacha-result-popup .popup-inner {
+                padding: 10px 8px 6px;
+            }
+        }
+        @media (max-width:820px) {
+            .bottom-area {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .bottom-left-buttons {
+                justify-content: center;
+            }
+            .gacha-buttons {
+                justify-content: center;
+            }
+            .left-pool-list {
+                width: 120px;
+            }
+            .pool-item .ticket-text {
+                font-size: 13px;
+            }
+        }
+        .bottom-left-buttons .btn-base,
+        .gacha-buttons .gacha-btn {
+            position: relative;
+            z-index: 10;
+            pointer-events: auto !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== 主界面 ===== -->
+    <div class="gacha-wrap" id="app">
+        <div class="header-title">
+            <div class="logo-icon">衍</div>
+            <div class="title-text"><h3>跃迁</h3><p>群星跃迁</p></div>
+        </div>
+        <div class="res-top-right">
+            <div class="res-item"><img src="img/star_rail_ticket.png" alt="星轨专票" onerror="this.style.display='none'"><span class="res-num" id="ticketCount">0</span></div>
+            <div class="res-item"><img src="img/stellar_jade.png" alt="星琼" onerror="this.style.display='none'"><span class="res-num" id="jadeCount">0</span></div>
+        </div>
+        <div class="left-pool-list" id="poolList">
+            <div class="pool-item active"><div class="ticket-inner"></div><div class="ticket-text">柿柿如意<small>柿子UP</small></div></div>
+        </div>
+        <div class="center-modal" id="centerModal"><img src="img/pool_banner.png" alt="拓星启明" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'color:rgba(255,255,255,0.1);font-size:24px;\'>✦ 拓星启明 ✦</div>'"></div>
+        <div class="pity-badge" id="pityBadge">🎯 保底 <span id="pityCount">0</span> / 80</div>
+        <div class="bottom-area">
+            <div class="bottom-left-buttons">
+                <button class="btn-base" id="historyBtn">📜 历史记录</button>
+                <button class="btn-base" id="exchangeBtn">💎 兑换专票</button>
+            </div>
+            <div class="gacha-buttons">
+                <div class="gacha-btn" id="gacha1Btn"><span class="icon"><img src="img/star_rail_ticket.png" alt="专票"></span><span>×1</span><span>跃迁1次</span></div>
+                <div class="gacha-btn" id="gacha10Btn"><span class="icon"><img src="img/star_rail_ticket.png" alt="专票"></span><span>×10</span><span>跃迁10次</span></div>
+            </div>
+        </div>
+        <div class="uid-text" id="uidDisplay">UID: --</div>
+    </div>
+
+    <!-- 视频遮罩 -->
+    <div class="video-overlay" id="videoOverlay">
+        <video id="gachaVideo" playsinline webkit-playsinline="true" x5-playsinline="true"></video>
+        <button id="skipVideoBtn" style="position:absolute;top:24px;right:24px;z-index:10000;padding:8px 20px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:#fff;font-size:15px;cursor:pointer;backdrop-filter:blur(4px);transition:all 0.2s;font-weight:500;letter-spacing:0.5px;">⏭ 跳过</button>
+        <div class="skip-hint">✦ 点击任意区域跳过 ✦</div>
+    </div>
+
+    <!-- ===== 抽卡结果弹窗 ===== -->
+    <div class="gacha-result-popup" id="gachaResultPopup">
+        <div class="popup-inner" id="popupInner"></div>
+    </div>
+
+    <!-- ===== 历史记录 ===== -->
+    <div class="history-overlay" id="historyOverlay">
+        <div class="history-modal">
+            <div class="history-header"><h2>📜 抽卡记录</h2><button class="close-history" id="historyClose">✕</button></div>
+            <div class="history-body" id="historyBody">
+                <div class="empty-msg">还没有抽卡记录，快去跃迁吧 ✦</div>
+                <div class="history-list" id="historyList"></div>
+            </div>
+            <div class="history-pagination" id="historyPagination">
+                <button id="historyPrev">‹ 上一页</button>
+                <span class="page-info">第 <span id="pageCurrent">1</span> / <span id="pageTotal">1</span> 页</span>
+                <button id="historyNext">下一页 ›</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 兑换窗口 ===== -->
+    <div class="exchange-overlay" id="exchangeOverlay">
+        <div class="exchange-modal">
+            <div class="exchange-header"><h2><span class="icon">💎</span> 星琼兑换专票</h2><button class="exchange-close" id="exchangeClose">✕</button></div>
+            <div class="exchange-body" id="exchangeBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 全局变量 ==========
+        let gacha_bridge = null;
+        let isBridgeReady = false;
+        let isGachaInProgress = false;
+        let tickets = 0,
+            jades = 0,
+            pityCounter = 0,
+            isFiveStarGuaranteed = false,
+            uid = '--';
+        let historyRecords = [];
+        const STORAGE_KEY = 'sr_gacha_state_v8';
+        let historyPage = 1,
+            PAGE_SIZE = 10,
+            ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+        let loadFinished = false;
+
+        // DOM 缓存
+        let ticketCountEl, jadeCountEl, pityCountEl, uidDisplayEl;
+        let videoOverlay, videoEl, skipBtn;
+        let historyOverlay, historyList, emptyMsg, historyClose, historyBtn;
+        let exchangeBtn, exchangeOverlay, exchangeBody, exchangeClose;
+        let popup, popupInner;
+
+        // ===== 工具 =====
+        function getEl(id) { return document.getElementById(id); }
+
+        // ===== 抽卡请求 =====
+        window.requestGacha = async function(count) {
+            if (!window.gacha_bridge || !isBridgeReady) { alert('桥接加载中，请等待'); return; }
+            if (isGachaInProgress) { alert('抽卡进行中'); return; }
+            if (tickets < count) {
+                const need = count - tickets,
+                    cost = need * 160;
+                if (jades < cost) { alert(`专票不足，星琼不足`); return; }
+                if (!confirm(`消耗${cost}星琼兑换${need}张？`)) return;
+                try {
+                    const res = JSON.parse(await gacha_bridge.exchange(need));
+                    if (!res.success) { alert('兑换失败'); return; }
+                    tickets = res.tickets;
+                    jades = res.jade;
+                    if (ticketCountEl) ticketCountEl.textContent = tickets;
+                    if (jadeCountEl) jadeCountEl.textContent = jades;
+                } catch (e) { alert('兑换异常'); return; }
+            }
+            isGachaInProgress = true;
+            window.gacha_bridge.requestGacha(count);
+        };
+
+        // ===== WebChannel =====
+        function initBridge() {
+            let retry = 0;
+            const check = () => {
+                if (!window.qt || !window.qt.webChannelTransport) {
+                    if (retry++ < 15) { setTimeout(check, 300); return; }
+                    console.error("qt通道超时");
+                    return;
+                }
+                new QWebChannel(qt.webChannelTransport, function(channel) {
+                    console.log("✅ WebChannel回调");
+                    gacha_bridge = channel.objects.gacha_bridge;
+                    window.gacha_bridge = gacha_bridge;
+                    isBridgeReady = true;
+                    if (gacha_bridge) loadDataAndRender();
+                });
+            };
+            check();
+        }
+
+        async function loadDataAndRender() {
+            if (loadFinished || !gacha_bridge) return;
+            try {
+                const data = JSON.parse(await gacha_bridge.getUserInfo());
+                if (!data.pity || data.pity === 0) {
+                    const p = localStorage.getItem('sr_gacha_pity');
+                    if (p !== null) data.pity = parseInt(p);
+                    const g = localStorage.getItem('sr_gacha_guaranteed');
+                    if (g !== null) data.guaranteed = g === 'true';
+                }
+                window.updateGachaData(data);
+                loadFinished = true;
+            } catch (e) { console.error(e); }
+            // 加载历史：仅当本地没有记录时才从服务器加载，否则保留本地
+            if (historyRecords.length === 0) {
+                try {
+                    const hist = JSON.parse(await gacha_bridge.getHistory());
+                    if (hist.history) {
+                        historyRecords = hist.history;
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify({ history: historyRecords }));
+                    }
+                } catch (e) { console.error(e); }
+            }
+        }
+
+        window.updateGachaData = function(data) {
+            if (data.tickets !== undefined) { tickets = data.tickets; if (ticketCountEl) ticketCountEl.textContent =
+                tickets; }
+            if (data.jade !== undefined) { jades = data.jade; if (jadeCountEl) jadeCountEl.textContent = jades; }
+            if (data.pity !== undefined) {
+                pityCounter = data.pity;
+                if (pityCountEl) pityCountEl.textContent = pityCounter;
+                localStorage.setItem('sr_gacha_pity', pityCounter);
+                const badge = document.getElementById('pityBadge');
+                if (badge) {
+                    const span = badge.querySelector('span');
+                    if (span) {
+                        span.textContent = pityCounter;
+                        if (pityCounter >= 70) {
+                            badge.style.borderColor = 'rgba(247,201,72,0.4)';
+                            span.style.color = '#f7c948';
+                            badge.style.background = 'rgba(247,201,72,0.08)';
+                        } else {
+                            badge.style.borderColor = 'rgba(255,255,255,0.06)';
+                            span.style.color = '#e6c87a';
+                            badge.style.background = 'rgba(0,0,0,0.5)';
+                        }
+                    }
+                }
+            }
+            if (data.guaranteed !== undefined) {
+                isFiveStarGuaranteed = data.guaranteed;
+                localStorage.setItem('sr_gacha_guaranteed', isFiveStarGuaranteed ? 'true' : 'false');
+                let hint = document.getElementById('guaranteeHint');
+                if (isFiveStarGuaranteed && !hint) {
+                    const nh = document.createElement('div');
+                    nh.id = 'guaranteeHint';
+                    nh.textContent = '✦ 大保底已触发 · 下次五星必UP';
+                    document.querySelector('.gacha-wrap').appendChild(nh);
+                } else if (!isFiveStarGuaranteed && hint) hint.remove();
+            }
+            if (data.uid) { uid = data.uid; if (uidDisplayEl) uidDisplayEl.textContent = 'UID: ' + uid; }
+        };
+
+        // ===== onGachaResult =====
+        window.onGachaResult = function(resp) {
+            try {
+                console.log("后端返回完整抽卡数据", resp);
+                if (!resp.success) { alert("抽卡失败：" + (resp.reason || ''));
+                    isGachaInProgress = false; return; }
+                if (!resp.results) resp.results = [];
+
+                // 如果结果为空，提示并释放锁
+                if (resp.results.length === 0) {
+                    alert('抽卡结果为空，请联系管理员');
+                    isGachaInProgress = false;
+                    return;
+                }
+
+                tickets = resp.tickets;
+                jades = resp.jade;
+                pityCounter = resp.pity;
+                isFiveStarGuaranteed = resp.guaranteed;
+                if (ticketCountEl) ticketCountEl.textContent = tickets;
+                if (jadeCountEl) jadeCountEl.textContent = jades;
+                if (pityCountEl) pityCountEl.textContent = pityCounter;
+                const badge = document.getElementById('pityBadge');
+                if (badge) {
+                    const span = badge.querySelector('span');
+                    if (span) {
+                        span.textContent = pityCounter;
+                        if (pityCounter >= 70) {
+                            badge.style.borderColor = 'rgba(247,201,72,0.4)';
+                            span.style.color = '#f7c948';
+                            badge.style.background = 'rgba(247,201,72,0.08)';
+                        } else {
+                            badge.style.borderColor = 'rgba(255,255,255,0.06)';
+                            span.style.color = '#e6c87a';
+                            badge.style.background = 'rgba(0,0,0,0.5)';
+                        }
+                    }
+                }
+                let hint = document.getElementById('guaranteeHint');
+                if (isFiveStarGuaranteed && !hint) {
+                    const nh = document.createElement('div');
+                    nh.id = 'guaranteeHint';
+                    nh.textContent = '✦ 大保底已触发 · 下次五星必UP';
+                    document.querySelector('.gacha-wrap').appendChild(nh);
+                } else if (!isFiveStarGuaranteed && hint) hint.remove();
+
+                // 写入历史记录
+                const now = new Date(),
+                    t = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+                resp.results.forEach(r => {
+                    historyRecords.push({ name: r.name || '未知', rarity: r.rarity || 3, time: t, isUp: !!r.isUp,
+                        isGuaranteed: !!r.isGuaranteed });
+                });
+                if (historyRecords.length > 500) historyRecords = historyRecords.slice(-500);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ history: historyRecords }));
+
+                // 如果历史弹窗打开，刷新列表
+                if (document.getElementById('historyOverlay')?.classList.contains('open')) {
+                    renderHistory(historyPage);
+                }
+
+                const hasFive = resp.results.some(item => item.rarity === 5);
+                const videoFile = hasFive ? "gold.webm" : "none.webm";
+                try { playVideo(videoFile, resp.results, resp.exchangeInfo || ""); } catch (e) {
+                    console.warn("视频启动失败", e);
+                    safeShowResult(resp.results, resp.exchangeInfo || "");
+                    isGachaInProgress = false;
+                }
+            } catch (err) {
+                console.error("抽卡回调报错", err);
+                safeShowResult(resp?.results || [], resp?.exchangeInfo || "");
+                isGachaInProgress = false;
+            }
+        };
+
+        function safeShowResult(list, info) { try { showResults(list, info); } catch (e) { console.error(e); } }
+
+        function getItemDisplayName(item) {
+            if (item.type === 'custom' && item.id === 'none') {
+                let n = '谢谢参与';
+                if (item.amount && item.amount !== 0) n += ` ×${item.amount}`;
+                return n;
+            }
+            let n = item.name || item.type || '未知';
+            if (item.amount && item.amount !== 0) n += ` ×${item.amount}`;
+            return n;
+        }
+
+        function getItemImageByType(item) {
+            const base = 'img/';
+            const map = {
+                'clothes': { '26_Newyear': '24skin.png' },
+                'star_rail_ticket': 'star_rail_ticket.png',
+                'jade': 'stellar_jade.png',
+                'cake': 'cake.png',
+                'credit': 'credit.png',
+                'none': 'none.png'
+            };
+            let f = 'unknown.png';
+            if (item.type === 'clothes' && item.id) f = map.clothes[item.id] || 'clothes.png';
+            else if (item.type === 'custom') f = map.none || 'none.png';
+            else f = map[item.type] || 'none.png';
+            return base + f;
+        }
+
+        function showResults(list, exchangeInfo) {
+            console.log("【showResults】展示", list);
+            const popupEl = getEl('gachaResultPopup');
+            const inner = getEl('popupInner');
+            if (!popupEl || !inner) return;
+            popupEl.classList.remove('show');
+            inner.innerHTML = '';
+            let html = `<button class="close-btn" id="popupCloseBtn">✕</button>`;
+            const count = list.length,
+                isSingle = count === 1,
+                gridClass = isSingle ? 'single' : 'ten';
+            html += `<div class="result-grid ${gridClass}" id="popupResultGrid">`;
+            for (let i = 0; i < list.length; i++) {
+                try {
+                    const item = list[i],
+                        rarity = item.rarity ?? 3,
+                        imgSrc = getItemImageByType(item),
+                        displayName = getItemDisplayName(item);
+                    html += `<div class="r-item rarity-${rarity}">
+                        <img src="${imgSrc}" alt="${displayName}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        <span class="empty-placeholder" style="display:none">✦</span>
+                        <div class="item-label">${displayName}</div>
+                    </div>`;
+                } catch (err) { html += `<div class="r-item"><span class="empty-placeholder">·</span></div>`; }
+            }
+            if (!isSingle && list.length < 10)
+                for (let i = 0; i < 10 - list.length; i++) html += `<div class="r-item"><span class="empty-placeholder">·</span></div>`;
+            html += `</div>`;
+            if (exchangeInfo && exchangeInfo.trim()) html += `<div class="exchange-info">🔄 ${exchangeInfo}</div>`;
+            else html += `<div class="exchange-info hidden"></div>`;
+            inner.innerHTML = html;
+            requestAnimationFrame(() => popupEl.classList.add('show'));
+            const closeBtn = document.getElementById('popupCloseBtn');
+            if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation();
+                popupEl.classList.remove('show'); };
+            popupEl.onclick = (e) => { if (e.target === popupEl) popupEl.classList.remove('show'); };
+            const escH = (e) => { if (e.key === 'Escape' && popupEl.classList.contains('show')) { popupEl.classList.remove(
+                        'show');
+                    document.removeEventListener('keydown', escH); } };
+            document.addEventListener('keydown', escH);
+        }
+
+        // ===== 视频播放 =====
+        let _activeVideoPlay = false;
+
+        function playVideo(filename, results, exchangeInfo) {
+            if (_activeVideoPlay) { console.warn("视频已播放，忽略"); return; }
+            _activeVideoPlay = true;
+            console.log("🎬 开始播放视频:", filename);
+            const v = document.getElementById('gachaVideo'),
+                overlay = document.getElementById('videoOverlay'),
+                app = document.getElementById('app'),
+                skipBtn = document.getElementById('skipVideoBtn');
+            if (!v || !overlay) { _activeVideoPlay = false;
+                safeShowResult(results, exchangeInfo); return; }
+            v.pause();
+            v.removeAttribute('src');
+            v.load();
+            v.style.cssText =
+                `position:fixed!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;object-fit:contain!important;z-index:9999!important;background:#000!important;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:none!important`;
+            v.src = 'mp4/' + filename;
+            v.load();
+            let errorHandled = false;
+            const closeVideo = (e) => {
+                if (e) e.stopPropagation();
+                if (errorHandled) return;
+                errorHandled = true;
+                v.pause();
+                overlay.classList.remove('open');
+                overlay.style.display = 'none';
+                if (app) app.classList.remove('disabled');
+                if (skipBtn) skipBtn.style.display = 'none';
+                cleanup();
+                _activeVideoPlay = false;
+                safeShowResult(results, exchangeInfo);
+                isGachaInProgress = false;
+            };
+            const onError = (e) => {
+                if (errorHandled) return;
+                errorHandled = true;
+                console.warn("视频加载失败", e);
+                v.removeEventListener('error', onError);
+                overlay.classList.remove('open');
+                overlay.style.display = 'none';
+                if (app) app.classList.remove('disabled');
+                if (skipBtn) skipBtn.style.display = 'none';
+                _activeVideoPlay = false;
+                safeShowResult(results, exchangeInfo);
+                isGachaInProgress = false;
+            };
+            v.addEventListener('error', onError);
+            const onLoaded = () => {
+                console.log(`视频尺寸: ${v.videoWidth}x${v.videoHeight}`);
+                if (v.videoWidth === 0 || v.videoHeight === 0) {
+                    setTimeout(() => { if (!errorHandled && overlay.classList.contains('open')) closeVideo(); }, 800);
+                }
+            };
+            v.addEventListener('loadedmetadata', onLoaded);
+            overlay.classList.add('open');
+            overlay.style.display = 'flex';
+            if (app) app.classList.add('disabled');
+            if (skipBtn) {
+                skipBtn.style.display = 'block';
+                skipBtn.style.cssText =
+                    `position:fixed;top:24px;right:24px;z-index:99999;padding:10px 24px;background:rgba(0,0,0,0.8);border:2px solid rgba(255,255,255,0.5);border-radius:30px;color:#fff;font-size:16px;font-weight:bold;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 4px 20px rgba(0,0,0,0.6);letter-spacing:1px;pointer-events:auto;`;
+            }
+            let startPos = null;
+            const onDown = e => { startPos = { x: e.clientX, y: e.clientY }; };
+            const onUp = e => {
+                if (!startPos) return;
+                const dx = e.clientX - startPos.x,
+                    dy = e.clientY - startPos.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 15) closeVideo(e);
+                startPos = null;
+            };
+            const onEnded = () => closeVideo();
+            const cleanup = () => {
+                v.removeEventListener('ended', onEnded);
+                v.removeEventListener('error', onError);
+                v.removeEventListener('loadedmetadata', onLoaded);
+                overlay.removeEventListener('pointerdown', onDown);
+                overlay.removeEventListener('pointerup', onUp);
+                if (skipBtn) skipBtn.removeEventListener('click', closeVideo);
+            };
+            v.addEventListener('ended', onEnded);
+            overlay.addEventListener('pointerdown', onDown);
+            overlay.addEventListener('pointerup', onUp);
+            if (skipBtn) skipBtn.addEventListener('click', closeVideo);
+            const playP = v.play();
+            if (playP) playP.catch(err => {
+                if (errorHandled) return;
+                errorHandled = true;
+                console.log("视频播放拦截", err);
+                overlay.classList.remove('open');
+                overlay.style.display = 'none';
+                if (app) app.classList.remove('disabled');
+                if (skipBtn) skipBtn.style.display = 'none';
+                cleanup();
+                _activeVideoPlay = false;
+                safeShowResult(results, exchangeInfo);
+                isGachaInProgress = false;
+            });
+            setTimeout(() => {
+                if (!errorHandled && overlay.classList.contains('open')) {
+                    console.warn("视频超时");
+                    errorHandled = true;
+                    v.pause();
+                    overlay.classList.remove('open');
+                    overlay.style.display = 'none';
+                    if (app) app.classList.remove('disabled');
+                    if (skipBtn) skipBtn.style.display = 'none';
+                    cleanup();
+                    _activeVideoPlay = false;
+                    safeShowResult(results, exchangeInfo);
+                    isGachaInProgress = false;
+                }
+            }, 12000);
+        }
+
+        // ========== 历史记录 ==========
+        function openHistory() {
+            try {
+                const vOverlay = document.getElementById('videoOverlay');
+                if (vOverlay) { vOverlay.classList.remove('open');
+                    vOverlay.style.display = 'none'; const v = document.getElementById('gachaVideo'); if (v) v.pause(); }
+                const resPopup = document.getElementById('gachaResultPopup');
+                if (resPopup) resPopup.classList.remove('show');
+
+                const overlay = document.getElementById('historyOverlay');
+                if (!overlay) { alert('历史记录组件缺失'); return; }
+                overlay.style.display = 'flex';
+                overlay.style.position = 'fixed';
+                overlay.style.left = '0';
+                overlay.style.top = '0';
+                overlay.style.width = '100vw';
+                overlay.style.height = '100vh';
+                overlay.style.zIndex = '999999';
+                overlay.style.background = 'rgba(6,8,18,0.85)';
+                overlay.style.backdropFilter = 'blur(10px)';
+                overlay.style.visibility = 'visible';
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
+                overlay.classList.add('open');
+
+                console.log('📜 历史记录弹窗已强制打开');
+                renderHistory(1);
+                // 异步从服务器拉取最新记录（但仅当本地为空时，否则不覆盖）
+                if (historyRecords.length === 0 && gacha_bridge && isBridgeReady) {
+                    loadHistoryFromServer().then(() => renderHistory(historyPage)).catch(e => console.warn(e));
+                }
+            } catch (e) { console.error(e);
+                alert('打开历史失败'); }
+        }
+
+        function closeHistory() {
+            const overlay = document.getElementById('historyOverlay');
+            if (overlay) { overlay.classList.remove('open');
+                overlay.style.display = 'none'; }
+        }
+
+        async function loadHistoryFromServer() {
+            if (!gacha_bridge || !isBridgeReady) return;
+            // 仅当本地没有记录时才从服务器加载，避免覆盖用户本地新增记录
+            if (historyRecords.length > 0) return;
+            try {
+                const hist = JSON.parse(await gacha_bridge.getHistory());
+                if (hist.history) {
+                    historyRecords = hist.history;
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({ history: historyRecords }));
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function getFilteredHistory() {
+            const now = Date.now();
+            return historyRecords.filter(r => { try { return new Date(r.time).getTime() >= now - ONE_MONTH_MS; } catch {
+                    return true; } });
+        }
+
+        function renderHistory(page) {
+            const listEl = document.getElementById('historyList');
+            const emptyEl = document.querySelector('.history-body .empty-msg');
+            const pageCur = document.getElementById('pageCurrent');
+            const pageTot = document.getElementById('pageTotal');
+            const prevBtn = document.getElementById('historyPrev');
+            const nextBtn = document.getElementById('historyNext');
+            if (!listEl) return;
+            const filtered = getFilteredHistory();
+            const sorted = filtered.slice().reverse(); // 最新的在前
+            const total = sorted.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            historyPage = Math.max(1, Math.min(page, totalPages));
+            const start = (historyPage - 1) * PAGE_SIZE;
+            const pageData = sorted.slice(start, start + PAGE_SIZE);
+            listEl.innerHTML = '';
+            if (total === 0) { if (emptyEl) emptyEl.style.display = 'block';
+                listEl.style.display = 'none'; } else { if (emptyEl) emptyEl.style.display = 'none';
+                listEl.style.display = 'flex'; }
+            pageData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item rarity-' + (item.rarity || 3);
+                const left = document.createElement('span');
+                left.style.display = 'flex';
+                left.style.gap = '6px';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'h-name';
+                nameSpan.textContent = item.name;
+                const tag = document.createElement('span');
+                tag.className = 'h-tag';
+                if (item.isGuaranteed) tag.textContent = '保底';
+                else if (item.isUp) tag.textContent = 'UP';
+                else tag.textContent = '常驻';
+                left.appendChild(nameSpan);
+                left.appendChild(tag);
+                const right = document.createElement('span');
+                right.style.display = 'flex';
+                right.style.gap = '8px';
+                const rt = document.createElement('span');
+                rt.className = 'h-rarity';
+                rt.textContent = item.rarity + '★';
+                const t = document.createElement('span');
+                t.className = 'h-time';
+                t.textContent = item.time;
+                right.appendChild(rt);
+                right.appendChild(t);
+                div.appendChild(left);
+                div.appendChild(right);
+                listEl.appendChild(div);
+            });
+            if (pageCur) pageCur.textContent = historyPage;
+            if (pageTot) pageTot.textContent = totalPages;
+            if (prevBtn) prevBtn.disabled = historyPage <= 1;
+            if (nextBtn) nextBtn.disabled = historyPage >= totalPages;
+        }
+
+        // ========== 兑换窗口（滑块版） ==========
+        function openExchange() {
+            try {
+                const vOverlay = document.getElementById('videoOverlay');
+                if (vOverlay) { vOverlay.classList.remove('open');
+                    vOverlay.style.display = 'none'; const v = document.getElementById('gachaVideo'); if (v) v.pause(); }
+                const resPopup = document.getElementById('gachaResultPopup');
+                if (resPopup) resPopup.classList.remove('show');
+
+                const overlay = document.getElementById('exchangeOverlay');
+                if (!overlay) { alert('兑换组件缺失'); return; }
+                overlay.style.display = 'flex';
+                overlay.style.position = 'fixed';
+                overlay.style.left = '0';
+                overlay.style.top = '0';
+                overlay.style.width = '100vw';
+                overlay.style.height = '100vh';
+                overlay.style.zIndex = '999999';
+                overlay.style.background = 'rgba(6,8,18,0.7)';
+                overlay.style.backdropFilter = 'blur(6px)';
+                overlay.style.visibility = 'visible';
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
+                overlay.classList.add('open');
+
+                console.log('💎 兑换弹窗已强制打开');
+                if (gacha_bridge && isBridgeReady) loadExchangeData();
+                else {
+                    const body = document.getElementById('exchangeBody');
+                    if (body) body.innerHTML =
+                        `<div class="insufficient">⏳ 通信加载中</div><div class="exchange-buttons"><button id="ecClose">关闭</button></div>`;
+                    const btn = document.getElementById('ecClose');
+                    if (btn) btn.onclick = closeExchange;
+                }
+            } catch (e) { console.error(e);
+                alert('打开兑换失败'); }
+        }
+
+        function closeExchange() {
+            const overlay = document.getElementById('exchangeOverlay');
+            if (overlay) { overlay.classList.remove('open');
+                overlay.style.display = 'none'; }
+        }
+
+        async function loadExchangeData() {
+            if (!gacha_bridge || !isBridgeReady) return;
+            const body = document.getElementById('exchangeBody');
+            if (!body) return;
+            try {
+                const data = JSON.parse(await gacha_bridge.getUserInfo());
+                const currT = data.tickets || 0,
+                    currJ = data.jade || 0,
+                    maxEx = Math.min(Math.floor(currJ / 160), 999);
+                if (maxEx <= 0) {
+                    body.innerHTML =
+                        `<div class="info-row"><span>🎫 专票</span><span>${currT}</span></div><div class="insufficient">💎 星琼不足 (每张需160)</div><div class="exchange-buttons"><button id="ecClose">知道了</button></div>`;
+                    document.getElementById('ecClose').onclick = closeExchange;
+                } else {
+                    body.innerHTML = `
+                        <div class="info-row"><span>🎫 当前专票</span><span>${currT}</span></div>
+                        <div class="info-row"><span>💎 当前星琼</span><span>${currJ}</span></div>
+                        <div class="divider"></div>
+                        <div class="info-row"><span>可兑换</span><span class="need">最多 ${maxEx} 张</span></div>
+                        <div class="slider-container">
+                            <input type="range" id="exSlider" min="1" max="${maxEx}" value="1" step="1">
+                            <span class="slider-value" id="exSliderValue">1</span>
+                        </div>
+                        <div class="slider-limits"><span>1</span><span>${maxEx}</span></div>
+                        <div class="exchange-buttons">
+                            <button id="exCancel">取消</button>
+                            <button id="exConfirm" class="btn-confirm">兑换</button>
+                        </div>
+                    `;
+                    const slider = document.getElementById('exSlider');
+                    const valSpan = document.getElementById('exSliderValue');
+                    slider.addEventListener('input', function() {
+                        valSpan.textContent = this.value;
+                    });
+                    document.getElementById('exCancel').onclick = closeExchange;
+                    document.getElementById('exConfirm').onclick = async () => {
+                        const amt = parseInt(document.getElementById('exSlider').value);
+                        if (amt <= 0) return;
+                        try {
+                            const res = JSON.parse(await gacha_bridge.exchange(amt));
+                            if (res.success) {
+                                window.updateGachaData(res);
+                                closeExchange();
+                                alert('✅ 兑换成功');
+                            } else alert('❌ ' + (res.reason || '失败'));
+                        } catch (err) { alert('兑换异常'); }
+                    };
+                }
+            } catch (err) {
+                console.error(err);
+                body.innerHTML =
+                    `<div class="insufficient">❌ 加载失败</div><div class="exchange-buttons"><button id="ecClose">关闭</button></div>`;
+                document.getElementById('ecClose').onclick = closeExchange;
+            }
+        }
+
+        // ========== DOMContentLoaded ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOMContentLoaded 触发');
+            ticketCountEl = document.getElementById('ticketCount');
+            jadeCountEl = document.getElementById('jadeCount');
+            pityCountEl = document.getElementById('pityCount');
+            uidDisplayEl = document.getElementById('uidDisplay');
+            videoOverlay = document.getElementById('videoOverlay');
+            videoEl = document.getElementById('gachaVideo');
+            skipBtn = document.getElementById('skipVideoBtn');
+            historyOverlay = document.getElementById('historyOverlay');
+            historyList = document.getElementById('historyList');
+            emptyMsg = document.querySelector('.history-body .empty-msg');
+            historyClose = document.getElementById('historyClose');
+            historyBtn = document.getElementById('historyBtn');
+            exchangeBtn = document.getElementById('exchangeBtn');
+            exchangeOverlay = document.getElementById('exchangeOverlay');
+            exchangeBody = document.getElementById('exchangeBody');
+            exchangeClose = document.getElementById('exchangeClose');
+            popup = document.getElementById('gachaResultPopup');
+            popupInner = document.getElementById('popupInner');
+
+            // 加载本地历史缓存
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) { const p = JSON.parse(saved); if (p.history) historyRecords = p.history; }
+            } catch (e) {}
+
+            initBridge();
+
+            if (historyBtn) historyBtn.addEventListener('click', function(e) { e.preventDefault();
+                openHistory(); });
+            if (historyClose) historyClose.addEventListener('click', function(e) { e.preventDefault();
+                closeHistory(); });
+            if (historyOverlay) historyOverlay.addEventListener('click', function(e) { if (e.target === historyOverlay)
+                    closeHistory(); });
+
+            if (exchangeBtn) exchangeBtn.addEventListener('click', function(e) { e.preventDefault();
+                openExchange(); });
+            if (exchangeClose) exchangeClose.addEventListener('click', function(e) { e.preventDefault();
+                closeExchange(); });
+            if (exchangeOverlay) exchangeOverlay.addEventListener('click', function(e) { if (e.target === exchangeOverlay)
+                    closeExchange(); });
+
+            document.getElementById('historyPrev')?.addEventListener('click', function() { if (historyPage > 1)
+                    renderHistory(historyPage - 1); });
+            document.getElementById('historyNext')?.addEventListener('click', function() {
+                const total = Math.ceil(getFilteredHistory().length / PAGE_SIZE);
+                if (historyPage < total) renderHistory(historyPage + 1);
+            });
+
+            document.getElementById('gacha1Btn')?.addEventListener('click', function(e) { e.preventDefault();
+                window.requestGacha(1); });
+            document.getElementById('gacha10Btn')?.addEventListener('click', function(e) { e.preventDefault();
+                window.requestGacha(10); });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const p = document.getElementById('gachaResultPopup');
+                    if (p && p.classList.contains('show')) p.classList.remove('show');
+                    if (document.getElementById('historyOverlay')?.classList.contains('open')) closeHistory();
+                    if (document.getElementById('exchangeOverlay')?.classList.contains('open')) closeExchange();
+                    const vo = document.getElementById('videoOverlay');
+                    if (vo && vo.classList.contains('open')) {
+                        const v = document.getElementById('gachaVideo');
+                        if (v) v.pause();
+                        vo.classList.remove('open');
+                        vo.style.display = 'none';
+                        isGachaInProgress = false;
+                    }
+                }
+            });
+
+            window.addEventListener('beforeunload', function() {
+                const v = document.getElementById('gachaVideo');
+                if (v) { v.pause();
+                    v.src = ''; }
+            });
+
+            console.log('✅ 页面初始化完成（历史记录+颜色+兑换修复）');
+        });
+
+        window.openHistory = openHistory;
+        window.closeHistory = closeHistory;
+        window.openExchange = openExchange;
+        window.closeExchange = closeExchange;
+        window.renderHistory = renderHistory;
+    </script>
+</body>
+</html>
