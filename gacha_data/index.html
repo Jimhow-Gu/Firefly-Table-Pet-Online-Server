@@ -3003,6 +3003,24 @@
             if (st) st.textContent = '当前状态：' + (poolTimeShort(pool) || '永久');
         }
 
+        let _timeSaveTimer = null;
+
+        // 时间改完自动保存并热更新：以前改完还要再点一次「保存并热更新」，
+        // 很多人以为改完就生效了 —— 结果服务端还是旧配置，页面一直显示"永久/常驻池"。
+        function autoCommitTime() {
+            if (!window.__edit || !window.__edit.on) return;
+            if (_timeSaveTimer) clearTimeout(_timeSaveTimer);
+            _timeSaveTimer = setTimeout(function () {
+                _timeSaveTimer = null;
+                try {
+                    if (typeof window.saveEdit === 'function') {
+                        window.gachaNotice('卡池时间已修改，正在保存…', 'progress', -1);
+                        window.saveEdit();
+                    }
+                } catch (e) { }
+            }, 250);
+        }
+
         function applyTimeInputs() {
             const pool = getActivePool();
             if (!pool) return;
@@ -3014,6 +3032,7 @@
             window.__edit.dirty = true;
             renderTimePanel();
             renderPoolList();
+            autoCommitTime();
         }
 
         function buildTimePanel() {
