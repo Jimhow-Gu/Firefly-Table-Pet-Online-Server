@@ -1216,6 +1216,9 @@ function gpAbs(v) {
 }
 
 function gpFindMenuId(node) {
+    // 优先用菜单自身的 id —— 抽卡菜单不需要资源包，resource_url 是空的，
+    // 只按 /resources/xxx.zip 解析会得到空串，封面就会传到兜底的 m11 目录（别的菜单传错位置）。
+    if (node && node.id) return String(node.id);
     const url = (node && (node.resource_url || '')) || '';
     const m = /resources\/([^/.\)]+)\.zip/.exec(url);
     return m ? m[1] : '';
@@ -1923,28 +1926,28 @@ function selectItem(id) {
 }
 
 function setEditMode(mode) {
+    // 先全部隐藏，再显示当前模式对应的表单。
+    // 修复：此前"菜单"分支没有隐藏 shopForm，"未选中"分支也没隐藏 —— 左边点菜单后，
+    // 右侧会残留上一次选中的"商店商品"表单，两种表单叠在一起看起来像"UI 串了"。
+    menuForm.classList.add('hidden');
+    itemForm.classList.add('hidden');
+    shopForm.classList.add('hidden');
+    const _gpb = document.getElementById('gachaPreviewBox');
     if (mode === 'menu') {
         editTitle.innerText = '✏️ 编辑菜单';
         menuForm.classList.remove('hidden');
-        itemForm.classList.add('hidden');
+        // 抽卡菜单：右侧下方直接显示"上传封面 / 卡池配置"面板（由 selectMenu 里的 gpLoadPreview 决定是否显示）
     } else if (mode === 'item') {
         editTitle.innerText = '✏️ 编辑物品';
-        menuForm.classList.add('hidden');
         itemForm.classList.remove('hidden');
-        shopForm.classList.add('hidden');
-        const _gpb = document.getElementById('gachaPreviewBox');
         if (_gpb) _gpb.classList.add('hidden');
     } else if (mode === 'shop') {
         editTitle.innerText = '🏪 商店商品';
-        menuForm.classList.add('hidden');
-        itemForm.classList.add('hidden');
         shopForm.classList.remove('hidden');
-        const _gpb2 = document.getElementById('gachaPreviewBox');
-        if (_gpb2) _gpb2.classList.add('hidden');
+        if (_gpb) _gpb.classList.add('hidden');
     } else {
         editTitle.innerText = '✏️ 未选中项';
-        menuForm.classList.add('hidden');
-        itemForm.classList.add('hidden');
+        if (_gpb) _gpb.classList.add('hidden');
     }
 }
 
@@ -2684,8 +2687,30 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('cfgSave').addEventListener('click', saveGachaConfig);
     document.getElementById('cfgAddRow').addEventListener('click', function () { addPoolRow(5, '', 1, 50, false); });
 
-    // 切换卡池：先把当前表单存回内存，再回填新卡池
-    f_type.addEventListener('change', function () { toggleResourceBox(null); });
+    // 操作类型变化：抽卡 → 立刻在下方显示"上传封面 / 卡池配置"面板；切回其它类型则收起
+    f_type.addEventListener('change', function () {
+        toggleResourceBox(null);
+        const _box = document.getElementById('gachaPreviewBox');
+        if (!_box) return;
+        if (f_type.value === 'gacha') {
+            // 用当前正在编辑的菜单构造节点（还没点【确定】保存也先显示，方便直接上传封面）
+            const _node = (selectedType === 'menu')
+                ? { id: selectedId, type: 'gacha', label: f_label.value, icon: f_icon.value }
+                : null;
+            if (_node && _node.id) {
+                gpLoadPreview(_node);
+                const t = document.getElementById('gpTip');
+                if (t && !gpDirty) {
+                    t.textContent = '抽卡功能已开启：点【✅ 确定】保存菜单类型；下方可上传卡池封面/侧边封面并配置卡池，改完点【🔥 热更新】生效';
+                    t.style.color = '#8ad7a0';
+                }
+            } else {
+                _box.classList.add('hidden');
+            }
+        } else {
+            _box.classList.add('hidden');
+        }
+    });
 
     document.getElementById('cfgPoolSelect').addEventListener('change', function () {
         try {
