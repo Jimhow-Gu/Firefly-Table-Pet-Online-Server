@@ -58,6 +58,35 @@ os.makedirs(WEB_RESOURCES_DIR, exist_ok=True)
 WHITELIST_FILE = os.path.join(SERVER_DATA, 'whitelist.json')
 BLACKLIST_FILE = os.path.join(SERVER_DATA, 'blacklist.json')
 
+def _ensure_data_dirs():
+    """确保所有数据目录存在（首次运行 / 用户清空 server_data 后也要能正常收发）。
+
+    此前启动只建了 web_resources：全新目录下登录会因 players 目录不存在抛
+    FileNotFoundError(WinError 3)，表现为「[未处理异常] ... server_data\\players」。
+    """
+    for _d in (SERVER_DATA, PLAYERS_DIR, PM_HISTORY_DIR, PM_OFFLINE_DIR, WEB_RESOURCES_DIR,
+               os.path.join(SERVER_DATA, 'webroot'),
+               os.path.join(SERVER_DATA, 'webroot', 'resources'),
+               os.path.join(SERVER_DATA, 'webroot', 'gacha_images'),
+               os.path.join(SERVER_DATA, 'webroot', 'custom_items')):
+        try:
+            os.makedirs(_d, exist_ok=True)
+        except Exception:
+            pass
+
+
+def _player_files():
+    """列出 players 下的玩家档案文件名（目录不存在时返回空表，绝不抛 WinError 3）"""
+    try:
+        return [fn for fn in os.listdir(PLAYERS_DIR)
+                if fn.endswith('.json') and not fn.endswith('_inv.json')
+                and not fn.endswith('_mails.json')]
+    except OSError:
+        return []
+
+
+_ensure_data_dirs()
+
 HOST = '0.0.0.0'
 PORT = 20082
 SERVER_VERSION = "4.7.0"
@@ -1076,7 +1105,7 @@ def resolve_player_ref(identifier):
             if p['name'] == identifier or p['userid'] == identifier or p['server_uid'] == identifier:
                 return p, p['server_uid'], load_player_data(p['server_uid']), p['name']
     if os.path.isdir(PLAYERS_DIR):
-        for filename in os.listdir(PLAYERS_DIR):
+        for filename in _player_files():
             if not filename.endswith('.json') or filename.endswith('_inv.json') or filename.endswith('_mails.json'):
                 continue
             filepath = os.path.join(PLAYERS_DIR, filename)
@@ -1841,6 +1870,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         global clients, player_by_server_uid
         peername = self.client_address
         log_emitter = self.server.log_emitter
+        _ensure_data_dirs()   # 数据目录缺失自愈（首次运行/被清理后）
         # 不再输出 [连接] 日志，改为登录成功或失败时输出
 
         buffer = b''
@@ -1967,7 +1997,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                             pass
                 # 如果还没找到，按 uid 字段查找
                 if not is_admin_login and real_uid:
-                    for filename in os.listdir(PLAYERS_DIR):
+                    for filename in _player_files():
                         if not filename.endswith('.json') or filename.endswith('_inv.json') or filename.endswith(
                                 '_mails.json'):
                             continue
@@ -2040,7 +2070,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
             # 如果没找到，按 uid 字段查找（可能文件名不同）
             if existing_data is None:
-                for filename in os.listdir(PLAYERS_DIR):
+                for filename in _player_files():
                     if not filename.endswith('.json') or filename.endswith('_inv.json') or filename.endswith(
                             '_mails.json'):
                         continue
@@ -2058,7 +2088,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
             # 如果仍未找到，尝试按 userid 查找（旧账号兼容）
             if existing_data is None and userid:
-                for filename in os.listdir(PLAYERS_DIR):
+                for filename in _player_files():
                     if not filename.endswith('.json') or filename.endswith('_inv.json') or filename.endswith(
                             '_mails.json'):
                         continue
@@ -3247,7 +3277,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     return player
             # 检查离线重名（排除自己）
             server_uid = player['server_uid']
-            for filename in os.listdir(PLAYERS_DIR):
+            for filename in _player_files():
                 if not filename.endswith('.json') or filename.endswith('_inv.json') or filename.endswith('_mails.json'):
                     continue
                 if filename == f'{server_uid}.json':
@@ -3314,7 +3344,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
             # 离线文件检查（排除自己）
 
-            for filename in os.listdir(PLAYERS_DIR):
+            for filename in _player_files():
 
                 if not filename.endswith('.json') or filename.endswith('_inv.json') or filename.endswith('_mails.json'):
                     continue
@@ -6266,7 +6296,7 @@ class TCPHandler(socketserver.BaseRequestHandler):
         if not os.path.isdir(PLAYERS_DIR):
             return None, None
         identifier = str(identifier).strip()
-        for filename in os.listdir(PLAYERS_DIR):
+        for filename in _player_files():
             if not filename.endswith('.json') or filename.endswith('_inv.json') or filename.endswith('_mails.json'):
                 continue
             filepath = os.path.join(PLAYERS_DIR, filename)
@@ -8641,10 +8671,8 @@ class ServerWindow(QMainWindow):
 
         # Web 根目录
         web_root = os.path.join(SERVER_DATA, 'webroot')
-        os.makedirs(web_root, exist_ok=True)
-        # 确保 resources 子目录存在（用于资源包）
+        _ensure_data_dirs()   # webroot/resources、gacha_images、custom_items、players 等一次建全
         resources_dir = os.path.join(web_root, 'resources')
-        os.makedirs(resources_dir, exist_ok=True)
 
         # 自定义 Handler，不改变当前工作目录，直接基于 web_root 提供文件
         class CustomHandler(SimpleHTTPRequestHandler):
@@ -11105,7 +11133,7 @@ class ServerWindow(QMainWindow):
         if not os.path.isdir(PLAYERS_DIR):
             return None, None
         identifier = str(identifier).strip()
-        for filename in os.listdir(PLAYERS_DIR):
+        for filename in _player_files():
             if not filename.endswith('.json') or filename.endswith('_inv.json') or filename.endswith('_mails.json'):
                 continue
             filepath = os.path.join(PLAYERS_DIR, filename)
