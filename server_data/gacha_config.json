@@ -1,28 +1,140 @@
 {
-  "name": "角色活动跃迁",
-  "description": "限定角色UP",
+  "pools": [
+    {
+      "name": "柿柿如意",
+      "description": "",
+      "icon": "✦",
+      "banner": "/gacha_images/m11/banner__pool_mv7lvfoj_30d4dc45.png",
+      "cost_type": "star_rail_ticket",
+      "cost_per_pull": 1,
+      "multi_pull": 10,
+      "expiry": null,
+      "rules": {
+        "base_5star_rate": 0.006,
+        "base_4star_rate": 0.051,
+        "pity_hard_5star": 80,
+        "pity_hard_4star": 10,
+        "guarantee_up_5star": true,
+        "pity_soft": 74
+      },
+      "five_star_items": [
+        {
+          "id": "26_Newyear",
+          "weight": 50,
+          "amount": 1,
+          "up": true
+        }
+      ],
+      "four_star_items": [
+        {
+          "id": "jade",
+          "weight": 50,
+          "amount": 10
+        },
+        {
+          "id": "star_rail_ticket",
+          "weight": 30,
+          "amount": 1
+        },
+        {
+          "id": "cake",
+          "weight": 20,
+          "amount": 1
+        }
+      ],
+      "three_star_items": [
+        {
+          "id": "credit",
+          "weight": 70,
+          "amount": 100
+        },
+        {
+          "id": "none",
+          "weight": 70,
+          "amount": 0
+        }
+      ],
+      "id": "pool_mv7lvfoj",
+      "menu_id": "",
+      "color": "#e6c87a",
+      "font": "",
+      "up_name": "柿子",
+      "published": true,
+      "ui": {
+        "btn1": "跃迁1次",
+        "btn10": "跃迁10次",
+        "res1": "img/star_rail_ticket.png",
+        "res2": "img/stellar_jade.png"
+      }
+    }
+  ],
+  "active_pool": "pool_mv7lvfoj",
+  "name": "柿柿如意",
+  "description": "",
   "icon": "✦",
-  "banner": "img/pool_banner.png",  
-  "cost_type": "star_rail_ticket",   
-  "cost_per_pull": 1,          
+  "banner": "/gacha_images/m11/banner__pool_mv7lvfoj_30d4dc45.png",
+  "side_banner": "/gacha_images/m11/side__pool_mv3a3dbd.png",
+  "published": true,
+  "color": "#e6c87a",
+  "font": "",
+  "cost_type": "star_rail_ticket",
+  "cost_per_pull": 1,
+  "multi_pull": 10,
+  "expiry": null,
+  "start_time": null,
+  "end_time": null,
   "rules": {
-    "base_5star_rate": 0.006,       
-    "base_4star_rate": 0.051,        
-    "pity_soft": 75,                 
-    "pity_hard_5star": 80,           
-    "pity_hard_4star": 10,           
-    "guarantee_up_5star": true       
+    "base_5star_rate": 0.006,
+    "base_4star_rate": 0.051,
+    "pity_hard_5star": 80,
+    "pity_hard_4star": 10,
+    "guarantee_up_5star": true,
+    "pity_soft": 74
   },
   "five_star_items": [
-    { "id": "26_Newyear", "weight": 50, "up": true, "amount": 1 }
+    {
+      "id": "26_Newyear",
+      "weight": 50,
+      "amount": 1,
+      "up": true
+    }
   ],
   "four_star_items": [
-    { "id": "jade", "weight": 50, "amount": 10 },
-    { "id": "star_rail_ticket", "weight": 30, "amount": 1 },
-    { "id": "cake", "weight": 20, "amount": 5 }
+    {
+      "id": "jade",
+      "weight": 50,
+      "amount": 10
+    },
+    {
+      "id": "star_rail_ticket",
+      "weight": 30,
+      "amount": 1
+    },
+    {
+      "id": "cake",
+      "weight": 20,
+      "amount": 1
+    }
   ],
   "three_star_items": [
-    { "id": "credit", "weight": 70, "amount": 100 },
-    {"id": "none", "weight": 70, "amount": 0}
-  ]
+    {
+      "id": "credit",
+      "weight": 70,
+      "amount": 100
+    },
+    {
+      "id": "none",
+      "weight": 70,
+      "amount": 0
+    }
+  ],
+  "id": "pool_mv7lvfoj",
+  "menu_id": "",
+  "up_name": "柿子",
+  "ui": {
+    "btn1": "跃迁1次",
+    "btn10": "跃迁10次",
+    "res1": "img/star_rail_ticket.png",
+    "res2": "img/stellar_jade.png"
+  }
 }

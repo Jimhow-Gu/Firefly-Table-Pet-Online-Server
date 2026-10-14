@@ -1,0 +1,3496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>星穹铁道 · 群星跃迁</title>
+    <script src="qrc:///qtwebchannel/qwebchannel.js">
+    </script>
+    <style>
+        /* ===== 全局重置 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "DIN Medium", "DINPro-Medium", "HYQiHei 65S", "HYQiHei-65S", "汉仪旗黑 65", "PingFang SC", "Microsoft Yahei", sans-serif;
+            font-weight: 500;
+        }
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #0e101a;
+            color: #fff;
+            user-select: none;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+        .gacha-wrap {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at 30% 40%, #1a1e32, #0d0f1a);
+            position: relative;
+            overflow: hidden;
+        }
+        .gacha-wrap.disabled {
+            pointer-events: none;
+        }
+        .gacha-wrap::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 12, 26, 0.40);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .header-title {
+            position: absolute;
+            top: 20px;
+            left: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+        }
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #d4bc88, #b89f6a);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #1a1a2e;
+            font-size: 22px;
+            box-shadow: 0 4px 16px rgba(212, 188, 136, 0.2);
+        }
+        /* 卡池时间面板（编辑模式） */
+        #poolTimePanel {
+            position: fixed; right: 18px; top: 96px; z-index: 99997; width: 268px;
+            padding: 12px 14px; border-radius: 12px; font-size: 13px; color: #ddd;
+            background: rgba(16, 18, 26, .95); border: 1px solid rgba(255, 255, 255, .16);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .5); backdrop-filter: blur(8px);
+        }
+        #poolTimePanel .ptp-title { color: #ffd76a; font-weight: 600; margin-bottom: 8px; }
+        #poolTimePanel label { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        #poolTimePanel input[type="datetime-local"] {
+            flex: 1; min-width: 0; background: rgba(255, 255, 255, .08); color: #eee;
+            border: 1px solid rgba(255, 255, 255, .18); border-radius: 6px; padding: 4px 6px;
+            font-size: 12px;
+        }
+        #poolTimePanel .ptp-quick { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 6px; }
+        #poolTimePanel .ptp-quick button {
+            padding: 4px 8px; font-size: 12px; border-radius: 6px; cursor: pointer;
+            background: rgba(255, 255, 255, .1); color: #eee;
+            border: 1px solid rgba(255, 255, 255, .18);
+        }
+        #poolTimePanel .ptp-quick button:hover { background: rgba(255, 255, 255, .2); }
+        #poolTimePanel .ptp-state { color: #8fd6a0; margin-bottom: 4px; }
+        #poolTimePanel .ptp-hint { color: #8a8a8a; font-size: 11px; line-height: 1.5; }
+
+        /* 编辑条（全自定义模式） */
+        #editBar {
+            position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+            display: flex; align-items: center; gap: 10px; z-index: 99998;
+            padding: 10px 16px; border-radius: 12px;
+            background: rgba(16, 18, 26, .95); border: 1px solid rgba(255, 255, 255, .16);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .5); backdrop-filter: blur(8px);
+            font-size: 13px; color: #ddd; white-space: nowrap;
+        }
+        #editBar .eb-title { color: #ffd76a; font-weight: 600; }
+        #editBar .eb-hint { color: #9a9a9a; }
+        #editBar .eb-btn {
+            padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px;
+            background: rgba(255, 255, 255, .1); color: #eee;
+            border: 1px solid rgba(255, 255, 255, .18);
+        }
+        #editBar .eb-btn:hover { background: rgba(255, 255, 255, .18); }
+        #editBar .eb-primary { background: #3d7a3d; border-color: #4c9a4c; }
+        #editBar .eb-primary:hover { background: #4a914a; }
+        #editBar .eb-danger { background: #7a3d3d; border-color: #9a4c4c; }
+        #editBar .eb-danger:hover { background: #914a4a; }
+        .pool-add-item { opacity: .9; border: 1px dashed rgba(255, 255, 255, .3) !important; }
+
+        /* 页面内提示条（替代 Qt 弹窗） */
+        .gacha-toast {
+            position: fixed; left: 50%; top: 18px; transform: translate(-50%, -12px);
+            min-width: 240px; max-width: 68vw; padding: 10px 18px 12px;
+            background: rgba(18, 20, 28, 0.94); border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 10px; color: #ececec; font-size: 14px; z-index: 99999;
+            opacity: 0; pointer-events: none; transition: all .22s ease;
+            box-shadow: 0 8px 26px rgba(0, 0, 0, .45); backdrop-filter: blur(6px);
+        }
+        .gacha-toast.show { opacity: 1; transform: translate(-50%, 0); }
+        .gacha-toast.error { border-color: rgba(255, 90, 90, .55); color: #ffb4b4; }
+        .gacha-toast.ok { border-color: rgba(120, 220, 140, .5); color: #b7f0c4; }
+        .gacha-toast .gt-bar {
+            display: none; height: 4px; margin-top: 8px; border-radius: 2px;
+            background: rgba(255, 255, 255, .12); overflow: hidden;
+        }
+        .gacha-toast .gt-fill {
+            height: 100%; width: 0; border-radius: 2px;
+            background: linear-gradient(90deg, #6ea8ff, #b98bff); transition: width .2s linear;
+        }
+        .title-text h3 {
+            font-size: 20px;
+            color: #e6d7b8;
+            letter-spacing: 3px;
+            font-weight: 500;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+        }
+        .title-text p {
+            font-size: 12px;
+            color: rgba(201, 184, 152, 0.7);
+            letter-spacing: 2px;
+        }
+        .res-top-right {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            z-index: 10;
+        }
+        .res-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 4px 12px;
+            border-radius: 8px;
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 14px;
+        }
+        .res-item img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            display: block;
+        }
+        .res-num {
+            font-weight: 500;
+            min-width: 20px;
+            text-align: center;
+            color: #e6d7b8;
+        }
+        .left-pool-list {
+            position: absolute;
+            top: 84px;
+            left: 18px;
+            display: flex;
+            flex-direction: column;
+            /* 侧边卡池之间留出更明显的间隔 */
+            gap: 24px;
+            z-index: 5;
+            width: 156px;
+        }
+        .pool-item {
+            width: 100%;
+            height: 64px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: default;
+            position: relative;
+            background: rgba(26, 30, 50, 0.7);
+            border: 2px solid rgba(74, 74, 106, 0.5);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+        }
+        .pool-item.active {
+            border-color: #e6c87a;
+            box-shadow: 0 0 0 1px rgba(230, 200, 122, 0.2), 0 6px 28px rgba(230, 200, 122, 0.06);
+        }
+        .pool-item .ticket-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e6d7b8;
+            text-align: center;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            z-index: 2;
+            padding: 0 8px;
+            line-height: 1.3;
+        }
+        .pool-item .ticket-text small {
+            display: block;
+            font-size: 11px;
+            font-weight: 400;
+            color: rgba(201, 184, 152, 0.6);
+            letter-spacing: 0.5px;
+        }
+        .pool-item::before,
+        .pool-item::after {
+            content: "";
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            width: 5px;
+            background: repeating-conic-gradient(rgba(26, 30, 50, 0.6) 0% 25%, transparent 0% 50%) 0 0 / 5px 10px;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .pool-item::before {
+            left: 4px;
+        }
+        .pool-item::after {
+            right: 4px;
+        }
+        .pool-item .ticket-inner {
+            position: absolute;
+            top: 5px;
+            left: 13px;
+            right: 13px;
+            bottom: 5px;
+            border: 1px solid rgba(230, 200, 122, 0.06);
+            border-radius: 4px;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .center-modal {
+            position: absolute;
+            left: 200px;
+            right: 24px;
+            top: 84px;
+            bottom: 156px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 14px;
+            overflow: hidden;
+            backdrop-filter: blur(3px);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.3);
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .center-modal img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .bottom-area {
+            position: absolute;
+            bottom: 34px;
+            left: 200px;
+            right: 24px;
+            display: flex;
+            justify-content: space-between;
+            /* 底部对齐：左侧「历史记录」这一行与右侧抽卡按钮行最底下齐平 */
+            align-items: flex-end;
+            z-index: 5;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .bottom-left-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .blb-row {
+            display: flex;
+            /* 历史记录 / 查看详情 / 兑换专票 之间留出间距 */
+            gap: 18px;
+        }
+        .btn-base {
+            padding: 8px 28px;
+            border-radius: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: #c9b898;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.5px;
+        }
+        .btn-base:hover {
+            background: rgba(255, 255, 255, 0.10);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #e6d7b8;
+        }
+        .gacha-buttons {
+            display: flex;
+            gap: 14px;
+        }
+        .gacha-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 38px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.25s;
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.5px;
+            color: #e6d7b8;
+        }
+        .gacha-btn:hover {
+            background: rgba(255, 255, 255, 0.10);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+        }
+        .gacha-btn:active {
+            transform: scale(0.96) translateY(0);
+        }
+        .gacha-btn .icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+        }
+        .gacha-btn .icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        /* [图标] x1 | 跃迁1次 —— 数量与文案之间的分隔线 */
+        /* 未公开角标（编辑模式显示在卡池名旁） */
+        /* 上方公告文本 */
+        .poolinfo-doc { margin-bottom: 12px; }
+        .poolinfo-doc h3 {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: #f0e2be;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .poolinfo-doc h4 {
+            margin: 10px 0 4px;
+            font-size: 13px;
+            color: #ffd76a;
+            font-weight: 600;
+        }
+        .poolinfo-doc p {
+            margin: 0 0 6px;
+            font-size: 12px;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, .72);
+        }
+        /* ===== 卡池详情（可抽物品 + 概率 + 保底） ===== */
+        .poolinfo-list { display: flex; flex-direction: column; gap: 10px; }
+        .poolinfo-tier {
+            background: rgba(255, 255, 255, .04);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+        .poolinfo-tier h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
+        .poolinfo-tier.t5 h3 { color: #f7c948; }
+        .poolinfo-tier.t4 h3 { color: #c99bff; }
+        .poolinfo-tier.t3 h3 { color: #9fd3ff; }
+        .poolinfo-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, .78);
+            padding: 3px 0;
+        }
+        .poolinfo-row .pi-name { display: flex; gap: 6px; align-items: center; }
+        .poolinfo-row .up-tag {
+            color: #f7c948;
+            font-size: 10px;
+            border: 1px solid rgba(247, 201, 72, .45);
+            border-radius: 3px;
+            padding: 0 4px;
+        }
+        .poolinfo-pity {
+            margin-top: 4px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, .6);
+        }
+        .pool-item .pool-unpub {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: 10px;
+            color: #ffb066;
+            border: 1px solid rgba(255, 176, 102, .45);
+            border-radius: 4px;
+            padding: 0 4px;
+        }
+        .gacha-btn .sep {
+            color: rgba(255, 255, 255, 0.18);
+            font-weight: 300;
+            margin: 0 2px;
+        }
+        /* UID 一行：右侧紧跟「同步中…」提示 */
+        .uid-row {
+            position: absolute;
+            bottom: 6px;
+            left: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 3;
+        }
+        .uid-text {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.08);
+            letter-spacing: 1px;
+            font-family: monospace;
+        }
+        .uid-row .sync-hint {
+            margin-left: 0;
+            font-size: 12px;
+        }
+        /* 底部一排：左边是卡池剩余时间（精确到秒），右边是保底次数 */
+        .pity-badge, .pool-time-badge {
+            position: absolute;
+            bottom: 80px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        /* 剩余时间徽标：也是「历史记录」按钮上方那一行（往上挪一点点） */
+        .pool-time-badge {
+            position: static;
+            font-family: monospace;
+            color: rgba(255, 255, 255, 0.55);
+            margin-bottom: 6px;
+        }
+        .pity-badge {
+            right: 28px;
+            z-index: 4;
+            /* 按要求不再显示保底徽章（元素保留，避免页面脚本取空后报错） */
+            display: none !important;
+        }
+        .pity-badge span {
+            color: #e6c87a;
+            font-weight: 600;
+        }
+        #guaranteeHint {
+            position: absolute;
+            bottom: 128px;
+            right: 28px;
+            font-size: 12px;
+            color: #f7c948;
+            background: rgba(247, 201, 72, 0.1);
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(247, 201, 72, 0.15);
+            z-index: 4;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+        }
+
+        /* ===== 视频遮罩 ===== */
+        .video-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background: #0a0c18;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            cursor: pointer;
+            touch-action: none;
+        }
+        .video-overlay.open {
+            display: flex;
+        }
+        .video-overlay video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+            display: block;
+            pointer-events: none;
+        }
+        .video-overlay .skip-hint {
+            position: absolute;
+            bottom: 40px;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 13px;
+            letter-spacing: 2px;
+            animation: pulse 1.8s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 0.2;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* ===== 抽卡结果弹窗 ===== */
+        .gacha-result-popup {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(6px);
+        }
+        .gacha-result-popup.show {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .gacha-result-popup .close-btn {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 10000;
+            font-size: 28px;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            font-weight: 300;
+        }
+        .gacha-result-popup .close-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: rotate(90deg);
+            color: #fff;
+        }
+        .gacha-result-popup .popup-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            max-width: 94vw;
+            max-height: 94vh;
+            width: 100%;
+            padding: 20px 24px 12px;
+        }
+        .gacha-result-popup .result-grid {
+            display: grid;
+            gap: 14px;
+            justify-content: center;
+            align-items: center;
+            width: fit-content;
+            max-width: 100%;
+            padding: 12px 0;
+        }
+        .gacha-result-popup .result-grid.ten {
+            grid-template-columns: repeat(5, 200px);
+            grid-template-rows: repeat(2, 240px);
+        }
+        .gacha-result-popup .result-grid.single {
+            grid-template-columns: 260px;
+            grid-template-rows: 308px;
+        }
+        .gacha-result-popup .r-item {
+            width: 200px;
+            height: 240px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .gacha-result-popup .r-item:hover {
+            transform: scale(1.02);
+        }
+        .gacha-result-popup .r-item img {
+            width: 100%;
+            height: 80%;
+            object-fit: contain;
+            display: block;
+            border: none;
+            flex-shrink: 0;
+        }
+        .gacha-result-popup .r-item .item-label {
+            height: 20%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 500;
+            color: #e6d7b8;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.2);
+            width: 100%;
+            padding: 0 4px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .gacha-result-popup .r-item .empty-placeholder {
+            color: rgba(255, 255, 255, 0.05);
+            font-size: 36px;
+        }
+        .gacha-result-popup .r-item.rarity-5 {
+            border-color: rgba(247, 201, 72, 0.4);
+            box-shadow: 0 0 50px rgba(247, 201, 72, 0.1);
+        }
+        .gacha-result-popup .r-item.rarity-4 {
+            border-color: rgba(167, 139, 250, 0.3);
+            box-shadow: 0 0 40px rgba(167, 139, 250, 0.06);
+        }
+        .gacha-result-popup .r-item.rarity-3 {
+            border-color: rgba(107, 114, 128, 0.15);
+        }
+        .gacha-result-popup .exchange-info {
+            width: 100%;
+            text-align: center;
+            padding: 8px 16px;
+            background: rgba(247, 201, 72, 0.08);
+            border: 1px solid rgba(247, 201, 72, 0.15);
+            border-radius: 8px;
+            color: #f7c948;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+            flex-shrink: 0;
+            max-width: 820px;
+        }
+        .gacha-result-popup .exchange-info.hidden {
+            display: none;
+        }
+
+        /* ===== 历史记录 ===== */
+        .history-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(6, 8, 18, 0.85);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .history-overlay.open {
+            display: flex;
+        }
+        .history-modal {
+            background: #181c30;
+            border-radius: 16px;
+            width: 90vw;
+            max-width: 720px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+        }
+        .history-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .history-header h2 {
+            font-size: 18px;
+            color: #e6d7b8;
+            letter-spacing: 2px;
+            font-weight: 500;
+        }
+        .history-header .close-history {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 0 6px;
+        }
+        .history-header .close-history:hover {
+            color: #fff;
+        }
+        .history-body {
+            padding: 16px 24px 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .history-body .empty-msg {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 15px;
+            padding: 40px 0;
+            letter-spacing: 1px;
+        }
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 4px;
+            border-left: 3px solid transparent;
+            font-size: 13px;
+        }
+        .history-item .h-name {
+            font-weight: 500;
+        }
+        /* 星级颜色 */
+        .history-item.rarity-5 .h-name {
+            color: #f7c948;
+            text-shadow: 0 0 10px rgba(247, 201, 72, 0.2);
+        }
+        .history-item.rarity-4 .h-name {
+            color: #a78bfa;
+            text-shadow: 0 0 8px rgba(167, 139, 250, 0.15);
+        }
+        .history-item.rarity-3 .h-name {
+            color: #60a5fa;
+            text-shadow: 0 0 6px rgba(96, 165, 250, 0.1);
+        }
+        .history-item .h-time {
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 11px;
+            font-family: monospace;
+        }
+        .history-item .h-rarity {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.15);
+            margin-left: 8px;
+        }
+        .history-item .h-tag {
+            font-size: 10px;
+            padding: 0 6px;
+            border-radius: 3px;
+            margin-left: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.2);
+        }
+        .history-item .h-tag.up {
+            background: rgba(247, 201, 72, 0.15);
+            color: #f7c948;
+        }
+        .history-item .h-tag.guaranteed {
+            background: rgba(167, 139, 250, 0.15);
+            color: #a78bfa;
+        }
+        .history-pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 0 4px;
+            flex-shrink: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .history-pagination button {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.3);
+            padding: 4px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .history-pagination button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08);
+            color: #e6d7b8;
+        }
+        .history-pagination button:disabled {
+            opacity: 0.2;
+            cursor: not-allowed;
+        }
+        .history-pagination .page-info {
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+        }
+        .history-pagination .page-info span {
+            color: #e6d7b8;
+            margin: 0 4px;
+        }
+
+        /* ===== 兑换 ===== */
+        .exchange-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 3000;
+            background: rgba(6, 8, 18, 0.7);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        .exchange-overlay.open {
+            display: flex;
+        }
+        .exchange-modal {
+            background: linear-gradient(145deg, #1e2238, #15182b);
+            border-radius: 16px;
+            width: 460px;
+            max-width: 92vw;
+            padding: 0;
+            border: 1px solid rgba(230, 200, 122, 0.15);
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .exchange-header {
+            padding: 18px 24px 12px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .exchange-header h2 {
+            font-size: 18px;
+            color: #e6d7b8;
+            letter-spacing: 2px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .exchange-header h2 .icon {
+            font-size: 22px;
+        }
+        .exchange-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 0 4px;
+            line-height: 1;
+        }
+        .exchange-close:hover {
+            color: #fff;
+        }
+        .exchange-body {
+            padding: 20px 24px 24px;
+        }
+        .exchange-body .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        .exchange-body .info-row .label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .exchange-body .info-row .value {
+            color: #e6d7b8;
+            font-weight: 500;
+        }
+        .exchange-body .info-row .value.need {
+            color: #f7c948;
+        }
+        .exchange-body .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(230, 200, 122, 0.1), transparent);
+            margin: 12px 0;
+        }
+        .exchange-body .insufficient {
+            text-align: center;
+            padding: 8px 0;
+            color: rgba(255, 100, 100, 0.6);
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+        .exchange-body .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 12px 0 8px;
+        }
+        .exchange-body .slider-container input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            outline: none;
+            transition: background 0.2s;
+        }
+        .exchange-body .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #f7c948;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(247, 201, 72, 0.3);
+            border: 2px solid #1e2238;
+        }
+        .exchange-body .slider-container input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #f7c948;
+            cursor: pointer;
+            border: 2px solid #1e2238;
+        }
+        .exchange-body .slider-value {
+            min-width: 48px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: #f7c948;
+            letter-spacing: 1px;
+        }
+        .exchange-body .slider-limits {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.2);
+            padding: 0 2px;
+        }
+        .exchange-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .exchange-buttons button {
+            flex: 1;
+            padding: 10px 0;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: #c9b898;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.25s;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        .exchange-buttons button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .exchange-buttons .btn-confirm {
+            background: rgba(247, 201, 72, 0.1);
+            border-color: rgba(247, 201, 72, 0.2);
+            color: #f7c948;
+        }
+        .exchange-buttons .btn-confirm:hover {
+            background: rgba(247, 201, 72, 0.2);
+            border-color: rgba(247, 201, 72, 0.35);
+            box-shadow: 0 4px 20px rgba(247, 201, 72, 0.05);
+        }
+        .exchange-buttons .btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #e6d7b8;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width:1100px) {
+            .gacha-result-popup .result-grid.ten {
+                grid-template-columns: repeat(4, 170px);
+                grid-template-rows: repeat(3, 200px);
+            }
+            .gacha-result-popup .r-item {
+                width: 170px;
+                height: 200px;
+            }
+            .gacha-result-popup .result-grid.single {
+                grid-template-columns: 220px;
+                grid-template-rows: 260px;
+            }
+            .gacha-result-popup .result-grid.single .r-item {
+                width: 220px;
+                height: 260px;
+            }
+        }
+        @media (max-width:760px) {
+            .gacha-result-popup .result-grid.ten {
+                grid-template-columns: repeat(3, 140px);
+                grid-template-rows: repeat(4, 170px);
+            }
+            .gacha-result-popup .r-item {
+                width: 140px;
+                height: 170px;
+            }
+            .gacha-result-popup .result-grid.single {
+                grid-template-columns: 180px;
+                grid-template-rows: 220px;
+            }
+            .gacha-result-popup .result-grid.single .r-item {
+                width: 180px;
+                height: 220px;
+            }
+            .gacha-result-popup .r-item .item-label {
+                font-size: 12px;
+            }
+            .gacha-result-popup .close-btn {
+                top: 12px;
+                right: 12px;
+                width: 38px;
+                height: 38px;
+                font-size: 22px;
+            }
+        }
+        @media (max-width:500px) {
+            .gacha-result-popup .result-grid.ten {
+                grid-template-columns: repeat(2, 120px);
+                grid-template-rows: repeat(5, 150px);
+                gap: 8px;
+            }
+            .gacha-result-popup .r-item {
+                width: 120px;
+                height: 150px;
+            }
+            .gacha-result-popup .result-grid.single {
+                grid-template-columns: 150px;
+                grid-template-rows: 190px;
+            }
+            .gacha-result-popup .result-grid.single .r-item {
+                width: 150px;
+                height: 190px;
+            }
+            .gacha-result-popup .r-item .item-label {
+                font-size: 11px;
+            }
+            .gacha-result-popup .popup-inner {
+                padding: 10px 8px 6px;
+            }
+        }
+        @media (max-width:820px) {
+            .bottom-area {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+            }
+            .bottom-left-buttons {
+                justify-content: center;
+            }
+            .gacha-buttons {
+                justify-content: center;
+            }
+            .left-pool-list {
+                width: 120px;
+            }
+            .pool-item .ticket-text {
+                font-size: 13px;
+            }
+        }
+        .bottom-left-buttons .btn-base,
+        .gacha-buttons .gacha-btn {
+            position: relative;
+            z-index: 10;
+            pointer-events: auto !important;
+        }
+        /* 数据同步完成前：抽卡按钮不可点（避免用空卡池发起抽卡） */
+        .gacha-btn.locked {
+            pointer-events: none !important;
+            opacity: .5;
+            filter: grayscale(.35);
+            cursor: not-allowed;
+        }
+        .sync-hint {
+            align-self: center;
+            margin-left: 10px;
+            color: #ffd76a;
+            font-size: 12px;
+            letter-spacing: 1px;
+            animation: gpBreath 1.6s ease-in-out infinite;
+        }
+
+    /* 无公开卡池空态：隐藏跃迁/历史/保底/画布内容，只保留兑换按钮 */
+    body.no-pools #gacha1Btn,
+    body.no-pools #gacha10Btn,
+    body.no-pools #historyBtn,
+    body.no-pools #poolInfoBtn,
+    body.no-pools .pity-badge,
+    body.no-pools .pool-time-badge,
+    body.no-pools #centerModal img {
+        display: none !important;
+    }
+    body.no-pools #centerModal {
+        background: transparent !important;
+        box-shadow: none !important;
+        animation: none !important;
+    }
+    /* 封面占位（无卡池 / 图片加载失败时显示的中性文字，替代旧的静态封面） */
+    .cm-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, .16);
+        font-size: 24px;
+        letter-spacing: 3px;
+    }
+
+    /* ===================== 崩铁/原神风格美化层（纯视觉，不改结构） ===================== */
+    body {
+        background:
+            radial-gradient(1200px 600px at 82% -10%, rgba(64, 96, 168, .38), transparent 60%),
+            radial-gradient(900px 500px at 8% 108%, rgba(168, 112, 40, .22), transparent 55%),
+            radial-gradient(2px 2px at 12% 22%, rgba(255,255,255,.85), transparent 55%),
+            radial-gradient(2px 2px at 28% 64%, rgba(255,255,255,.55), transparent 55%),
+            radial-gradient(1.6px 1.6px at 47% 12%, rgba(255,255,255,.7), transparent 55%),
+            radial-gradient(2px 2px at 63% 78%, rgba(255,255,255,.5), transparent 55%),
+            radial-gradient(1.6px 1.6px at 78% 34%, rgba(255,255,255,.65), transparent 55%),
+            radial-gradient(1.4px 1.4px at 91% 58%, rgba(255,255,255,.5), transparent 55%),
+            radial-gradient(2px 2px at 6% 84%, rgba(255,255,255,.45), transparent 55%),
+            linear-gradient(160deg, #0b0d16 0%, #10131f 45%, #0a0c14 100%) !important;
+    }
+    /* 顶部金色装饰线 */
+    body::before {
+        content: ''; position: fixed; left: 0; right: 0; top: 0; height: 2px; z-index: 9990;
+        background: linear-gradient(90deg, transparent, #d9b36c 18%, #ffe9b8 50%, #d9b36c 82%, transparent);
+        opacity: .75; pointer-events: none;
+    }
+    /* 星星缓慢闪烁 */
+    @keyframes gpTwinkle { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+
+    /* 金色渐变标题 */
+    .title-text h3 {
+        background: linear-gradient(180deg, #fff7e0 0%, #ffe3a1 45%, #d9a94e 100%);
+        -webkit-background-clip: text !important; background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        filter: drop-shadow(0 2px 8px rgba(217, 169, 78, .35));
+        letter-spacing: 2px;
+    }
+    .title-text p { color: rgba(240, 226, 190, .8) !important; letter-spacing: 1px; }
+
+    /* 中心横幅：外发光 + 呼吸 */
+    #centerModal {
+        border-radius: 14px; overflow: hidden;
+        box-shadow: 0 18px 60px rgba(0, 0, 0, .55), 0 0 0 1px rgba(217, 179, 108, .28),
+                    0 0 34px rgba(217, 179, 108, .14);
+        animation: gpBreath 5.5s ease-in-out infinite;
+    }
+    @keyframes gpBreath {
+        0%, 100% { box-shadow: 0 18px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(217,179,108,.28),
+                               0 0 26px rgba(217,179,108,.12); }
+        50% { box-shadow: 0 18px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,233,184,.45),
+                          0 0 46px rgba(217,179,108,.28); }
+    }
+
+    /* 右上角资源：玻璃拟态 + 金边 */
+    .res-top-right .res-item {
+        background: rgba(18, 21, 32, .72) !important;
+        border: 1px solid rgba(217, 179, 108, .35) !important;
+        border-radius: 999px !important; padding: 5px 12px !important;
+        backdrop-filter: blur(6px); box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+        cursor: pointer; transition: transform .16s ease, border-color .16s ease;
+    }
+    .res-top-right .res-item:hover { transform: translateY(-1px); border-color: rgba(255, 233, 184, .65) !important; }
+    .res-top-right .res-num { color: #ffe9b8 !important; font-weight: 700; }
+
+    /* 左侧卡池票据：金属质感 + 选中发光 */
+    .pool-item {
+        background: linear-gradient(135deg, rgba(46, 52, 74, .92), rgba(30, 34, 50, .92)) !important;
+        border: 1px solid rgba(217, 179, 108, .22) !important;
+        border-radius: 10px !important;
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+    .pool-item:hover { transform: translateX(3px); border-color: rgba(217, 179, 108, .5) !important; }
+    .pool-item.active {
+        border-color: rgba(255, 233, 184, .8) !important;
+        box-shadow: 0 0 0 1px rgba(255, 233, 184, .35), 0 6px 22px rgba(217, 179, 108, .25) !important;
+    }
+    .pool-item.active::after {
+        content: '▶'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+        color: #ffe9b8; font-size: 11px; opacity: .9;
+    }
+
+    /* 跃迁按钮：金色渐变 + 光晕 */
+    .gacha-btn {
+        background: linear-gradient(180deg, #3c4666 0%, #232a40 100%) !important;
+        border: 1px solid rgba(217, 179, 108, .45) !important;
+        /* 跟「兑换专票」一样是胶囊形（整圆），但尺寸更大 */
+        border-radius: 999px !important;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .08);
+        transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    }
+    .gacha-btn:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 233, 184, .85) !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, .5), 0 0 22px rgba(217, 179, 108, .3) !important;
+    }
+    .gacha-btn span { color: #f5ecd8 !important; }
+    .gacha-btn .icon img { filter: drop-shadow(0 1px 4px rgba(0, 0, 0, .5)); }
+
+    /* 底部小按钮：统一玻璃拟态 */
+    .btn-base {
+        background: rgba(18, 21, 32, .72) !important;
+        border: 1px solid rgba(217, 179, 108, .3) !important;
+        border-radius: 999px !important; backdrop-filter: blur(6px);
+        color: #e9e2cf !important; transition: border-color .16s ease, transform .16s ease;
+    }
+    .btn-base:hover { border-color: rgba(255, 233, 184, .7) !important; transform: translateY(-1px); }
+
+    /* 保底徽章 */
+    .pity-badge {
+        background: rgba(18, 21, 32, .78) !important;
+        border: 1px solid rgba(217, 179, 108, .4) !important;
+        border-radius: 999px !important; backdrop-filter: blur(6px);
+    }
+
+    /* 弹窗统一玻璃 + 金边 */
+    #historyOverlay > div, #exchangeOverlay > div, #gachaResultPopup > div {
+        border: 1px solid rgba(217, 179, 108, .35) !important;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, .6), 0 0 30px rgba(217, 179, 108, .12) !important;
+    }
+
+    /* UID 文字 */
+    .uid-text { color: rgba(233, 226, 207, .5) !important; letter-spacing: 1px; }
+
+    /* 页面内提示条/编辑条也融入风格 */
+    .gacha-toast, #editBar, #poolTimePanel, #gpCtxMenu {
+        border-color: rgba(217, 179, 108, .4) !important;
+        box-shadow: 0 12px 34px rgba(0, 0, 0, .55) !important;
+    }
+
+    </style>
+</head>
+<body>
+    <!-- ===== 主界面 ===== -->
+    <div class="gacha-wrap" id="app">
+        <div class="header-title">
+            <div class="logo-icon">衍</div>
+            <div class="title-text"><h3>跃迁</h3><p>群星跃迁</p></div>
+        </div>
+        <div class="res-top-right">
+            <div class="res-item"><img src="imgs/star_rail_ticket.png" alt="星轨专票" onerror="this.style.display='none'"><span class="res-num" id="ticketCount">0</span></div>
+            <div class="res-item"><img src="imgs/stellar_jade.png" alt="星琼" onerror="this.style.display='none'"><span class="res-num" id="jadeCount">0</span></div>
+        </div>
+        <div class="left-pool-list" id="poolList"></div>
+        <div class="center-modal" id="centerModal"><div class="cm-placeholder">✦ 群星跃迁 ✦</div></div>
+        <div class="pity-badge" id="pityBadge">🎯 保底 <span id="pityCount">0</span> / 80</div>
+        <div class="bottom-area">
+            <div class="bottom-left-buttons">
+                <div class="pool-time-badge" id="poolTimeBadge" title="卡池剩余时间（精确到秒）">距离卡池结束还有:同步中…</div>
+                <div class="blb-row">
+                    <button class="btn-base" id="historyBtn">历史记录</button>
+                    <button class="btn-base" id="poolInfoBtn">查看详情</button>
+                    <button class="btn-base" id="exchangeBtn">兑换专票</button>
+                </div>
+            </div>
+            <div class="gacha-buttons" id="gachaButtons">
+                <div class="gacha-btn locked" id="gacha1Btn"><span class="icon"><img src="imgs/star_rail_ticket.png" alt="专票"></span><span class="cnt">x1</span><span class="sep">|</span><span class="lbl">跃迁1次</span></div>
+                <div class="gacha-btn locked" id="gacha10Btn"><span class="icon"><img src="imgs/star_rail_ticket.png" alt="专票"></span><span class="cnt">x10</span><span class="sep">|</span><span class="lbl">跃迁10次</span></div>
+            </div>
+        </div>
+        <div class="uid-row">
+            <div class="uid-text" id="uidDisplay">UID: --</div>
+            <span class="sync-hint" id="syncHint">同步中…</span>
+        </div>
+    </div>
+
+    <!-- 视频遮罩 -->
+    <div class="video-overlay" id="videoOverlay">
+        <video id="gachaVideo" playsinline webkit-playsinline="true" x5-playsinline="true"></video>
+        <button id="skipVideoBtn" style="position:absolute;top:24px;right:24px;z-index:10000;padding:8px 20px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:#fff;font-size:15px;cursor:pointer;backdrop-filter:blur(4px);transition:all 0.2s;font-weight:500;letter-spacing:0.5px;">⏭ 跳过</button>
+        <div class="skip-hint">✦ 点击任意区域跳过 ✦</div>
+    </div>
+
+    <!-- ===== 抽卡结果弹窗 ===== -->
+    <div class="gacha-result-popup" id="gachaResultPopup">
+        <div class="popup-inner" id="popupInner"></div>
+    </div>
+
+    <!-- ===== 卡池详情（可抽物品 + 概率 + 保底） ===== -->
+    <div class="history-overlay" id="poolInfoOverlay">
+        <div class="history-modal">
+            <div class="history-header"><h2>角色活动跃迁说明</h2><button class="close-history" id="poolInfoClose">✕</button></div>
+            <div class="history-body" id="poolInfoBody">
+                <div class="empty-msg">加载中…</div>
+                <div class="poolinfo-list" id="poolInfoList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 历史记录 ===== -->
+    <div class="history-overlay" id="historyOverlay">
+        <div class="history-modal">
+            <div class="history-header"><h2>📜 抽卡记录</h2><button class="close-history" id="historyClose">✕</button></div>
+            <div class="history-body" id="historyBody">
+                <div class="empty-msg">还没有抽卡记录，快去跃迁吧 ✦</div>
+                <div class="history-list" id="historyList"></div>
+            </div>
+            <div class="history-pagination" id="historyPagination">
+                <button id="historyPrev">‹ 上一页</button>
+                <span class="page-info">第 <span id="pageCurrent">1</span> / <span id="pageTotal">1</span> 页</span>
+                <button id="historyNext">下一页 ›</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 兑换窗口 ===== -->
+    <div class="exchange-overlay" id="exchangeOverlay">
+        <div class="exchange-modal">
+            <div class="exchange-header"><h2><span class="icon">💎</span> 星琼兑换专票</h2><button class="exchange-close" id="exchangeClose">✕</button></div>
+            <div class="exchange-body" id="exchangeBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 全局变量 ==========
+        let gacha_bridge = null;
+        let isBridgeReady = false;
+        let isGachaInProgress = false;
+        let tickets = 0,
+            jades = 0,
+            pityCounter = 0,
+            isFiveStarGuaranteed = false,
+            uid = '--';
+        let historyRecords = [];
+        const STORAGE_KEY = 'sr_gacha_state_v8';
+        let historyPage = 1,
+            PAGE_SIZE = 10,
+            ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+        let loadFinished = false;
+
+        // DOM 缓存
+        let ticketCountEl, jadeCountEl, pityCountEl, uidDisplayEl;
+        let videoOverlay, videoEl, skipBtn;
+        let historyOverlay, historyList, emptyMsg, historyClose, historyBtn;
+        let poolInfoOverlay, poolInfoList, poolInfoClose, poolInfoBtn;
+        let exchangeBtn, exchangeOverlay, exchangeBody, exchangeClose;
+        let popup, popupInner;
+
+        // ===== 工具 =====
+        function getEl(id) { return document.getElementById(id); }
+
+        // ===== 抽卡请求 =====
+        window.requestGacha = async function(count) {
+            if (!window.gacha_bridge || !isBridgeReady) { toast('桥接加载中，请稍等…'); return; }
+            if (isGachaInProgress) { toast('抽卡进行中…'); return; }
+            // 多卡池：按当前卡池的货币与消耗校验；单抽/多连次数以卡池配置为准
+            if (!(window.__pools || []).length) {
+                toast('暂无可用卡池', 'error');
+                return;
+            }
+            const _pool = (typeof getActivePool === 'function') ? (getActivePool() || {}) : {};
+            const _costType = _pool.cost_type || 'star_rail_ticket';
+            const _costPer = parseInt(_pool.cost_per_pull || 1, 10) || 1;
+            const _multi = parseInt(_pool.multi_pull || 10, 10) || 10;
+            if (count !== 1 && count !== _multi) {
+                toast('该卡池仅支持 1 抽或 ' + _multi + ' 连', 'error');
+                return;
+            }
+            // 只有消耗专票时才用星琼自动兑换补齐
+            if (_costType === 'star_rail_ticket' && tickets < count * _costPer) {
+                const need = count * _costPer - tickets,
+                    cost = need * 160;
+                if (jades < cost) { toast('专票不足，且星琼不足以兑换', 'error'); return; }
+                if (!confirm(`消耗${cost}星琼兑换${need}张？`)) return;
+                try {
+                    const res = JSON.parse(await gacha_bridge.exchange(need));
+                    if (!res.success) { toast('兑换失败', 'error'); return; }
+                    tickets = res.tickets;
+                    jades = res.jade;
+                    if (ticketCountEl) ticketCountEl.textContent = tickets;
+                    if (jadeCountEl) jadeCountEl.textContent = jades;
+                } catch (e) { toast('兑换异常', 'error'); return; }
+            }
+            isGachaInProgress = true;
+            window.gacha_bridge.requestGacha(String(window.__activePoolId || ''), count);
+        };
+
+        // ===== WebChannel =====
+        function initBridge() {
+            let retry = 0;
+            const check = () => {
+                if (!window.qt || !window.qt.webChannelTransport) {
+                    if (retry++ < 15) { setTimeout(check, 300); return; }
+                    console.error("qt通道超时");
+                    return;
+                }
+                new QWebChannel(qt.webChannelTransport, function(channel) {
+                    console.log("✅ WebChannel回调");
+                    gacha_bridge = channel.objects.gacha_bridge;
+                    window.gacha_bridge = gacha_bridge;
+                    isBridgeReady = true;
+                    if (gacha_bridge) loadDataAndRender();
+                });
+            };
+            check();
+        }
+
+        async function loadDataAndRender() {
+            if (loadFinished || !gacha_bridge) return;
+            try {
+                const data = JSON.parse(await gacha_bridge.getUserInfo());
+                if (!data.pity || data.pity === 0) {
+                    const p = localStorage.getItem('sr_gacha_pity');
+                    if (p !== null) data.pity = parseInt(p);
+                    const g = localStorage.getItem('sr_gacha_guaranteed');
+                    if (g !== null) data.guaranteed = g === 'true';
+                }
+                window.updateGachaData(data);
+                loadFinished = true;
+            } catch (e) { console.error(e); }
+            // 加载历史：从服务器拉取并合并本地（服务端按玩家保存 → 汇总了所有卡池的记录）
+            try {
+                await loadHistoryFromServer();
+            } catch (e) { console.error(e); }
+        }
+
+        window.updateGachaData = function(data) {
+            if (data.tickets !== undefined) { tickets = data.tickets; if (ticketCountEl) ticketCountEl.textContent =
+                tickets; }
+            if (data.jade !== undefined) { jades = data.jade; if (jadeCountEl) jadeCountEl.textContent = jades; }
+            // 服务端推送的库存快照：右上角按绑定的物品显示真实剩余量
+            if (data.inventory && typeof data.inventory === 'object') {
+                window.__invCache = data.inventory;
+            }
+            if (typeof refreshResNums === 'function') refreshResNums();
+            // 多卡池：客户端推来的各池保底缓存
+            if (data.pities && typeof data.pities === 'object') {
+                window.__pityCache = data.pities;
+                const _cur = (typeof getActivePool === 'function') ? getActivePool() : null;
+                const _info = data.pities[window.__activePoolId] || {};
+                if (_cur && _info && _info.pity !== undefined) {
+                    pityCounter = _info.pity;
+                    isFiveStarGuaranteed = !!_info.guaranteed;
+                    if (typeof updatePityBadge === 'function') {
+                        updatePityBadge(pityCounter, poolPityTotal(_cur));
+                    }
+                }
+            }
+            if (data.pity !== undefined) {
+                pityCounter = data.pity;
+                if (pityCountEl) pityCountEl.textContent = pityCounter;
+                localStorage.setItem('sr_gacha_pity', pityCounter);
+                const badge = document.getElementById('pityBadge');
+                if (badge) {
+                    const span = badge.querySelector('span');
+                    if (span) {
+                        span.textContent = pityCounter;
+                        if (pityCounter >= 70) {
+                            badge.style.borderColor = 'rgba(247,201,72,0.4)';
+                            span.style.color = '#f7c948';
+                            badge.style.background = 'rgba(247,201,72,0.08)';
+                        } else {
+                            badge.style.borderColor = 'rgba(255,255,255,0.06)';
+                            span.style.color = '#e6c87a';
+                            badge.style.background = 'rgba(0,0,0,0.5)';
+                        }
+                    }
+                }
+            }
+            if (data.guaranteed !== undefined) {
+                isFiveStarGuaranteed = data.guaranteed;
+                localStorage.setItem('sr_gacha_guaranteed', isFiveStarGuaranteed ? 'true' : 'false');
+                let hint = document.getElementById('guaranteeHint');
+                if (isFiveStarGuaranteed && !hint) {
+                    const nh = document.createElement('div');
+                    nh.id = 'guaranteeHint';
+                    nh.textContent = '✦ 大保底已触发 · 下次五星必UP';
+                    document.querySelector('.gacha-wrap').appendChild(nh);
+                } else if (!isFiveStarGuaranteed && hint) hint.remove();
+            }
+            if (data.uid) { uid = data.uid; if (uidDisplayEl) uidDisplayEl.textContent = 'UID: ' + uid; }
+        };
+
+        // ===== onGachaResult =====
+        window.onGachaResult = function(resp) {
+            try {
+                console.log("后端返回完整抽卡数据", resp);
+                if (!resp.success) { toast('抽卡失败：' + (resp.reason || ''), 'error');
+                    isGachaInProgress = false; return; }
+                if (!resp.results) resp.results = [];
+
+                // 如果结果为空，提示并释放锁
+                if (resp.results.length === 0) {
+                    toast('抽卡结果为空，请联系管理员', 'error');
+                    isGachaInProgress = false;
+                    return;
+                }
+
+                tickets = resp.tickets;
+                jades = resp.jade;
+                pityCounter = resp.pity;
+                isFiveStarGuaranteed = resp.guaranteed;
+                if (ticketCountEl) ticketCountEl.textContent = tickets;
+                if (jadeCountEl) jadeCountEl.textContent = jades;
+                if (pityCountEl) pityCountEl.textContent = pityCounter;
+                const badge = document.getElementById('pityBadge');
+                if (badge) {
+                    const span = badge.querySelector('span');
+                    if (span) {
+                        span.textContent = pityCounter;
+                        if (pityCounter >= 70) {
+                            badge.style.borderColor = 'rgba(247,201,72,0.4)';
+                            span.style.color = '#f7c948';
+                            badge.style.background = 'rgba(247,201,72,0.08)';
+                        } else {
+                            badge.style.borderColor = 'rgba(255,255,255,0.06)';
+                            span.style.color = '#e6c87a';
+                            badge.style.background = 'rgba(0,0,0,0.5)';
+                        }
+                    }
+                }
+                let hint = document.getElementById('guaranteeHint');
+                if (isFiveStarGuaranteed && !hint) {
+                    const nh = document.createElement('div');
+                    nh.id = 'guaranteeHint';
+                    nh.textContent = '✦ 大保底已触发 · 下次五星必UP';
+                    document.querySelector('.gacha-wrap').appendChild(nh);
+                } else if (!isFiveStarGuaranteed && hint) hint.remove();
+
+                // 写入历史记录
+                const now = new Date(),
+                    t = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+                resp.results.forEach(r => {
+                    const _pn = (getActivePool() || {}).name || '';
+                    historyRecords.push({ name: r.name || '未知', rarity: r.rarity || 3, time: t, isUp: !!r.isUp,
+                        isGuaranteed: !!r.isGuaranteed, pool: _pn,
+                        pool_id: window.__activePoolId || '',
+                        id: t + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7) });
+                });
+                if (historyRecords.length > 500) historyRecords = historyRecords.slice(-500);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ history: historyRecords }));
+
+                // 如果历史弹窗打开，刷新列表
+                if (document.getElementById('historyOverlay')?.classList.contains('open')) {
+                    renderHistory(historyPage);
+                }
+
+                const hasFive = resp.results.some(item => item.rarity === 5);
+                const videoFile = hasFive ? "gold.webm" : "none.webm";
+                try { playVideo(videoFile, resp.results, resp.exchangeInfo || ""); } catch (e) {
+                    console.warn("视频启动失败", e);
+                    safeShowResult(resp.results, resp.exchangeInfo || "");
+                    isGachaInProgress = false;
+                }
+            } catch (err) {
+                console.error("抽卡回调报错", err);
+                safeShowResult(resp?.results || [], resp?.exchangeInfo || "");
+                isGachaInProgress = false;
+            }
+        };
+
+        function safeShowResult(list, info) { try { showResults(list, info); } catch (e) { console.error(e); } }
+
+        function getItemDisplayName(item) {
+            if (item.type === 'custom' && item.id === 'none') {
+                let n = '谢谢参与';
+                if (item.amount && item.amount !== 0) n += ` ×${item.amount}`;
+                return n;
+            }
+            let n = item.name || item.type || '未知';
+            if (item.amount && item.amount !== 0) n += ` ×${item.amount}`;
+            return n;
+        }
+
+        function getItemImageByType(item) {
+            const base = 'imgs/';
+            const map = {
+                'clothes': { '26_Newyear': '24skin.png' },
+                'star_rail_ticket': 'star_rail_ticket.png',
+                'jade': 'stellar_jade.png',
+                'cake': 'cake.png',
+                'credit': 'credit.png',
+                'none': 'none.png'
+            };
+            let f = 'unknown.png';
+            if (item.type === 'clothes' && item.id) f = map.clothes[item.id] || 'clothes.png';
+            else if (item.type === 'custom' && item.id) {
+                // 自定义物品：客户端已把抽到展示图同步到页面目录 imgs/<id>.png
+                const it = knownItem(item.id);
+                if (it) f = item.id + '.png';
+                else f = map.none || 'none.png';
+            } else f = map[item.type] || 'none.png';
+            return base + f;
+        }
+
+        function showResults(list, exchangeInfo) {
+            console.log("【showResults】展示", list);
+            const popupEl = getEl('gachaResultPopup');
+            const inner = getEl('popupInner');
+            if (!popupEl || !inner) return;
+            popupEl.classList.remove('show');
+            inner.innerHTML = '';
+            let html = `<button class="close-btn" id="popupCloseBtn">✕</button>`;
+            const count = list.length,
+                isSingle = count === 1,
+                gridClass = isSingle ? 'single' : 'ten';
+            html += `<div class="result-grid ${gridClass}" id="popupResultGrid">`;
+            for (let i = 0; i < list.length; i++) {
+                try {
+                    const item = list[i],
+                        rarity = item.rarity ?? 3,
+                        imgSrc = getItemImageByType(item),
+                        displayName = getItemDisplayName(item);
+                    html += `<div class="r-item rarity-${rarity}">
+                        <img src="${imgSrc}" alt="${displayName}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        <span class="empty-placeholder" style="display:none">✦</span>
+                        <div class="item-label">${displayName}</div>
+                    </div>`;
+                } catch (err) { html += `<div class="r-item"><span class="empty-placeholder">·</span></div>`; }
+            }
+            if (!isSingle && list.length < 10)
+                for (let i = 0; i < 10 - list.length; i++) html += `<div class="r-item"><span class="empty-placeholder">·</span></div>`;
+            html += `</div>`;
+            if (exchangeInfo && exchangeInfo.trim()) html += `<div class="exchange-info">🔄 ${exchangeInfo}</div>`;
+            else html += `<div class="exchange-info hidden"></div>`;
+            inner.innerHTML = html;
+            requestAnimationFrame(() => popupEl.classList.add('show'));
+            const closeBtn = document.getElementById('popupCloseBtn');
+            if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation();
+                popupEl.classList.remove('show'); };
+            popupEl.onclick = (e) => { if (e.target === popupEl) popupEl.classList.remove('show'); };
+            const escH = (e) => { if (e.key === 'Escape' && popupEl.classList.contains('show')) { popupEl.classList.remove(
+                        'show');
+                    document.removeEventListener('keydown', escH); } };
+            document.addEventListener('keydown', escH);
+        }
+
+        // ===== 视频播放 =====
+        let _activeVideoPlay = false;
+
+        function playVideo(filename, results, exchangeInfo) {
+            if (_activeVideoPlay) { console.warn("视频已播放，忽略"); return; }
+            _activeVideoPlay = true;
+            console.log("🎬 开始播放视频:", filename);
+            const v = document.getElementById('gachaVideo'),
+                overlay = document.getElementById('videoOverlay'),
+                app = document.getElementById('app'),
+                skipBtn = document.getElementById('skipVideoBtn');
+            if (!v || !overlay) { _activeVideoPlay = false;
+                safeShowResult(results, exchangeInfo); return; }
+            v.pause();
+            v.removeAttribute('src');
+            v.load();
+            v.style.cssText =
+                `position:fixed!important;left:0!important;top:0!important;width:100vw!important;height:100vh!important;object-fit:contain!important;z-index:9999!important;background:#000!important;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:none!important`;
+            v.src = 'videos/' + filename;
+            v.load();
+            let errorHandled = false;
+            const closeVideo = (e) => {
+                if (e) e.stopPropagation();
+                if (errorHandled) return;
+                errorHandled = true;
+                v.pause();
+                overlay.classList.remove('open');
+                overlay.style.display = 'none';
+                if (app) app.classList.remove('disabled');
+                if (skipBtn) skipBtn.style.display = 'none';
+                cleanup();
+                _activeVideoPlay = false;
+                safeShowResult(results, exchangeInfo);
+                isGachaInProgress = false;
+            };
+            const onError = (e) => {
+                if (errorHandled) return;
+                errorHandled = true;
+                console.warn("视频加载失败", e);
+                v.removeEventListener('error', onError);
+                overlay.classList.remove('open');
+                overlay.style.display = 'none';
+                if (app) app.classList.remove('disabled');
+                if (skipBtn) skipBtn.style.display = 'none';
+                _activeVideoPlay = false;
+                safeShowResult(results, exchangeInfo);
+                isGachaInProgress = false;
+            };
+            v.addEventListener('error', onError);
+            const onLoaded = () => {
+                console.log(`视频尺寸: ${v.videoWidth}x${v.videoHeight}`);
+                if (v.videoWidth === 0 || v.videoHeight === 0) {
+                    setTimeout(() => { if (!errorHandled && overlay.classList.contains('open')) closeVideo(); }, 800);
+                }
+            };
+            v.addEventListener('loadedmetadata', onLoaded);
+            overlay.classList.add('open');
+            overlay.style.display = 'flex';
+            if (app) app.classList.add('disabled');
+            if (skipBtn) {
+                skipBtn.style.display = 'block';
+                skipBtn.style.cssText =
+                    `position:fixed;top:24px;right:24px;z-index:99999;padding:10px 24px;background:rgba(0,0,0,0.8);border:2px solid rgba(255,255,255,0.5);border-radius:30px;color:#fff;font-size:16px;font-weight:bold;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 4px 20px rgba(0,0,0,0.6);letter-spacing:1px;pointer-events:auto;`;
+            }
+            let startPos = null;
+            const onDown = e => { startPos = { x: e.clientX, y: e.clientY }; };
+            const onUp = e => {
+                if (!startPos) return;
+                const dx = e.clientX - startPos.x,
+                    dy = e.clientY - startPos.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 15) closeVideo(e);
+                startPos = null;
+            };
+            const onEnded = () => closeVideo();
+            const cleanup = () => {
+                v.removeEventListener('ended', onEnded);
+                v.removeEventListener('error', onError);
+                v.removeEventListener('loadedmetadata', onLoaded);
+                overlay.removeEventListener('pointerdown', onDown);
+                overlay.removeEventListener('pointerup', onUp);
+                if (skipBtn) skipBtn.removeEventListener('click', closeVideo);
+            };
+            v.addEventListener('ended', onEnded);
+            overlay.addEventListener('pointerdown', onDown);
+            overlay.addEventListener('pointerup', onUp);
+            if (skipBtn) skipBtn.addEventListener('click', closeVideo);
+            const playP = v.play();
+            if (playP) playP.catch(err => {
+                if (errorHandled) return;
+                errorHandled = true;
+                console.log("视频播放拦截", err);
+                overlay.classList.remove('open');
+                overlay.style.display = 'none';
+                if (app) app.classList.remove('disabled');
+                if (skipBtn) skipBtn.style.display = 'none';
+                cleanup();
+                _activeVideoPlay = false;
+                safeShowResult(results, exchangeInfo);
+                isGachaInProgress = false;
+            });
+            setTimeout(() => {
+                if (!errorHandled && overlay.classList.contains('open')) {
+                    console.warn("视频超时");
+                    errorHandled = true;
+                    v.pause();
+                    overlay.classList.remove('open');
+                    overlay.style.display = 'none';
+                    if (app) app.classList.remove('disabled');
+                    if (skipBtn) skipBtn.style.display = 'none';
+                    cleanup();
+                    _activeVideoPlay = false;
+                    safeShowResult(results, exchangeInfo);
+                    isGachaInProgress = false;
+                }
+            }, 12000);
+        }
+
+        // ========== 历史记录 ==========
+        function openHistory() {
+            try {
+                const vOverlay = document.getElementById('videoOverlay');
+                if (vOverlay) { vOverlay.classList.remove('open');
+                    vOverlay.style.display = 'none'; const v = document.getElementById('gachaVideo'); if (v) v.pause(); }
+                const resPopup = document.getElementById('gachaResultPopup');
+                if (resPopup) resPopup.classList.remove('show');
+
+                const overlay = document.getElementById('historyOverlay');
+                if (!overlay) { toast('历史记录组件缺失', 'error'); return; }
+                overlay.style.display = 'flex';
+                overlay.style.position = 'fixed';
+                overlay.style.left = '0';
+                overlay.style.top = '0';
+                overlay.style.width = '100vw';
+                overlay.style.height = '100vh';
+                overlay.style.zIndex = '999999';
+                overlay.style.background = 'rgba(6,8,18,0.85)';
+                overlay.style.backdropFilter = 'blur(10px)';
+                overlay.style.visibility = 'visible';
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
+                overlay.classList.add('open');
+
+                console.log('📜 历史记录弹窗已强制打开');
+                renderHistory(1);
+                // 每次都从服务器拉一次：服务端按玩家保存，汇总了所有卡池的记录
+                if (gacha_bridge && isBridgeReady) {
+                    loadHistoryFromServer().then(() => renderHistory(historyPage)).catch(e => console.warn(e));
+                }
+            } catch (e) { console.error(e);
+                toast('打开历史失败', 'error'); }
+        }
+
+        function closeHistory() {
+            const overlay = document.getElementById('historyOverlay');
+            if (overlay) { overlay.classList.remove('open');
+                overlay.style.display = 'none'; }
+        }
+
+        async function loadHistoryFromServer() {
+            if (!gacha_bridge || !isBridgeReady) return;
+            try {
+                const hist = JSON.parse(await gacha_bridge.getHistory());
+                const srv = (hist && hist.history) || [];
+                if (!Array.isArray(srv) || !srv.length) return;
+                // 服务端记录 + 本地记录 合并（去重由 getFilteredHistory 统一处理）：
+                // 这样「抽卡记录」里能看到**所有卡池**的历史，而不只是本页面本地攒下的
+                const seen = {};
+                const merged = [];
+                srv.concat(historyRecords || []).forEach(function (r) {
+                    if (!r || typeof r !== 'object') return;
+                    const key = r.id ||
+                        [r.time || '', r.name || '', r.rarity || 3, r.pool || ''].join('|');
+                    if (seen[key]) return;
+                    seen[key] = 1;
+                    merged.push(r);
+                });
+                historyRecords = merged;
+                if (historyRecords.length > 800) historyRecords = historyRecords.slice(-800);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ history: historyRecords }));
+            } catch (e) { console.error(e); }
+        }
+
+        function getFilteredHistory() {
+            const now = Date.now();
+            // 汇总所有卡池的记录：去重（同一条记录可能同时存在于本地与服务端）→ 按时间倒序 → 30 天内
+            const seen = {};
+            const all = [];
+            (historyRecords || []).forEach(function (r) {
+                if (!r || typeof r !== 'object') return;
+                const key = r.id || [r.time || '', r.name || '', r.rarity || 3, r.pool || ''].join('|');
+                if (seen[key]) return;
+                seen[key] = 1;
+                all.push(r);
+            });
+            const ts = function (r) {
+                const t = Date.parse(String((r || {}).time || '').replace(' ', 'T'));
+                return isNaN(t) ? 0 : t;
+            };
+            all.sort(function (a, b) { return ts(b) - ts(a); });   // 最近的在上
+            return all.filter(function (r) { return ts(r) >= now - ONE_MONTH_MS; });
+        }
+
+        function renderHistory(page) {
+            const listEl = document.getElementById('historyList');
+            const emptyEl = document.querySelector('.history-body .empty-msg');
+            const pageCur = document.getElementById('pageCurrent');
+            const pageTot = document.getElementById('pageTotal');
+            const prevBtn = document.getElementById('historyPrev');
+            const nextBtn = document.getElementById('historyNext');
+            if (!listEl) return;
+            const filtered = getFilteredHistory();
+            const sorted = filtered;   // getFilteredHistory 已去重并按时间倒序
+            const total = sorted.length;
+            const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            historyPage = Math.max(1, Math.min(page, totalPages));
+            const start = (historyPage - 1) * PAGE_SIZE;
+            const pageData = sorted.slice(start, start + PAGE_SIZE);
+            listEl.innerHTML = '';
+            if (total === 0) { if (emptyEl) emptyEl.style.display = 'block';
+                listEl.style.display = 'none'; } else { if (emptyEl) emptyEl.style.display = 'none';
+                listEl.style.display = 'flex'; }
+            pageData.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item rarity-' + (item.rarity || 3);
+                const left = document.createElement('span');
+                left.style.display = 'flex';
+                left.style.gap = '6px';
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'h-name';
+                nameSpan.textContent = item.name;
+                const tag = document.createElement('span');
+                tag.className = 'h-tag';
+                if (item.isGuaranteed) tag.textContent = '保底';
+                else if (item.isUp) tag.textContent = 'UP';
+                else tag.textContent = '常驻';
+                left.appendChild(nameSpan);
+                left.appendChild(tag);
+                const right = document.createElement('span');
+                right.style.display = 'flex';
+                right.style.gap = '8px';
+                const rt = document.createElement('span');
+                rt.className = 'h-rarity';
+                rt.textContent = item.rarity + '★';
+                const t = document.createElement('span');
+                t.className = 'h-time';
+                t.textContent = item.time;
+                right.appendChild(rt);
+                right.appendChild(t);
+                div.appendChild(left);
+                div.appendChild(right);
+                listEl.appendChild(div);
+            });
+            if (pageCur) pageCur.textContent = historyPage;
+            if (pageTot) pageTot.textContent = totalPages;
+            if (prevBtn) prevBtn.disabled = historyPage <= 1;
+            if (nextBtn) nextBtn.disabled = historyPage >= totalPages;
+        }
+
+        // ========== 兑换窗口（滑块版） ==========
+        function openExchange() {
+            try {
+                const vOverlay = document.getElementById('videoOverlay');
+                if (vOverlay) { vOverlay.classList.remove('open');
+                    vOverlay.style.display = 'none'; const v = document.getElementById('gachaVideo'); if (v) v.pause(); }
+                const resPopup = document.getElementById('gachaResultPopup');
+                if (resPopup) resPopup.classList.remove('show');
+
+                const overlay = document.getElementById('exchangeOverlay');
+                if (!overlay) { toast('兑换组件缺失', 'error'); return; }
+                overlay.style.display = 'flex';
+                overlay.style.position = 'fixed';
+                overlay.style.left = '0';
+                overlay.style.top = '0';
+                overlay.style.width = '100vw';
+                overlay.style.height = '100vh';
+                overlay.style.zIndex = '999999';
+                overlay.style.background = 'rgba(6,8,18,0.7)';
+                overlay.style.backdropFilter = 'blur(6px)';
+                overlay.style.visibility = 'visible';
+                overlay.style.opacity = '1';
+                overlay.style.pointerEvents = 'auto';
+                overlay.classList.add('open');
+
+                console.log('💎 兑换弹窗已强制打开');
+                if (gacha_bridge && isBridgeReady) loadExchangeData();
+                else {
+                    const body = document.getElementById('exchangeBody');
+                    if (body) body.innerHTML =
+                        `<div class="insufficient">⏳ 通信加载中</div><div class="exchange-buttons"><button id="ecClose">关闭</button></div>`;
+                    const btn = document.getElementById('ecClose');
+                    if (btn) btn.onclick = closeExchange;
+                }
+            } catch (e) { console.error(e);
+                toast('打开兑换失败', 'error'); }
+        }
+
+        function closeExchange() {
+            const overlay = document.getElementById('exchangeOverlay');
+            if (overlay) { overlay.classList.remove('open');
+                overlay.style.display = 'none'; }
+        }
+
+        async function loadExchangeData() {
+            if (!gacha_bridge || !isBridgeReady) return;
+            const body = document.getElementById('exchangeBody');
+            if (!body) return;
+            try {
+                const data = JSON.parse(await gacha_bridge.getUserInfo());
+                const currT = data.tickets || 0,
+                    currJ = data.jade || 0,
+                    maxEx = Math.min(Math.floor(currJ / 160), 999);
+                if (maxEx <= 0) {
+                    body.innerHTML =
+                        `<div class="info-row"><span>🎫 专票</span><span>${currT}</span></div><div class="insufficient">💎 星琼不足 (每张需160)</div><div class="exchange-buttons"><button id="ecClose">知道了</button></div>`;
+                    document.getElementById('ecClose').onclick = closeExchange;
+                } else {
+                    body.innerHTML = `
+                        <div class="info-row"><span>🎫 当前专票</span><span>${currT}</span></div>
+                        <div class="info-row"><span>💎 当前星琼</span><span>${currJ}</span></div>
+                        <div class="divider"></div>
+                        <div class="info-row"><span>可兑换</span><span class="need">最多 ${maxEx} 张</span></div>
+                        <div class="slider-container">
+                            <input type="range" id="exSlider" min="1" max="${maxEx}" value="1" step="1">
+                            <span class="slider-value" id="exSliderValue">1</span>
+                        </div>
+                        <div class="slider-limits"><span>1</span><span>${maxEx}</span></div>
+                        <div class="exchange-buttons">
+                            <button id="exCancel">取消</button>
+                            <button id="exConfirm" class="btn-confirm">兑换</button>
+                        </div>
+                    `;
+                    const slider = document.getElementById('exSlider');
+                    const valSpan = document.getElementById('exSliderValue');
+                    slider.addEventListener('input', function() {
+                        valSpan.textContent = this.value;
+                    });
+                    document.getElementById('exCancel').onclick = closeExchange;
+                    document.getElementById('exConfirm').onclick = async () => {
+                        const amt = parseInt(document.getElementById('exSlider').value);
+                        if (amt <= 0) return;
+                        try {
+                            const res = JSON.parse(await gacha_bridge.exchange(amt));
+                            if (res.success) {
+                                window.updateGachaData(res);
+                                closeExchange();
+                                toast('✅ 兑换成功', 'ok');
+                            } else toast('❌ ' + (res.reason || '失败'), 'error');
+                        } catch (err) { toast('兑换异常', 'error'); }
+                    };
+                }
+            } catch (err) {
+                console.error(err);
+                body.innerHTML =
+                    `<div class="insufficient">❌ 加载失败</div><div class="exchange-buttons"><button id="ecClose">关闭</button></div>`;
+                document.getElementById('ecClose').onclick = closeExchange;
+            }
+        }
+
+        // ========== DOMContentLoaded ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOMContentLoaded 触发');
+            ticketCountEl = document.getElementById('ticketCount');
+            jadeCountEl = document.getElementById('jadeCount');
+            pityCountEl = document.getElementById('pityCount');
+            uidDisplayEl = document.getElementById('uidDisplay');
+            videoOverlay = document.getElementById('videoOverlay');
+            videoEl = document.getElementById('gachaVideo');
+            skipBtn = document.getElementById('skipVideoBtn');
+            historyOverlay = document.getElementById('historyOverlay');
+            historyList = document.getElementById('historyList');
+            emptyMsg = document.querySelector('.history-body .empty-msg');
+            historyClose = document.getElementById('historyClose');
+            historyBtn = document.getElementById('historyBtn');
+            poolInfoOverlay = document.getElementById('poolInfoOverlay');
+            poolInfoList = document.getElementById('poolInfoList');
+            poolInfoClose = document.getElementById('poolInfoClose');
+            poolInfoBtn = document.getElementById('poolInfoBtn');
+            exchangeBtn = document.getElementById('exchangeBtn');
+            exchangeOverlay = document.getElementById('exchangeOverlay');
+            exchangeBody = document.getElementById('exchangeBody');
+            exchangeClose = document.getElementById('exchangeClose');
+            popup = document.getElementById('gachaResultPopup');
+            popupInner = document.getElementById('popupInner');
+
+            // 加载本地历史缓存
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) { const p = JSON.parse(saved); if (p.history) historyRecords = p.history; }
+            } catch (e) {}
+
+            initBridge();
+
+            if (historyBtn) historyBtn.addEventListener('click', function(e) { e.preventDefault();
+                openHistory(); });
+            if (historyClose) historyClose.addEventListener('click', function(e) { e.preventDefault();
+                closeHistory(); });
+            if (historyOverlay) historyOverlay.addEventListener('click', function(e) { if (e.target === historyOverlay)
+                    closeHistory(); });
+
+            // 卡池详情：可抽物品 + 概率 + 保底
+            if (poolInfoBtn) poolInfoBtn.addEventListener('click', function(e) { e.preventDefault();
+                openPoolInfo(); });
+            if (poolInfoClose) poolInfoClose.addEventListener('click', function(e) { e.preventDefault();
+                closePoolInfo(); });
+            if (poolInfoOverlay) poolInfoOverlay.addEventListener('click', function(e) {
+                if (e.target === poolInfoOverlay) closePoolInfo(); });
+
+            if (exchangeBtn) exchangeBtn.addEventListener('click', function(e) { e.preventDefault();
+                openExchange(); });
+            if (exchangeClose) exchangeClose.addEventListener('click', function(e) { e.preventDefault();
+                closeExchange(); });
+            if (exchangeOverlay) exchangeOverlay.addEventListener('click', function(e) { if (e.target === exchangeOverlay)
+                    closeExchange(); });
+
+            document.getElementById('historyPrev')?.addEventListener('click', function() { if (historyPage > 1)
+                    renderHistory(historyPage - 1); });
+            document.getElementById('historyNext')?.addEventListener('click', function() {
+                const total = Math.ceil(getFilteredHistory().length / PAGE_SIZE);
+                if (historyPage < total) renderHistory(historyPage + 1);
+            });
+
+            document.getElementById('gacha1Btn')?.addEventListener('click', function(e) { e.preventDefault();
+                window.requestGacha(1); });
+            document.getElementById('gacha10Btn')?.addEventListener('click', function(e) { e.preventDefault();
+                window.requestGacha(10); });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    const p = document.getElementById('gachaResultPopup');
+                    if (p && p.classList.contains('show')) p.classList.remove('show');
+                    if (document.getElementById('historyOverlay')?.classList.contains('open')) closeHistory();
+                    if (document.getElementById('exchangeOverlay')?.classList.contains('open')) closeExchange();
+                    const vo = document.getElementById('videoOverlay');
+                    if (vo && vo.classList.contains('open')) {
+                        const v = document.getElementById('gachaVideo');
+                        if (v) v.pause();
+                        vo.classList.remove('open');
+                        vo.style.display = 'none';
+                        isGachaInProgress = false;
+                    }
+                }
+            });
+
+            window.addEventListener('beforeunload', function() {
+                const v = document.getElementById('gachaVideo');
+                if (v) { v.pause();
+                    v.src = ''; }
+            });
+
+            console.log('✅ 页面初始化完成（历史记录+颜色+兑换修复）');
+        });
+
+        window.openHistory = openHistory;
+        window.closeHistory = closeHistory;
+        window.openExchange = openExchange;
+        window.closeExchange = closeExchange;
+        window.renderHistory = renderHistory;
+
+        // ========== 卡池详情（可抽物品 + 概率 + 保底） ==========
+        function openPoolInfo() {
+            try {
+                const ov = document.getElementById('poolInfoOverlay');
+                if (!ov) return;
+                ov.style.display = 'flex';
+                ov.style.position = 'fixed';
+                ov.style.left = '0';
+                ov.style.top = '0';
+                ov.style.width = '100vw';
+                ov.style.height = '100vh';
+                ov.style.zIndex = '999998';
+                ov.style.background = 'rgba(6,8,18,0.85)';
+                ov.style.backdropFilter = 'blur(10px)';
+                ov.style.visibility = 'visible';
+                ov.style.opacity = '1';
+                ov.style.pointerEvents = 'auto';
+                ov.classList.add('open');
+                renderPoolInfo();
+            } catch (e) { console.error(e); }
+        }
+
+        function closePoolInfo() {
+            const ov = document.getElementById('poolInfoOverlay');
+            if (ov) { ov.classList.remove('open'); ov.style.display = 'none'; }
+        }
+
+        async function renderPoolInfo() {
+            const list = document.getElementById('poolInfoList');
+            const empty = document.querySelector('#poolInfoBody .empty-msg');
+            if (!list) return;
+            const pool = getActivePool();
+            if (!pool) {
+                if (empty) { empty.style.display = 'block'; empty.textContent = '当前没有可查看的卡池'; }
+                list.innerHTML = '';
+                return;
+            }
+            let info = null;
+            if (gacha_bridge && isBridgeReady) {
+                try {
+                    info = JSON.parse(await gacha_bridge.getPoolInfo(String(window.__activePoolId || '')));
+                } catch (e) { console.warn(e); }
+            }
+            const items = (info && info.items) || {};
+            const rules = (info && info.rules) || {};
+            const pct = function (n) {
+                const v = parseFloat(n);
+                if (isNaN(v)) return '0%';
+                return (v >= 0.01 ? (v * 100).toFixed(2) : (v * 100).toFixed(3)) + '%';
+            };
+            // 本期 UP 物品名（优先 up 标记，其次该档第一件，最后用卡池 UP 名）
+            const upNames = function (tier, fallback) {
+                const arr = (items[tier] || []).filter(function (x) { return x.up; });
+                const src = arr.length ? arr : (items[tier] || []).slice(0, 1);
+                const names = src.map(function (x) {
+                    return '「' + (x.display || itemDisplayName(x.id)) + '」';
+                });
+                return names.length ? names.join('') : (fallback ? '「' + fallback + '」' : '');
+            };
+            const up5 = upNames('5', (info && info.up_name) || pool.up_name || '');
+            const up4 = upNames('4', '');
+            // 公告/列表里统一用三位小数（与官方公告一致：0.600% / 5.100%）
+            const pct3 = function (n) {
+                const v = parseFloat(n);
+                return (isNaN(v) ? 0 : v * 100).toFixed(3) + '%';
+            };
+            const p5 = pct3(rules.base_5star_rate !== undefined ? rules.base_5star_rate : 0.006);
+            const p4 = pct3(rules.base_4star_rate !== undefined ? rules.base_4star_rate : 0.051);
+            const pity5 = parseInt(rules.pity_hard_5star || 80, 10) || 80;
+            const pity4 = parseInt(rules.pity_hard_4star || 10, 10) || 10;
+
+            // ---- 上方公告文本 ----
+            let html = '<div class="poolinfo-doc">' +
+                '<h3>角色活动跃迁说明</h3>' +
+                '<h4>跃迁概率</h4>' +
+                '<p>在本次角色活动跃迁中，获取5星皮肤、4星物品的概率分别如下：</p>' +
+                '<p>·活动期间，跃迁获取5星皮肤的基础概率为' + p5 +
+                '，综合概率(含保底)为1.600%，最多' + pity5 +
+                '次跃迁必定能通过保底获取5星皮肤。</p>' +
+                '<p>·活动期间，跃迁获取4星物品的基础概率为' + p4 +
+                '，4星皮肤的基础概率为2.550%，4星道具的基础概率为2.550%，' +
+                '4星物品的含保底综合概率为13.000%。最多' + pity4 +
+                '次跃迁必定能通过保底获取4星或以上物品，通过保底获取4星物品的概率为99.400%，' +
+                '获取5星皮肤的概率为' + p5 + '。</p>' +
+                '<h4>概率提升</h4>' +
+                '<p>·当跃迁获取到5星皮肤时，有50%的概率为本期5星概率提升皮肤' + up5 +
+                '；另有50%的概率为本期跃迁中所有可获取的5星皮肤，各皮肤获取概率均等。' +
+                '若本次跃迁获取的5星皮肤非本期5星概率提升皮肤，则下次跃迁获取的5星皮肤' +
+                '必定为本期5星概率提升皮肤。本期5星概率提升皮肤的综合概率(含保底)为1.113%。</p>' +
+                '<p>·当跃迁获取到4星物品时，有50%的概率为本期4星概率提升物品' + up4 +
+                '其中之一。如果本次跃迁获取的4星物品非本期4星概率提升物品，' +
+                '下次跃迁获取的4星物品必定为本期4星概率提升物品。' +
+                '当跃迁获取到4星概率提升物品时，每个本期4星概率提升物品的跃迁成功概率均等。</p>' +
+                '</div>';
+
+            // ---- 下方列表：只给基础概率与综合保底概率 ----
+            const tierDefs = [
+                ['5', '五星', rules.base_5star_rate, pity5, '1.600%'],
+                ['4', '四星', rules.base_4star_rate, pity4, '13.000%'],
+                ['3', '三星', null, null, null]
+            ];
+            let listHtml = '';
+            tierDefs.forEach(function (td) {
+                const tier = td[0], label = td[1], rate = td[2], hardPity = td[3], synth = td[4];
+                const arr = items[tier] || [];
+                if (!arr.length) return;
+                const totalW = arr.reduce(function (s, it) {
+                    return s + Math.max(0, parseFloat(it.weight || 0));
+                }, 0);
+                listHtml += '<div class="poolinfo-tier t' + tier + '">';
+                listHtml += '<h3>' + label +
+                    (rate !== null && rate !== undefined ? ' · 基础概率 ' + pct3(rate) : '') +
+                    (synth ? ' · 综合保底概率 ' + synth : '') +
+                    (hardPity ? ' · 最多 ' + hardPity + ' 抽保底' : '') + '</h3>';
+                arr.forEach(function (it) {
+                    const w = Math.max(0, parseFloat(it.weight || 0));
+                    const share = totalW > 0 ? (w / totalW * 100) : 0;
+                    // 只显示概率百分比，不显示权重；名字用昵称（display 由客户端按物品表换算）
+                    const _nm = it.display || itemDisplayName(it.id);
+                    listHtml += '<div class="poolinfo-row">' +
+                        '<span class="pi-name">' + _nm +
+                        (it.up ? '<span class="up-tag">UP</span>' : '') + '</span>' +
+                        '<span>' + share.toFixed(1) + '%</span></div>';
+                });
+                listHtml += '</div>';
+            });
+            if (!listHtml) listHtml = '<div class="poolinfo-pity">该卡池暂无可抽物品</div>';
+            if (empty) empty.style.display = 'none';
+            list.innerHTML = html + listHtml;
+        }
+        window.renderPoolInfo = renderPoolInfo;
+        window.openPoolInfo = openPoolInfo;
+        window.closePoolInfo = closePoolInfo;
+    
+        // ===== 由客户端注入的卡池元信息（来源：服务端 gacha_config.json） =====
+        window.applyPoolMeta = function (meta) {
+            try {
+                if (!meta) return;
+                const titleEl = document.querySelector('.title-text h3');
+                const descEl = document.querySelector('.title-text p');
+                const bannerImg = document.querySelector('#centerModal img');
+                // 只有"真实上传的封面"才显示：/gacha_images/、客户端同步的 _local_banner、
+                // 或 data: 预览图。默认值 imgs/pool_banner.png 是模板自带的旧图，
+                // 新卡池不该显示它（否则新池和老池共用同一张旧封面）。
+                const _validBanner = !!meta._local_banner ||
+                    (typeof meta.banner === 'string' &&
+                     (meta.banner.indexOf('/gacha_images/') === 0 ||
+                      meta.banner.indexOf('data:image/') === 0));
+                if (_validBanner) {
+                    // 客户端会为每张封面同步出一个**带版本号的本地文件名**并放在 _local_banner 里：
+                    // 必须用它，否则固定路径 imgs/banner__<id>.png 会被浏览器缓存住，
+                    // 热更新换了封面也看不到变化。
+                    let bsrc = meta.banner;
+                    if (meta._local_banner) {
+                        bsrc = meta._local_banner;
+                    } else if (String(bsrc).indexOf('/gacha_images/') === 0 && meta.id) {
+                        bsrc = 'imgs/banner__' + meta.id + '.png';
+                    }
+                    const cm = document.getElementById('centerModal');
+                    let bImg = cm ? cm.querySelector('img') : null;
+                    if (!bImg && cm) {
+                        cm.innerHTML = '<img alt="卡池封面">';
+                        bImg = cm.querySelector('img');
+                    }
+                    if (bImg) {
+                        bImg.onerror = function () {
+                            bImg.style.display = 'none';
+                            cm.innerHTML = '<div class="cm-placeholder">✦ ' +
+                                (meta.name || '卡池') + ' ✦</div>';
+                        };
+                        bImg.src = bsrc;
+                        bImg.style.display = '';
+                    }
+                } else {
+                    // 没有真实封面：显示中性占位（新卡池/未上传封面时不会误显示别的池的图）
+                    const cm = document.getElementById('centerModal');
+                    if (cm) cm.innerHTML = '<div class="cm-placeholder">✦ ' +
+                        (meta.name || '群星跃迁') + ' ✦</div>';
+                }
+                // 顶部标题保持原样（「跃迁 / 群星跃迁」），不随卡池名变化；
+                // 卡池名在左侧卡池列表里显示，编辑卡池名走列表项右键重命名。
+                if (meta.name && bannerImg) bannerImg.alt = meta.name;
+                if (meta.color) {
+                    document.documentElement.style.setProperty('--pool-color', meta.color);
+                    if (titleEl) titleEl.style.color = meta.color;
+                }
+                if (meta.font) {
+                    document.body.style.fontFamily = '"' + meta.font + '", "Microsoft YaHei", sans-serif';
+                }
+                // 多卡池：保底上限与多连次数跟随当前卡池（按钮上不再显示"消耗X票"）
+                try {
+                    if (typeof updatePityBadge === 'function') {
+                        updatePityBadge(pityCounter, (typeof poolPityTotal === 'function')
+                            ? poolPityTotal(meta) : 80);
+                    }
+                    const _b1 = document.getElementById('gacha1Btn');
+                    const _b10 = document.getElementById('gacha10Btn');
+                    if (_b1) {
+                        // 只改文案 span（.lbl）；用 first-of-type 会命中图标 span 并把图标冲掉
+                        const t = _b1.querySelector('.lbl') || _b1.querySelector('span:last-child');
+                        if (t) t.textContent = '跃迁1次';       // 不显示消耗
+                    }
+                    if (_b10) {
+                        const _m = parseInt(meta.multi_pull || 10, 10) || 10;
+                        const t = _b10.querySelector('.cnt');
+                        if (t) t.textContent = 'x' + _m;
+                        const t2 = _b10.querySelector('.lbl') || _b10.querySelector('span:last-child');
+                        if (t2) t2.textContent = '跃迁' + _m + '次';   // 不显示消耗
+                    }
+                } catch (e) { console.warn('卡池消耗信息更新失败', e); }
+                // 页面内自定义：右上角物品图标与按钮文案
+                try {
+                    if (meta.ui && typeof meta.ui === 'object') {
+                        const _hist = document.getElementById('historyBtn');
+                        if (_hist && meta.ui.btn_history) _hist.textContent = meta.ui.btn_history;
+                        const _ex = document.getElementById('exchangeBtn');
+                        if (_ex && meta.ui.btn_exchange) _ex.textContent = meta.ui.btn_exchange;
+                        const _b1 = document.getElementById('gacha1Btn');
+                        if (_b1 && meta.ui.btn1) {
+                            const t = _b1.querySelector('.lbl') || _b1.querySelector('span:last-child');
+                            if (t) t.textContent = meta.ui.btn1;
+                        }
+                        const _b10 = document.getElementById('gacha10Btn');
+                        if (_b10 && meta.ui.btn10) {
+                            const t = _b10.querySelector('.lbl') || _b10.querySelector('span:last-child');
+                            if (t) t.textContent = meta.ui.btn10;
+                        }
+                    }
+                } catch (e) { console.warn('自定义项套用失败', e); }
+                console.log('卡池元信息已应用', meta);
+            } catch (e) { console.warn('applyPoolMeta 失败', e); }
+        };
+
+        // 右键一律使用页面内菜单：拦截浏览器/Qt 默认菜单
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+            return false;
+        }, false);
+
+        // ===================== 按钮防连点 =====================
+        // 同一按钮 0.8 秒内只响应 1 次；任意两个按钮之间也留 0.4 秒间隔，
+        // 避免"1 秒点 N 次"把抽卡/兑换等操作刷爆（只拦真实用户点击，程序触发的 click 不受影响）
+        (function () {
+            const SAME_MS = 800, ANY_MS = 400;
+            let lastEl = null, lastTs = 0;
+            document.addEventListener('click', function (e) {
+                if (e.isTrusted === false) return;          // 程序触发的 click 放行
+                const t = e.target;
+                const el = (t && t.closest)
+                    ? t.closest('button, .gacha-btn, .btn-base, .pool-item, .gp-btn, .eb-btn')
+                    : null;
+                if (!el) return;
+                const now = Date.now();
+                const tooSoon = (el === lastEl && now - lastTs < SAME_MS) ||
+                                (now - lastTs < ANY_MS);
+                if (tooSoon) {
+                    e.stopImmediatePropagation();
+                    if (e.preventDefault) e.preventDefault();
+                    return false;
+                }
+                lastEl = el;
+                lastTs = now;
+            }, true);
+        })();
+
+        // ===================== 页面内提示条（替代 Qt 弹窗） =====================
+        window.gachaNotice = function (text, kind, progress) {
+            let box = document.getElementById('gachaToast');
+            if (!box) {
+                box = document.createElement('div');
+                box.id = 'gachaToast';
+                box.className = 'gacha-toast';
+                box.innerHTML = '<div class="gt-text"></div><div class="gt-bar"><div class="gt-fill"></div></div>';
+                document.body.appendChild(box);
+            }
+            box.querySelector('.gt-text').textContent = text || '';
+            box.classList.remove('error', 'ok');
+            if (kind === 'error') box.classList.add('error');
+            if (kind === 'ok') box.classList.add('ok');
+            const bar = box.querySelector('.gt-bar');
+            const fill = box.querySelector('.gt-fill');
+            if (typeof progress === 'number' && progress >= 0) {
+                bar.style.display = 'block';
+                fill.style.opacity = '1';
+                fill.style.width = Math.max(0, Math.min(100, progress)) + '%';
+            } else if (progress === -1) {
+                bar.style.display = 'block';
+                fill.style.opacity = '.45';
+                fill.style.width = '100%';
+            } else {
+                bar.style.display = 'none';
+            }
+            box.classList.add('show');
+            if (kind !== 'progress') {
+                clearTimeout(box._hideTimer);
+                box._hideTimer = setTimeout(function () { box.classList.remove('show'); }, 4200);
+            }
+        };
+
+        // ===================== 多卡池支持 =====================
+        window.__pools = [];
+        window.__activePoolId = '';
+
+        function getActivePool() {
+            // 只在"可见卡池"（未过期）里取当前池：到点的卡池自动下架、不再可抽
+            const pools = (typeof visiblePools === 'function') ? visiblePools() : (window.__pools || []);
+            for (let i = 0; i < pools.length; i++) {
+                if (pools[i] && pools[i].id === window.__activePoolId) return pools[i];
+            }
+            if (pools.length) {
+                window.__activePoolId = pools[0].id;
+                return pools[0];
+            }
+            return null;
+        }
+        window.getActivePool = getActivePool;
+
+        function poolPityTotal(pool) {
+            const r = (pool && pool.rules) || {};
+            const n = parseInt(r.pity_hard_5star || 80, 10);
+            return (isNaN(n) || n <= 0) ? 80 : n;
+        }
+        window.poolPityTotal = poolPityTotal;
+
+        function updatePityBadge(val, total) {
+            if (pityCountEl) pityCountEl.textContent = val;
+            const badge = document.getElementById('pityBadge');
+            if (!badge) return;
+            const span = badge.querySelector('span');
+            if (span) span.textContent = val;
+            if (total) {
+                const nodes = badge.childNodes;
+                for (let i = 0; i < nodes.length; i++) {
+                    if (nodes[i].nodeType === 3 && nodes[i].textContent.indexOf('/') >= 0) {
+                        nodes[i].textContent = ' / ' + total;
+                    }
+                }
+            }
+            if (span) {
+                if (val >= Math.max(1, (total || 80) - 10)) {
+                    badge.style.borderColor = 'rgba(247,201,72,0.4)';
+                    span.style.color = '#f7c948';
+                    badge.style.background = 'rgba(247,201,72,0.08)';
+                } else {
+                    badge.style.borderColor = 'rgba(255,255,255,0.06)';
+                    span.style.color = '#e6c87a';
+                    badge.style.background = 'rgba(0,0,0,0.5)';
+                }
+            }
+        }
+        window.updatePityBadge = updatePityBadge;
+
+        function applyEmptyState() {
+            // 无可抽卡池（未公开 / 全部到期）：页面为空，只保留「兑换专票」
+            const empty = !visiblePools().length;
+            document.body.classList.toggle('no-pools', empty);
+            const box = document.getElementById('poolList');
+            if (box) {
+                const hint = box.querySelector('.pool-empty-hint');
+                if (empty && !hint) {
+                    const h = document.createElement('div');
+                    h.className = 'pool-item active pool-empty-hint';
+                    h.innerHTML = '<div class="ticket-inner"></div>' +
+                        '<div class="ticket-text">暂无卡池<small>请管理员在抽卡配置中添加并公开</small></div>';
+                    box.appendChild(h);
+                }
+            }
+            if (empty) {
+                // 无卡池时只清掉封面残留（标题保持原来的「跃迁 / 群星跃迁」不动）
+                const cm = document.getElementById('centerModal');
+                if (cm) cm.innerHTML = '<div class="cm-placeholder">✦ 当前暂无卡池 ✦</div>';
+            }
+        }
+        window.applyEmptyState = applyEmptyState;
+
+        function renderPoolList() {
+            const box = document.getElementById('poolList');
+            if (!box) return;
+            const pools = visiblePools();   // 到点的卡池不显示（编辑模式除外）
+            box.innerHTML = '';
+            applyEmptyState();
+            if (!pools.length) {
+                return;  // 空态提示由 applyEmptyState 统一处理
+            }
+            pools.forEach(function (p) {
+                const div = document.createElement('div');
+                div.className = 'pool-item' + (p.id === window.__activePoolId ? ' active' : '');
+                div.dataset.poolId = p.id || '';
+                const inner = document.createElement('div');
+                inner.className = 'ticket-inner';
+                const txt = document.createElement('div');
+                txt.className = 'ticket-text';
+                txt.textContent = p.name || p.id || '未命名卡池';
+                const small = document.createElement('small');
+                // 第二行：'限定池 | 柿子UP' / '常驻池'（有结束时间=限定，永久=常驻）
+                const _kind = poolEndTs(p) ? '限定' : '常驻';
+                const _up = String(p.up_name || '').trim();
+                small.textContent = _kind + '池' + (_up ? ' | ' + _up + 'UP' : '');
+                // 编辑模式下给未公开的池加个角标，一眼看出还没上架
+                if (window.__edit && window.__edit.on && p.published === false) {
+                    const pub = document.createElement('span');
+                    pub.className = 'pool-unpub';
+                    pub.textContent = '未公开';
+                    txt.appendChild(pub);
+                }
+                // 编辑模式：右键列表项 → 重命名卡池 / 设置 UP 名
+                if (window.__edit && window.__edit.on) {
+                    div.oncontextmenu = function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openPoolRenameCtx(p, e.clientX, e.clientY);
+                        return false;
+                    };
+                }
+                txt.appendChild(small);
+                div.appendChild(inner);
+                div.appendChild(txt);
+                div.addEventListener('click', function () { selectPool(p.id); });
+                if (window.__edit && window.__edit.on) {
+                    div.style.position = 'relative';
+                    const del = document.createElement('span');
+                    del.textContent = '✕';
+                    del.title = '删除该卡池';
+                    del.style.cssText = 'position:absolute;right:6px;top:4px;font-size:12px;' +
+                        'color:#ff9a9a;cursor:pointer;z-index:5;';
+                    del.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        deletePoolFromEdit(p.id);
+                    });
+                    div.appendChild(del);
+                }
+                box.appendChild(div);
+            });
+            if (window.__edit && window.__edit.on) {
+                const add = document.createElement('div');
+                add.className = 'pool-item pool-add-item';
+                add.innerHTML = '<div class="ticket-inner"></div>' +
+                    '<div class="ticket-text">＋ 添加卡池<small>像加幻灯片一样</small></div>';
+                add.addEventListener('click', function () { addPoolFromEdit(); });
+                box.appendChild(add);
+            }
+        }
+        window.renderPoolList = renderPoolList;
+
+        function selectPool(id) {
+            window.__activePoolId = id || '';
+            const pool = getActivePool();
+            if (pool) {
+                window.applyPoolMeta(pool);
+                // 顶部标题保持原样（「跃迁 / 群星跃迁」），不显示卡池名
+            }
+            renderPoolList();
+            updatePityBadge(pityCounter, poolPityTotal(pool));
+            if (typeof refreshResNums === 'function') refreshResNums();
+            // 剩余时间徽标要跟着当前池走（否则切池后还显示上一个池的倒计时）
+            if (typeof updatePoolTimeBadge === 'function') updatePoolTimeBadge();
+            // 向客户端拉取该卡池的保底进度
+            try {
+                if (window.gacha_bridge && isBridgeReady) {
+                    if (window.__pityCache && window.__pityCache[window.__activePoolId]) {
+                        const _c = window.__pityCache[window.__activePoolId];
+                        pityCounter = _c.pity || 0;
+                        isFiveStarGuaranteed = !!_c.guaranteed;
+                        updatePityBadge(pityCounter, poolPityTotal(pool));
+                    }
+                    window.gacha_bridge.getPoolPity(String(window.__activePoolId || ''),
+                        function (js) {
+                            try {
+                                const d = JSON.parse(js || '{}');
+                                pityCounter = d.pity || 0;
+                                isFiveStarGuaranteed = !!d.guaranteed;
+                                updatePityBadge(pityCounter, poolPityTotal(getActivePool()));
+                            } catch (e) { }
+                        });
+                }
+            } catch (e) { }
+            console.log('切换到卡池', window.__activePoolId, pool ? pool.name : '');
+        }
+        window.selectPool = selectPool;
+
+        window.setPools = function (pools, activeId, menuId, knownItems) {
+            if (menuId) window.__edit.menuId = menuId;
+            if (typeof window.setKnownItems === 'function') window.setKnownItems(knownItems);
+            window.__pools = Array.isArray(pools) ? pools.filter(function (p) {
+                return p && p.id;
+            }) : [];
+            const ids = window.__pools.map(function (p) { return p.id; });
+            window.__activePoolId = (activeId && ids.indexOf(activeId) >= 0)
+                ? activeId : (ids.length ? ids[0] : '');
+            seedUiDefaults();
+            // 数据到位：解开抽卡按钮（此前一直锁定，避免用空卡池发起抽卡）
+            setGachaLocked(!visiblePools().length);
+            selectPool(window.__activePoolId);
+            applyEditDecorations();
+            renderTimePanel();
+            updatePoolTimeBadge();
+            console.log('卡池列表已更新：' + window.__pools.length + ' 个');
+        };
+
+        // ===================== 全自定义编辑模式（像 PPT 一样编辑卡池） =====================
+        window.__edit = { on: false, menuId: '', dirty: false, pending: {}, waiters: {} };
+
+        // 可点改的文字（选择器, 存到卡池的字段, 中文名）
+        const EDIT_TEXT_FIELDS = [
+            // 顶部标题固定为「跃迁 / 群星跃迁」，不参与编辑；
+            // 卡池名/描述请右键左侧卡池列表项重命名
+            ['#gacha1Btn .lbl', 'ui.btn1', '单抽按钮文案'],
+            ['#gacha10Btn .lbl', 'ui.btn10', '多连按钮文案'],
+            ['#historyBtn', 'ui.btn_history', '历史记录按钮'],
+            ['#exchangeBtn', 'ui.btn_exchange', '兑换按钮']
+        ];
+        // 可点换的图片（容器选择器, kind, 中文名）
+        const EDIT_IMG_FIELDS = [
+            ['#centerModal', 'banner', '卡池封面'],
+            ['.res-top-right .res-item:nth-child(1)', 'res1', '右上角物品 1'],
+            ['.res-top-right .res-item:nth-child(2)', 'res2', '右上角物品 2']
+        ];
+
+        // ===================== 物品绑定与真实剩余量 =====================
+        window.__knownItems = [];
+        window.__invCache = {};
+        window.setKnownItems = function (list) {
+            window.__knownItems = Array.isArray(list) ? list.filter(function (x) {
+                return x && x.id;
+            }) : [];
+        };
+
+        function itemInvKey(id) {
+            const k = String(id || '').trim();
+            const map = {
+                star_rail_ticket: 'star_rail_tickets', star_rail_tickets: 'star_rail_tickets',
+                ticket: 'star_rail_tickets', tickets: 'star_rail_tickets',
+                '专票': 'star_rail_tickets', '星铁专票': 'star_rail_tickets',
+                jade: 'jade', '星琼': 'jade', credit: 'credit', '信用点': 'credit'
+            };
+            return map[k] || k;
+        }
+        window.itemInvKey = itemInvKey;
+
+        function itemDisplayName(id) {
+            const k = String(id || '').trim();
+            const it = (window.__knownItems || []).find(function (x) { return x.id === k; });
+            const map = {
+                star_rail_ticket: '专票', star_rail_tickets: '专票', ticket: '专票',
+                tickets: '专票', '专票': '专票', '星铁专票': '专票',
+                jade: '星琼', '星琼': '星琼', credit: '信用点', '信用点': '信用点'
+            };
+            return (it && it.name) || map[k] || k;
+        }
+        window.itemDisplayName = itemDisplayName;
+
+        function knownItem(id) {
+            const k = String(id || '').trim();
+            return (window.__knownItems || []).find(function (x) { return x.id === k; }) || null;
+        }
+
+        // 物品 id → 图标：手动上传(/gacha_images/) > 自定义物品图片 > 内置默认
+        function itemIconUrl(id, manual) {
+            const m = String(manual || '');
+            if (m.indexOf('data:image/') === 0 || m.indexOf('/gacha_images/') === 0 ||
+                /^https?:/i.test(m)) return m;
+            const it = knownItem(id);
+            if (it && it.gacha_image) return 'imgs/' + it.id + '.png';
+            if (it && it.image) return 'imgs/' + it.id + '.png';
+            const k = String(id || '').trim();
+            const builtIn = {
+                star_rail_ticket: 'imgs/star_rail_ticket.png',
+                star_rail_tickets: 'imgs/star_rail_ticket.png',
+                ticket: 'imgs/star_rail_ticket.png', tickets: 'imgs/star_rail_ticket.png',
+                jade: 'imgs/stellar_jade.png', credit: 'imgs/credit.png',
+                cake: 'imgs/cake.png', none: 'imgs/none.png'
+            };
+            return builtIn[k] || '';
+        }
+        window.itemIconUrl = itemIconUrl;
+
+        function itemBalance(id) {
+            const inv = window.__invCache || {};
+            const v = inv[itemInvKey(id)];
+            return (v === undefined || v === null) ? 0 : v;
+        }
+
+        function resItemId(i) {
+            const pool = getActivePool() || {};
+            const ui = pool.ui || {};
+            return String(ui['res' + i + '_item'] || (i === 1 ? 'star_rail_ticket' : 'jade')).trim();
+        }
+
+        function refreshResNums() {
+            const els = [document.getElementById('ticketCount'),
+                document.getElementById('jadeCount')];
+            els.forEach(function (el, i) {
+                if (el) el.textContent = String(itemBalance(resItemId(i + 1)));
+            });
+            // 图标按物品 id 自动匹配（手动上传优先）
+            const pool = getActivePool() || {};
+            const ui = pool.ui || {};
+            [['.res-top-right .res-item:nth-child(1) img', 1],
+             ['.res-top-right .res-item:nth-child(2) img', 2]].forEach(function (pr) {
+                const img = document.querySelector(pr[0]);
+                if (!img) return;
+                const url = itemIconUrl(resItemId(pr[1]), ui['res' + pr[1]]);
+                if (url) { img.src = url; img.style.display = ''; }
+            });
+            // 标题悬浮提示说明绑定关系
+            const r1 = document.querySelector('.res-top-right .res-item:nth-child(1)');
+            const r2 = document.querySelector('.res-top-right .res-item:nth-child(2)');
+            if (r1) r1.title = '显示物品：' + itemDisplayName(resItemId(1)) +
+                '（' + resItemId(1) + '）· 双击编辑模式可改';
+            if (r2) r2.title = '显示物品：' + itemDisplayName(resItemId(2)) +
+                '（' + resItemId(2) + '）· 双击编辑模式可改';
+        }
+        window.refreshResNums = refreshResNums;
+
+        function resClick(i) {
+            if (window.__edit && window.__edit.on) { pickImage('res' + i); return; }
+            const id = resItemId(i);
+            if (itemInvKey(id) === 'star_rail_tickets') {
+                const b = document.getElementById('exchangeBtn');
+                if (b) b.click();
+                return;
+            }
+            toast('「' + itemDisplayName(id) + '」当前 ' + itemBalance(id) +
+                '，可通过商店购买或管理员发放获得', 'info');
+        }
+        window.resClick = resClick;
+
+        function toast(text, kind) {
+            if (window.gachaNotice) window.gachaNotice(text, kind || 'info');
+            else console.log('[gacha]', text);
+        }
+
+        function toLocalInputValue(d) {
+            const p = n => String(n).padStart(2, '0');
+            return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+                'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+        }
+
+        function parseLocalTime(s) {
+            if (!s) return null;
+            const t = String(s).trim().replace(' ', 'T');
+            const d = new Date(t);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
+        function fmtTime(d) {
+            if (!d) return '';
+            const p = n => String(n).padStart(2, '0');
+            return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+        }
+
+        function poolTimeShort(pool) {
+            if (!pool) return '';
+            const st = parseLocalTime(pool.start_time);
+            const et = parseLocalTime(pool.end_time || pool.expiry);
+            const now = Date.now();
+            if (st && now < st.getTime()) return '未开启 ' + fmtTime(st);
+            if (et) {
+                const ms = et.getTime() - now;
+                if (ms <= 0) return '已结束';
+                const d = Math.floor(ms / 86400000);
+                const h = Math.floor((ms % 86400000) / 3600000);
+                const mi = Math.floor((ms % 3600000) / 60000);
+                return '剩 ' + (d ? d + '天' : '') + h + '小时' + mi + '分';
+            }
+            return '永久';
+        }
+        window.poolTimeShort = poolTimeShort;
+
+        // ===================== 卡池到期与剩余时间（精确到秒） =====================
+        function poolEndTs(pool) {
+            const et = parseLocalTime(pool && (pool.end_time || pool.expiry));
+            return et ? et.getTime() : 0;
+        }
+        function isPoolExpired(pool) {
+            const t = poolEndTs(pool);
+            return !!t && t <= Date.now();          // 到点即视为已下架
+        }
+        window.isPoolExpired = isPoolExpired;
+
+        // 可见卡池：编辑模式全显示（含未公开、未到期的）；玩家模式只显示"已公开且未到期"
+        function visiblePools() {
+            const all = window.__pools || [];
+            if (window.__edit && window.__edit.on) return all;
+            return all.filter(function (p) {
+                return p.published !== false && !isPoolExpired(p);
+            });
+        }
+        window.visiblePools = visiblePools;
+
+        function fmtRemainMs(ms) {
+            if (ms <= 0) return '已结束';
+            const s = Math.floor(ms / 1000);
+            const p2 = function (v) { return String(v).padStart(2, '0'); };
+            const d = Math.floor(s / 86400);
+            const h = Math.floor((s % 86400) / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            return (d ? d + '天 ' : '') + p2(h) + ':' + p2(m) + ':' + p2(s % 60);
+        }
+        window.fmtRemainMs = fmtRemainMs;
+
+        function updatePoolTimeBadge() {
+            const el = document.getElementById('poolTimeBadge');
+            if (!el) return;
+            const pool = getActivePool();
+            if (!pool) { el.textContent = '距离卡池结束还有:--'; return; }
+            const st = parseLocalTime(pool.start_time);
+            if (st && Date.now() < st.getTime()) {
+                el.textContent = '距离卡池开始还有:' + fmtRemainMs(st.getTime() - Date.now());
+                return;
+            }
+            const end = poolEndTs(pool);
+            if (!end) { el.textContent = '距离卡池结束还有:永久'; return; }
+            const ms = end - Date.now();
+            el.textContent = '距离卡池结束还有:' + fmtRemainMs(ms);
+        }
+        window.updatePoolTimeBadge = updatePoolTimeBadge;
+
+        // 每秒刷新：倒计时归零 → 该池从可见列表消失（到点自动下架）
+        setInterval(function () {
+            updatePoolTimeBadge();
+            if (window.__edit && window.__edit.on) return;   // 编辑模式不动，方便改时间
+            const all = (window.__pools || []).length;
+            if (!all) return;
+            const vis = visiblePools();
+            if (vis.length === all) return;
+            if (vis.length && !vis.some(function (p) { return p.id === window.__activePoolId; })) {
+                window.__activePoolId = vis[0].id;
+            }
+            selectPool(window.__activePoolId);
+            renderTimePanel();
+            if (!vis.length) window.gachaNotice('卡池已到结束时间，已自动下架', 'info');
+        }, 1000);
+
+        // ===================== 数据同步完成前禁止抽卡 =====================
+        function setGachaLocked(locked) {
+            ['gacha1Btn', 'gacha10Btn'].forEach(function (id) {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('locked', !!locked);
+            });
+            const hint = document.getElementById('syncHint');
+            if (hint) hint.style.display = locked ? '' : 'none';
+        }
+        window.setGachaLocked = setGachaLocked;
+
+        function renderTimePanel() {
+            const panel = document.getElementById('poolTimePanel');
+            if (!panel) return;
+            const pool = getActivePool() || {};
+            const s = document.getElementById('ptpStart');
+            const e = document.getElementById('ptpEnd');
+            const st = document.getElementById('ptpState');
+            const sv = parseLocalTime(pool.start_time);
+            const ev = parseLocalTime(pool.end_time || pool.expiry);
+            if (s) s.value = sv ? toLocalInputValue(sv) : '';
+            if (e) e.value = ev ? toLocalInputValue(ev) : '';
+            if (st) st.textContent = '当前状态：' + (poolTimeShort(pool) || '永久');
+        }
+
+        function applyTimeInputs() {
+            const pool = getActivePool();
+            if (!pool) return;
+            const s = document.getElementById('ptpStart');
+            const e = document.getElementById('ptpEnd');
+            pool.start_time = (s && s.value) ? s.value : null;
+            pool.end_time = (e && e.value) ? e.value : null;
+            pool.expiry = pool.end_time;   // 与旧字段保持一致
+            window.__edit.dirty = true;
+            renderTimePanel();
+            renderPoolList();
+        }
+
+        function buildTimePanel() {
+            if (document.getElementById('poolTimePanel')) return;
+            const panel = document.createElement('div');
+            panel.id = 'poolTimePanel';
+            panel.innerHTML =
+                '<div class="ptp-title">⏰ 卡池时间</div>' +
+                '<label>开始<input type="datetime-local" id="ptpStart"></label>' +
+                '<label>结束<input type="datetime-local" id="ptpEnd"></label>' +
+                '<div class="ptp-quick">' +
+                '<button data-q="now">立即开启</button>' +
+                '<button data-q="forever">永久</button>' +
+                '<button data-q="7d">+7天</button>' +
+                '<button data-q="30d">+30天</button>' +
+                '<button data-q="endnow">立即结束</button>' +
+                '</div>' +
+                '<div class="ptp-state" id="ptpState">—</div>' +
+                '<div class="ptp-hint">留空表示不限；结束时间到点后该卡池自动停止抽卡</div>';
+            document.body.appendChild(panel);
+            document.getElementById('ptpStart').addEventListener('change', applyTimeInputs);
+            document.getElementById('ptpEnd').addEventListener('change', applyTimeInputs);
+            panel.querySelectorAll('.ptp-quick button').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    const q = b.dataset.q;
+                    const now = new Date();
+                    const si = document.getElementById('ptpStart');
+                    const ei = document.getElementById('ptpEnd');
+                    if (q === 'now') { si.value = toLocalInputValue(now); }
+                    else if (q === 'forever') { si.value = ''; ei.value = ''; }
+                    else if (q === '7d') {
+                        ei.value = toLocalInputValue(new Date(now.getTime() + 7 * 86400000));
+                        if (!si.value) si.value = toLocalInputValue(now);
+                    } else if (q === '30d') {
+                        ei.value = toLocalInputValue(new Date(now.getTime() + 30 * 86400000));
+                        if (!si.value) si.value = toLocalInputValue(now);
+                    } else if (q === 'endnow') {
+                        ei.value = toLocalInputValue(now);
+                        if (!si.value) si.value = toLocalInputValue(now);
+                    }
+                    applyTimeInputs();
+                    toast('卡池时间已更新，点「保存并热更新」生效');
+                });
+            });
+        }
+
+        function getEditValue(pool, key) {
+            if (!pool) return '';
+            if (key.indexOf('ui.') === 0) return ((pool.ui || {})[key.slice(3)]) || '';
+            return pool[key] || '';
+        }
+
+        function setEditValue(pool, key, val) {
+            if (!pool) return;
+            if (key.indexOf('ui.') === 0) {
+                pool.ui = pool.ui || {};
+                pool.ui[key.slice(3)] = val;
+            } else {
+                pool[key] = val;
+            }
+        }
+
+        function seedUiDefaults() {
+            (window.__pools || []).forEach(function (p) {
+                if (!p || typeof p !== 'object') return;
+                p.ui = (p.ui && typeof p.ui === 'object') ? p.ui : {};
+                if (!p.ui.res1) p.ui.res1 = 'imgs/star_rail_ticket.png';
+                if (!p.ui.res2) p.ui.res2 = 'imgs/stellar_jade.png';
+            });
+        }
+
+
+        // ===================== 右键参数菜单（编辑模式） =====================
+        function knownOptions() {
+            const base = [
+                { id: 'star_rail_ticket', name: '专票' },
+                { id: 'jade', name: '星琼' },
+                { id: 'credit', name: '信用点' }
+            ];
+            const seen = {};
+            const out = [];
+            base.concat(window.__knownItems || []).forEach(function (x) {
+                if (!x || !x.id || seen[x.id]) return;
+                seen[x.id] = 1;
+                out.push({ id: x.id, name: x.name || x.id });
+            });
+            return out;
+        }
+
+        function closeCtxMenu() {
+            const m = document.getElementById('gpCtxMenu');
+            if (m) m.remove();
+        }
+
+        function openCtxMenu(x, y, title, bodyHtml, onOk, okText) {
+            closeCtxMenu();
+            const m = document.createElement('div');
+            m.id = 'gpCtxMenu';
+            m.style.cssText = 'position:fixed;z-index:100000;min-width:250px;padding:12px;' +
+                'border-radius:10px;background:rgba(16,18,26,.97);color:#eee;font-size:13px;' +
+                'border:1px solid rgba(255,255,255,.2);box-shadow:0 10px 30px rgba(0,0,0,.55);';
+            m.innerHTML = '<div style="color:#ffd76a;font-weight:600;margin-bottom:8px;">' + title +
+                '</div>' + bodyHtml +
+                '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">' +
+                '<button id="ctxCancel" style="padding:5px 12px;border-radius:6px;cursor:pointer;' +
+                'background:rgba(255,255,255,.1);color:#eee;border:1px solid rgba(255,255,255,.2);">取消</button>' +
+                '<button id="ctxOk" style="padding:5px 12px;border-radius:6px;cursor:pointer;' +
+                'background:#3d7a3d;color:#fff;border:1px solid #4c9a4c;">' + (okText || '确定') +
+                '</button></div>';
+            document.body.appendChild(m);
+            const w = 270, h = m.offsetHeight || 220;
+            m.style.left = Math.max(8, Math.min(x, window.innerWidth - w - 8)) + 'px';
+            m.style.top = Math.max(8, Math.min(y, window.innerHeight - h - 8)) + 'px';
+            document.getElementById('ctxCancel').onclick = closeCtxMenu;
+            m.addEventListener('click', function (e) { e.stopPropagation(); });
+            document.getElementById('ctxOk').onclick = function () {
+                if (onOk(m) !== false) closeCtxMenu();
+            };
+        }
+
+        function openPullCtx(btnIndex, x, y) {
+            const pool = getActivePool();
+            if (!pool) return;
+            const opts = knownOptions().map(function (o) {
+                return '<option value="' + o.id + '">' + o.name + '（' + o.id + '）</option>';
+            }).join('');
+            const body =
+                '<label style="display:block;margin-bottom:6px;">消耗货币：' +
+                '<select id="ctxCurrency" style="width:100%;margin-top:4px;background:rgba(255,255,255,.08);' +
+                'color:#eee;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px;">' +
+                opts + '</select></label>' +
+                '<label style="display:block;margin-bottom:6px;">单抽消耗数量：' +
+                '<input id="ctxCost" type="number" min="1" style="width:100%;margin-top:4px;' +
+                'background:rgba(255,255,255,.08);color:#eee;border:1px solid rgba(255,255,255,.2);' +
+                'border-radius:6px;padding:4px;"></label>' +
+                '<label style="display:block;">连抽次数（多连）：' +
+                '<input id="ctxMulti" type="number" min="2" style="width:100%;margin-top:4px;' +
+                'background:rgba(255,255,255,.08);color:#eee;border:1px solid rgba(255,255,255,.2);' +
+                'border-radius:6px;padding:4px;"></label>' +
+                '<div style="color:#8a8a8a;font-size:11px;margin-top:6px;">货币可以是自定义物品；' +
+                '右上角/消耗都会按此结算</div>';
+            openCtxMenu(x, y, '🎮 抽卡按钮参数', body, function (m) {
+                const cur = m.querySelector('#ctxCurrency').value;
+                const per = Math.max(1, parseInt(m.querySelector('#ctxCost').value || '1', 10) || 1);
+                const multi = Math.max(2, parseInt(m.querySelector('#ctxMulti').value || '10', 10) || 10);
+                pool.cost_type = cur;
+                pool.cost_per_pull = per;
+                pool.multi_pull = multi;
+                window.__edit.dirty = true;
+                if (typeof window.applyPoolMeta === 'function') window.applyPoolMeta(pool);
+                toast('按钮参数已更新（' + itemDisplayName(cur) + ' ×' + per +
+                    '，多连 ' + multi + '），点保存生效', 'ok');
+            });
+            const sel = document.getElementById('ctxCurrency');
+            if (sel) sel.value = String(pool.cost_type || 'star_rail_ticket');
+            const ci = document.getElementById('ctxCost');
+            if (ci) ci.value = String(parseInt(pool.cost_per_pull || 1, 10) || 1);
+            const cm = document.getElementById('ctxMulti');
+            if (cm) cm.value = String(parseInt(pool.multi_pull || 10, 10) || 10);
+        }
+
+        function openResCtx(resIndex, x, y) {
+            const pool = getActivePool();
+            if (!pool) return;
+            const opts = knownOptions().map(function (o) {
+                return '<option value="' + o.id + '">' + o.name + '（' + o.id + '）</option>';
+            }).join('');
+            const cur = resItemId(resIndex);
+            const body =
+                '<label style="display:block;margin-bottom:6px;">显示哪个物品（必须有效）：' +
+                '<select id="ctxItem" style="width:100%;margin-top:4px;background:rgba(255,255,255,.08);' +
+                'color:#eee;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px;">' +
+                opts + '</select></label>' +
+                '<div style="color:#8a8a8a;font-size:11px;">仅能选择内置物品或服务端下发的自定义物品；' +
+                '右上角将显示该物品的真实剩余量</div>';
+            openCtxMenu(x, y, '🎒 右上角物品 ' + resIndex, body, function (m) {
+                const id = m.querySelector('#ctxItem').value;
+                pool.ui = pool.ui || {};
+                pool.ui['res' + resIndex + '_item'] = id;
+                window.__edit.dirty = true;
+                if (typeof refreshResNums === 'function') refreshResNums();
+                toast('右上角 ' + resIndex + ' 已绑定「' + itemDisplayName(id) + '」，点保存生效', 'ok');
+            });
+            const si = document.getElementById('ctxItem');
+            if (si) {
+                if ([].some.call(si.options, function (o) { return o.value === cur; })) {
+                    si.value = cur;
+                }
+            }
+        }
+        window.openPullCtx = openPullCtx;
+        window.openResCtx = openResCtx;
+
+        function bindResClick() {
+            // 右上角物品「点击可用」：页面加载即绑定，不依赖编辑模式
+            [['.res-top-right .res-item:nth-child(1)', 1],
+             ['.res-top-right .res-item:nth-child(2)', 2]].forEach(function (pr) {
+                const el = document.querySelector(pr[0]);
+                if (!el) return;
+                el.style.cursor = 'pointer';
+                el.onclick = function (e) {
+                    e.stopPropagation();
+                    resClick(pr[1]);
+                };
+            });
+        }
+        window.bindResClick = bindResClick;
+
+        function applyEditDecorations() {
+            const on = !!(window.__edit && window.__edit.on);
+            EDIT_TEXT_FIELDS.forEach(function (f) {
+                const nodes = document.querySelectorAll(f[0]);
+                Array.prototype.forEach.call(nodes, function (el) {
+                    el.contentEditable = 'false';
+                    if (!on) {
+                        el.style.outline = '';
+                        el.style.cursor = '';
+                        el.removeAttribute('title');
+                        el.onclick = null;
+                        el.onblur = null;
+                        el.onkeydown = null;
+                        return;
+                    }
+                    el.style.outline = '1px dashed rgba(255,255,255,.35)';
+                    el.style.cursor = 'text';
+                    el.title = '双击修改' + f[2];
+                    el.onclick = null;
+                    el.ondblclick = function (e) {
+                        e.stopPropagation();
+                        el.contentEditable = 'true';
+                        el.focus();
+                    };
+                    el.onblur = function () {
+                        el.contentEditable = 'false';
+                        setEditValue(getActivePool(), f[1], (el.textContent || '').trim());
+                        window.__edit.dirty = true;
+                    };
+                    el.onkeydown = function (e) {
+                        if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+                    };
+                });
+            });
+            // 抽卡按钮右键 = 参数；右上角物品右键 = 绑定物品（单击绑定见 bindResClick）
+            [['#gacha1Btn', 1], ['#gacha10Btn', 2]].forEach(function (pr) {
+                const el = document.querySelector(pr[0]);
+                if (!el) return;
+                if (!on) { el.oncontextmenu = null; return; }
+                el.oncontextmenu = function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openPullCtx(pr[1], e.clientX, e.clientY);
+                    return false;
+                };
+            });
+            [['.res-top-right .res-item:nth-child(1)', 1],
+             ['.res-top-right .res-item:nth-child(2)', 2]].forEach(function (pr) {
+                const el = document.querySelector(pr[0]);
+                if (!el) return;
+                if (!on) { el.oncontextmenu = null; return; }
+                el.oncontextmenu = function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openResCtx(pr[1], e.clientX, e.clientY);
+                    return false;
+                };
+            });
+            EDIT_IMG_FIELDS.forEach(function (f) {
+                const el = document.querySelector(f[0]);
+                if (!el) return;
+                if (!on) {
+                    el.style.outline = '';
+                    el.style.cursor = '';
+                    el.removeAttribute('title');
+                    el.onclick = null;
+                    return;
+                }
+                el.style.outline = '2px dashed rgba(120,200,255,.45)';
+                el.style.cursor = 'pointer';
+                el.title = '点击上传替换' + f[2];
+                el.onclick = function (e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    pickImage(f[1]);
+                    return false;
+                };
+            });
+        }
+
+        function pickImage(kind) {
+            const inp = document.createElement('input');
+            inp.type = 'file';
+            inp.accept = 'image/*';
+            inp.onchange = function () {
+                const f = inp.files && inp.files[0];
+                if (!f) return;
+                const r = new FileReader();
+                r.onload = function () {
+                    const b64 = String(r.result);
+                    const pid = String(window.__activePoolId || '');
+                    // 待传图按"卡池"存：切池后保存不会把封面传错池子
+                    window.__edit.pending[kind + '@' + pid] = b64;
+                    // 同步写进池对象：校验（必须有封面）立即可通过、预览立即生效
+                    const pool = getActivePool();
+                    if (pool) {
+                        if (kind === 'banner') pool.banner = b64;
+                        else { pool.ui = pool.ui || {}; pool.ui[kind] = b64; }
+                    }
+                    // 立即本地预览
+                    if (kind === 'banner') {
+                        const box = document.getElementById('centerModal');
+                        if (box) {
+                            let img = box.querySelector('img');
+                            if (!img) {
+                                box.innerHTML = '<img alt="卡池封面">';
+                                img = box.querySelector('img');
+                            }
+                            if (img) { img.src = b64; img.style.display = ''; }
+                        }
+                    } else {
+                        const idx = (kind === 'res1') ? 1 : 2;
+                        const img = document.querySelector(
+                            '.res-top-right .res-item:nth-child(' + idx + ') img');
+                        if (img) { img.src = b64; img.style.display = ''; }
+                    }
+                    window.__edit.dirty = true;
+                    window.gachaNotice('已选择新' + (kind === 'banner' ? '封面' : '物品图标') +
+                        '，点「保存并热更新」生效', 'info');
+                };
+                r.readAsDataURL(f);
+            };
+            inp.click();
+        }
+
+        function openPoolRenameCtx(pool, x, y) {
+            const body =
+                '<label style="display:block;margin-bottom:6px;">卡池名称：' +
+                '<input id="ctxPoolName" type="text" style="width:100%;margin-top:4px;' +
+                'background:rgba(255,255,255,.08);color:#eee;border:1px solid rgba(255,255,255,.2);' +
+                'border-radius:6px;padding:4px;"></label>' +
+                '<label style="display:block;">UP 名称（列表小字显示为「XX UP」）：' +
+                '<input id="ctxUpName" type="text" style="width:100%;margin-top:4px;' +
+                'background:rgba(255,255,255,.08);color:#eee;border:1px solid rgba(255,255,255,.2);' +
+                'border-radius:6px;padding:4px;"></label>';
+            openCtxMenu(x, y, '✏️ 重命名卡池', body, function (m) {
+                const nm = (m.querySelector('#ctxPoolName').value || '').trim();
+                const up = (m.querySelector('#ctxUpName').value || '').trim();
+                if (nm) pool.name = nm;
+                pool.up_name = up;
+                window.__edit.dirty = true;
+                renderPoolList();
+                if (typeof applyPoolMeta === 'function') applyPoolMeta(pool);
+                toast('已重命名：' + (nm || pool.id) +
+                    (up ? '（' + up + ' UP）' : '') + '，点保存生效', 'ok');
+            });
+            const ni = document.getElementById('ctxPoolName');
+            if (ni) ni.value = pool.name || '';
+            const ui = document.getElementById('ctxUpName');
+            if (ui) ui.value = pool.up_name || '';
+        }
+        window.openPoolRenameCtx = openPoolRenameCtx;
+
+        function addPoolFromEdit() {
+            const cur = getActivePool() || {};
+            let p;
+            try { p = JSON.parse(JSON.stringify(cur)); } catch (e) { p = {}; }
+            p.id = 'pool_' + Date.now().toString(36);
+            p.name = '新卡池 ' + ((window.__pools || []).length + 1);
+            p.description = '点击这里修改描述';
+            // 新卡池不继承上一池的封面/侧边封面（否则两个池共用同一张封面）
+            delete p.banner;
+            delete p.side_banner;
+            delete p._local_banner;
+            if (p.ui) { delete p.ui.banner; delete p.ui.side; }
+            p.published = false;   // 新卡池默认未公开，配好封面/道具后再公开
+            p.ui = p.ui || {};
+            if (!p.ui.res1) p.ui.res1 = 'imgs/star_rail_ticket.png';
+            if (!p.ui.res2) p.ui.res2 = 'imgs/stellar_jade.png';
+            window.__pools.push(p);
+            window.__activePoolId = p.id;
+            selectPool(p.id);
+            window.__edit.dirty = true;
+            window.gachaNotice('已添加卡池「' + p.name + '」，编辑后点保存生效', 'info');
+        }
+        window.addPoolFromEdit = addPoolFromEdit;
+
+        function deletePoolFromEdit(id) {
+            if ((window.__pools || []).length <= 1) {
+                window.gachaNotice('至少保留一个卡池', 'error');
+                return;
+            }
+            const i = window.__pools.findIndex(function (p) { return p.id === id; });
+            if (i < 0) return;
+            window.__pools.splice(i, 1);
+            window.__activePoolId = window.__pools[Math.max(0, i - 1)].id;
+            selectPool(window.__activePoolId);
+            window.__edit.dirty = true;
+            window.gachaNotice('已删除卡池（点保存生效）', 'info');
+        }
+        window.deletePoolFromEdit = deletePoolFromEdit;
+
+        function uploadPendingImages() {
+            const jobs = [];
+            Object.keys(window.__edit.pending).forEach(function (key) {
+                // key 形如 'banner@<池id>'：按池归属上传，切池也不会传错
+                const at = key.lastIndexOf('@');
+                const kind = at >= 0 ? key.slice(0, at) : key;
+                const pid = at >= 0 ? key.slice(at + 1) : String(window.__activePoolId || '');
+                jobs.push(new Promise(function (resolve) {
+                    let done = false;
+                    const finish = function (ok) {
+                        if (done) return;
+                        done = true;
+                        resolve(!!ok);
+                    };
+                    window.__edit.waiters[kind + '@' + pid] = finish;
+                    try {
+                        window.gacha_bridge.uploadPoolImage(pid, kind, window.__edit.pending[key]);
+                    } catch (e) {
+                        finish(false);
+                    }
+                    setTimeout(function () { finish(false); }, 15000);
+                }));
+            });
+            return Promise.all(jobs);
+        }
+
+        function validateEdit(pool) {
+            const missing = [];
+            if (!String(pool.name || '').trim()) missing.push('卡池标题');
+            if (!String(pool.description || '').trim()) missing.push('卡池描述');
+            // 封面：已上传（/gacha_images/）、刚选择的预览图（data:）都算有
+            const _b = String(pool.banner || '').trim();
+            if (!_b) missing.push('卡池封面');
+            const ui = pool.ui || {};
+            if (!String(ui.res1 || '').trim()) missing.push('右上角物品 1');
+            if (!String(ui.res2 || '').trim()) missing.push('右上角物品 2');
+            return missing;
+        }
+
+        async function saveEdit() {
+            if (!window.gacha_bridge || !isBridgeReady) {
+                window.gachaNotice('桥接未就绪，稍后再试', 'error');
+                return;
+            }
+            const pool = getActivePool();
+            if (!pool) {
+                window.gachaNotice('没有可保存的卡池', 'error');
+                return;
+            }
+            const missing = validateEdit(pool);
+            if (missing.length) {
+                window.gachaNotice('以下必填项不能为空：' + missing.join('、'), 'error');
+                return;
+            }
+            window.gachaNotice('正在保存…', 'progress', -1);
+            if (Object.keys(window.__edit.pending).length) {
+                await uploadPendingImages();
+                window.__edit.pending = {};
+            }
+            try {
+                window.gacha_bridge.submitGachaConfig(JSON.stringify({
+                    config: {
+                        pools: window.__pools,
+                        active_pool: window.__activePoolId,
+                        menu_id: window.__edit.menuId
+                    }
+                }));
+            } catch (e) {
+                window.gachaNotice('保存失败：' + e.message, 'error');
+            }
+        }
+        window.saveEdit = saveEdit;
+
+        window.setEditMode = function (on, menuId, allowed) {
+            if (menuId) window.__edit.menuId = menuId;
+            const enable = !!on && allowed !== false;
+            window.__edit.on = enable;
+            let bar = document.getElementById('editBar');
+            if (enable && !bar) {
+                bar = document.createElement('div');
+                bar.id = 'editBar';
+                bar.innerHTML =
+                    '<span class="eb-title">🎨 编辑模式</span>' +
+                    '<span class="eb-hint">点文字改文案 · 点图片换图 · 左侧 ＋ 加卡池</span>' +
+                    '<button id="ebAdd" class="eb-btn">＋ 添加卡池</button>' +
+                    '<button id="ebDel" class="eb-btn eb-danger">🗑 删除当前卡池</button>' +
+                    '<button id="ebSave" class="eb-btn eb-primary">💾 保存并热更新</button>' +
+                    '<button id="ebExit" class="eb-btn">✖ 退出编辑</button>';
+                document.body.appendChild(bar);
+                document.getElementById('ebAdd').onclick = addPoolFromEdit;
+                document.getElementById('ebDel').onclick = function () {
+                    deletePoolFromEdit(window.__activePoolId);
+                };
+                document.getElementById('ebSave').onclick = saveEdit;
+                document.getElementById('ebExit').onclick = function () {
+                    window.setEditMode(false);
+                };
+                window.gachaNotice('已进入编辑模式：改完点「保存并热更新」', 'info');
+            } else if (!enable && bar) {
+                bar.remove();
+            }
+            seedUiDefaults();
+            if (enable) {
+                buildTimePanel();
+            } else {
+                const _tp = document.getElementById('poolTimePanel');
+                if (_tp) _tp.remove();
+            }
+            renderPoolList();
+            applyEditDecorations();
+            renderTimePanel();
+            if (enable) window.gachaNotice('编辑模式已开启', 'info');
+        };
+
+        window.onConfigSaved = function (ok, reason) {
+            if (ok) {
+                window.__edit.dirty = false;
+                window.gachaNotice('✅ 已保存，并向所有在线玩家热更新', 'ok');
+            } else {
+                window.gachaNotice('❌ 保存失败：' + (reason || '未知原因'), 'error');
+            }
+        };
+
+        // 页面加载即绑定右上角点击（保证「点击可用」，不等编辑模式）
+        try { bindResClick(); } catch (e) { }
+
+        window.onImageUploaded = function (poolId, kind, url, ok, reason) {
+            const key = kind + '@' + poolId;
+            const w = window.__edit.waiters[key];
+            if (w) {
+                delete window.__edit.waiters[key];
+                w(!!ok);
+            }
+            if (!ok) { window.gachaNotice('图片上传失败：' + (reason || ''), 'error'); return; }
+            // 上传成功：把服务端返回的 URL 写回池对象，随后的保存才会带真实封面地址
+            const pool = (window.__pools || []).find(function (p) { return p.id === poolId; });
+            if (pool && url) {
+                if (kind === 'banner') pool.banner = url;
+                else { pool.ui = pool.ui || {}; pool.ui[kind] = url; }
+            }
+        };
+</script>
+</body>
+</html>

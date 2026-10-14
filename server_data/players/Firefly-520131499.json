@@ -1,5 +1,5 @@
 {
-  "name": "\u5f00\u62d3\u8005",
+  "name": "开拓者",
   "userid": "Firefly",
   "uid": "admin-Trailblazer-520131499",
   "permission": "admin",
@@ -16,27 +16,115 @@
   "total_affection_up": 0,
   "total_sleep_count": 0,
   "total_chat_count": 0,
-  "monthly_interactions": 1,
-  "monthly_open_count": 48,
-  "monthly_sign_days": 1,
+  "monthly_interactions": 0,
+  "monthly_open_count": 11,
+  "monthly_sign_days": 0,
   "monthly_affection_up": 0,
   "monthly_sleep_count": 0,
   "monthly_chat_count": 0,
-  "monthly_credit_gained": 7200,
+  "monthly_credit_gained": 0,
   "monthly_cake_gained": 0,
-  "current_month": "2026-08",
+  "current_month": "2026-10",
   "last_change_name_time": "2026-08-30T22:07:19.564295+08:00",
   "change_name_count": 1,
   "redeem_stats": {},
-  "gacha_history": [],
-  "gacha_pity_5": 0,
-  "gacha_pity_4": 0,
+  "gacha_history": [
+    {
+      "name": "信用点",
+      "rarity": 3,
+      "time": "2026-08-31T14:40:05.315304+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "星琼",
+      "rarity": 4,
+      "time": "2026-08-31T14:40:05.315304+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-31T14:40:05.315304+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-31T14:40:05.315304+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "信用点",
+      "rarity": 3,
+      "time": "2026-08-31T14:40:05.315304+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "信用点",
+      "rarity": 3,
+      "time": "2026-08-31T14:40:05.315304+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "信用点",
+      "rarity": 3,
+      "time": "2026-08-31T14:40:05.315304+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "信用点",
+      "rarity": 3,
+      "time": "2026-08-31T14:40:05.315304+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "none",
+      "rarity": 3,
+      "time": "2026-08-31T14:40:05.315304+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    },
+    {
+      "name": "信用点",
+      "rarity": 3,
+      "time": "2026-08-31T14:40:05.315304+08:00",
+      "isUp": false,
+      "isGuaranteed": false
+    }
+  ],
+  "gacha_pity_5": 10,
+  "gacha_pity_4": 8,
   "gacha_guaranteed_5": false,
   "total_five_star": 0,
-  "monthly_jade_gained": 0,
-  "total_jade_gained": 0,
-  "monthly_ticket_gained": 0,
-  "total_ticket_gained": 0,
+  "monthly_jade_gained": 1610,
+  "total_jade_gained": 1610,
+  "monthly_ticket_gained": 10,
+  "total_ticket_gained": 10,
   "birthday_reward_year": null,
-  "last_achievement_month": null
+  "last_achievement_month": null,
+  "friends": {
+    "admin-999999999": {
+      "remark": "萤宝"
+    }
+  },
+  "stranger_sent": {},
+  "blocked": [],
+  "chat_prefs": {
+    "focus": [
+      "admin-999999999"
+    ],
+    "muted": [],
+    "pinned": [
+      "server"
+    ],
+    "hidden": []
+  }
 }

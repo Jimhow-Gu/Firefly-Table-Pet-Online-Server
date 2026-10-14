@@ -1,0 +1,46 @@
+{
+  "goods": [
+    {
+      "id": "star_rail_ticket",
+      "builtin": true,
+      "name": "星铁专票",
+      "price": 160,
+      "currency": "jade",
+      "item_type": "star_rail_ticket",
+      "enabled": true,
+      "emoji": "🎫",
+      "image": "",
+      "category": "兑换"
+    },
+    {
+      "id": "cake",
+      "name": "橡木蛋糕卷",
+      "price": 3600,
+      "currency": "credit",
+      "enabled": true,
+      "item_type": "cake",
+      "category": "美食",
+      "emoji": "🎁"
+    },
+    {
+      "id": "Oneiric_Shard",
+      "name": "古老梦华",
+      "price": 10,
+      "currency": "jade",
+      "enabled": true,
+      "item_type": "custom",
+      "category": "更多",
+      "emoji": "🎁"
+    },
+    {
+      "id": "extra",
+      "name": "新商品",
+      "price": 1,
+      "currency": "credit",
+      "enabled": true,
+      "item_type": "custom",
+      "category": "更多",
+      "emoji": "🎁"
+    }
+  ]
+}

@@ -102,6 +102,10 @@ input:focus,select:focus{
     min-height:0;
 }
 .hidden{display:none !important;}
+/* 「展示图」分组是外层网格的直接子项：用 contents 把它的子元素提升为网格项，
+   才能和上面的「图片」「名称」等行一样对齐；
+   否则整个分组会挤进 90px 的标签列 —— 标签独占一行、按钮被压到下一行左侧（错位） */
+#itemForm .grid > #i_gacha_box:not(.hidden){ display:contents; }
 .empty-hint{
     color:#888;
     padding:8px;
@@ -126,6 +130,100 @@ input:focus,select:focus{
     flex-direction:column;
     min-height:0;
 }
+        /* ===== 卡池可视化编辑区 ===== */
+        #gachaPreviewBox {
+            margin-top: 10px; padding: 12px; border-radius: 10px;
+            background: #2b2b2b; border: 1px solid #3a3a3a;
+        }
+        #gachaPreviewBox .gp-head { display: flex; align-items: center; gap: 10px; }
+        #gachaPreviewBox .gp-icon {
+            width: 46px; height: 46px; flex-shrink: 0; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            background: #1f1f1f; border: 1px solid #4a4a4a;
+            color: #ff9f43; font-size: 22px; font-weight: 700;
+        }
+        #gachaPreviewBox .gp-titles { flex: 1; min-width: 0; }
+        #gachaPreviewBox .gp-title-main { color: #fff; font-size: 17px; font-weight: 600; }
+        #gachaPreviewBox .gp-sub { color: #9a9a9a; font-size: 12px; margin-top: 2px; }
+        #gachaPreviewBox .gp-res { display: flex; gap: 12px; }
+        #gachaPreviewBox .gp-res-item {
+            display: flex; align-items: center; gap: 4px; cursor: pointer;
+            color: #fff; font-size: 12px;
+        }
+        #gachaPreviewBox .gp-res-item img {
+            width: 18px; height: 18px; border-radius: 50%; background: #1f1f1f;
+            border: 1px solid #4a4a4a; object-fit: cover;
+        }
+        #gachaPreviewBox .gp-res-item b { color: #fff; font-weight: 600; }
+        #gachaPreviewBox .gp-actions { display: flex; gap: 8px; margin: 10px 0; }
+        #gachaPreviewBox .gp-btn-outline {
+            padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+            background: transparent; color: #ff9f43; border: 1px solid #ddd;
+        }
+        #gachaPreviewBox .gp-btn-outline:hover { background: rgba(255, 159, 67, .12); }
+        html, body { overflow-x: hidden; max-width: 100vw; }
+        #gachaPreviewBox .gp-canvas { overflow: hidden; }
+        #gachaPreviewBox .gp-canvas span,
+        #gachaPreviewBox .gp-canvas .gp-hint {
+            word-break: break-all; max-width: 100%; display: block; padding: 0 12px;
+        }
+        #gachaPreviewBox .gp-canvas {
+            height: 168px; border-radius: 8px; background: #f4f4f4; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: #ff8c1a; font-size: 24px; font-weight: 700; overflow: hidden;
+            border: 1px dashed #b9b9b9;
+        }
+        #gachaPreviewBox .gp-canvas img { max-width: 100%; max-height: 100%; object-fit: cover; }
+        #gachaPreviewBox .gp-mid { display: flex; gap: 10px; margin: 10px 0; }
+        #gachaPreviewBox .gp-soft {
+            padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+            background: #3d3d3d; color: #e8e8e8; border: 1px solid #4d4d4d;
+        }
+        #gachaPreviewBox .gp-soft:hover { background: #484848; }
+        #gachaPreviewBox .gp-bottom {
+            display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+        }
+        #gachaPreviewBox .gp-pity { color: #cfcfcf; font-size: 13px; }
+        #gachaPreviewBox .gp-pulls { display: flex; gap: 8px; }
+        #gachaPreviewBox .gp-pull {
+            padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px;
+            background: linear-gradient(180deg, #3a3a3a, #2f2f2f);
+            color: #f0f0f0; border: 1px solid #555;
+        }
+        #gachaPreviewBox .gp-pull:hover { border-color: #ff9f43; color: #ffd7a8; }
+        #gachaPreviewBox .gp-pools-title { color: #8a8a8a; font-size: 12px; margin: 10px 0 6px; }
+        #gachaPreviewBox .gp-pools { display: flex; flex-direction: column; gap: 6px; }
+        #gachaPreviewBox .gp-pool-item {
+            padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px;
+            background: #333; color: #ddd; border: 1px solid #444;
+            display: flex; justify-content: space-between; gap: 8px;
+        }
+        #gachaPreviewBox .gp-pool-item:hover { background: #3a3a3a; }
+        #gachaPreviewBox .gp-pool-item.active {
+            background: #2F7A34; color: #fff; border-color: #3C8527;
+        }
+        #gachaPreviewBox .gp-pool-item small { color: inherit; opacity: .75; }
+        #gachaPreviewBox .gp-tip { color: #7d7d7d; font-size: 11px; margin-top: 8px; }
+        #gachaPreviewBox .gp-publish {
+            display: inline-flex; align-items: center; gap: 5px;
+            color: #ffd76a; font-size: 13px; cursor: pointer; margin-left: auto;
+        }
+        #gachaPreviewBox .gp-warn {
+            color: #ff9a9a; font-size: 12px; margin-top: 6px;
+        }
+
+        /* 页面内提示条（替代系统弹窗） */
+        #pageToast {
+            position: fixed; left: 50%; top: 14px; transform: translate(-50%, -12px);
+            min-width: 220px; max-width: 70vw; padding: 9px 16px; border-radius: 10px;
+            background: rgba(22, 24, 30, .96); color: #ececec; font-size: 13px;
+            border: 1px solid rgba(255, 255, 255, .16); box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+            opacity: 0; pointer-events: none; transition: all .2s ease; z-index: 99999;
+        }
+        #pageToast.show { opacity: 1; transform: translate(-50%, 0); }
+        #pageToast.error { border-color: rgba(255, 90, 90, .6); color: #ffb4b4; }
+        #pageToast.ok { border-color: rgba(120, 220, 140, .55); color: #b7f0c4; }
+
 .bottom-bar{
     display:flex;
     gap:6px;
@@ -180,6 +278,28 @@ input:focus,select:focus{
     font-size:13px;
     resize:vertical;
 }
+#gachaConfigOverlay .config-box .pool-editor {
+    background:#1e1e1e; border:1px solid #555; border-radius:6px;
+    padding:6px; max-height:260px; overflow-y:auto;
+}
+#gachaConfigOverlay .config-box .pool-head,
+#gachaConfigOverlay .config-box .pool-row {
+    display:flex; align-items:center; gap:6px; padding:3px 0;
+}
+#gachaConfigOverlay .config-box .pool-head { color:#9a9a9a; font-size:12px; border-bottom:1px solid #444; }
+#gachaConfigOverlay .config-box .pool-row input,
+#gachaConfigOverlay .config-box .pool-row select {
+    background:#2d2d2d; color:#e0e0e0; border:1px solid #555; border-radius:4px;
+    padding:3px 5px; font-size:12px;
+}
+#gachaConfigOverlay .config-box .pool-row input[type="text"] { flex:1; min-width:0; }
+#gachaConfigOverlay .config-box .pool-row .pool-del {
+    background:#8b2e2e; color:#fff; border:none; border-radius:4px;
+    width:36px; padding:3px 0; font-size:12px; cursor:pointer;
+}
+#gachaConfigOverlay .config-box .pool-row .pool-del:hover { background:#b03a3a; }
+#gachaConfigOverlay .config-box .pool-add { display:flex; align-items:center; gap:10px; margin-top:6px; }
+#gachaConfigOverlay .config-box .pool-tip { color:#8a8a8a; font-size:12px; }
 #gachaConfigOverlay .config-box .btn-group {
     margin-top:12px;
     display:flex;
@@ -193,7 +313,26 @@ input:focus,select:focus{
 }
 </style>
 </head>
+<style>
+#loadingOverlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(18,18,18,0.92);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; color: #E0E0E0; font-size: 18px;
+    font-family: "Microsoft YaHei", sans-serif;
+}
+#loadingOverlay .dots span {
+    display: inline-block; width: 10px; height: 10px; margin: 0 3px;
+    background: #4CAF50; border-radius: 50%; opacity: .35;
+    animation: lds 1.2s infinite ease-in-out;
+}
+#loadingOverlay .dots span:nth-child(2) { animation-delay: .15s; }
+#loadingOverlay .dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes lds { 0%,80%,100% { transform: scale(.6); opacity:.35; } 40% { transform: scale(1); opacity:1; } }
+#loadingOverlay.hidden { display: none; }
+</style>
 <body>
+<div id="loadingOverlay"><div>⏳ 正在加载…</div><div class="dots"><span></span><span></span><span></span></div></div>
 <div class="main-window">
     <div class="left-panel">
         <div class="group-box flex-grow">
@@ -203,8 +342,8 @@ input:focus,select:focus{
                 <div id="treeContainer"></div>
             </div>
             <div class="flex gap-[8px] mt-[8px] flex-shrink-0">
-                <button class="btn btn-green flex-1" id="btnAddRoot">➕ 根菜单</button>
-                <button class="btn btn-green flex-1" id="btnAddChild">📎 子菜单</button>
+                <button class="btn btn-green flex-1" id="btnAddRoot" title="在最外层新建一个菜单分类（例如「商店」）">➕ 根菜单</button>
+                <button class="btn btn-green flex-1" id="btnAddChild" title="在左侧选中的菜单下新建子菜单">📎 子菜单</button>
             </div>
         </div>
         <div class="group-box flex-grow">
@@ -213,10 +352,22 @@ input:focus,select:focus{
                 <div class="empty-hint" id="itemEmptyHint">📭 暂无物品，请添加</div>
                 <div id="itemContainer"></div>
             </div>
-            <button class="btn btn-green w-full mt-[8px] flex-shrink-0" id="btnAddItem">➕ 添加物品</button>
+            <button class="btn btn-green w-full mt-[8px] flex-shrink-0" id="btnAddItem"
+                    title="新建一个可发放的物品（例如 蛋糕 / 信用点 / 车票）">➕ 添加物品</button>
+            <button class="btn btn-red w-full mt-[6px] flex-shrink-0" id="btnDeleteItem"
+                    title="删除当前选中的物品/菜单（不可恢复）">🗑️ 删除</button>
+        </div>
+        <div class="group-box flex-grow" id="shopGroupBox">
+            <div class="group-box-title">🏪 商店管理</div>
+            <div class="list-widget" id="shopList" style="min-height:80px;">
+                <div class="empty-hint" id="shopEmptyHint">暂无商品（添加原版物品或勾选物品的“添加进商店”）</div>
+                <div id="shopContainer"></div>
+            </div>
+            <button class="btn btn-green w-full mt-[8px] flex-shrink-0" id="btnAddBuiltinShop"
+                    title="添加原版物品或勾选了「商店物品」的自定义物品">➕ 添加商店物品</button>
         </div>
     </div>
-    <div class="right-panel">
+<div class="right-panel">
         <h2 class="text-base font-bold text-white mb-2 flex-shrink-0" id="editTitle">✏️ 未选中项</h2>
         <div class="form-scroll">
             <div id="menuFormHint" class="text-yellow-400 text-sm mb-2 hidden">⚠️ 该菜单包含子菜单，仅可修改名称和图标，不可配置功能。</div>
@@ -245,21 +396,22 @@ input:focus,select:focus{
                         </select>
                         <label class="text-right pr-2 text-sm">参数数据</label>
                         <input id="f_data" type="text" placeholder="url / 命令字符串">
-                        <div></div>
-                        <div class="checkbox-row">
+                        <div class="f-res-only"></div>
+                        <div class="checkbox-row f-res-only">
                             <input type="checkbox" id="f_resource_required">
                             <label for="f_resource_required">需要资源包</label>
                         </div>
-                        <label class="text-right pr-2 text-sm">资源URL</label>
-                        <div class="flex gap-[6px] items-center">
+                        <label class="text-right pr-2 text-sm f-res-only">资源URL</label>
+                        <div class="flex gap-[6px] items-center f-res-only">
                             <input id="f_resource_url" type="text" placeholder="/resources/xxx.zip" disabled>
                             <button class="btn btn-green text-xs py-1 px-2" id="btnUploadResource">📤 上传资源</button>
                         </div>
-                        <div id="uploadStatus">上传中...</div>
-                        <!-- 新增：有效期输入 -->
+                        <!-- 有效期：与其它字段一样成对（label 左 / 输入框 右） -->
                         <label class="text-right pr-2 text-sm">有效期</label>
                         <input id="f_expiry" type="text" placeholder="永久 或 30D 或 2026-12-31">
                     </div>
+                    <!-- 上传状态移出网格，避免占用网格单元格导致后续字段错列 -->
+                    <div id="uploadStatus" class="f-res-only" style="margin-top:6px;">上传中...</div>
                 </div>
             </div>
             <div id="itemForm" class="hidden">
@@ -273,21 +425,142 @@ input:focus,select:focus{
                     <label class="text-right pr-2 text-sm">数量</label>
                     <input id="i_count" type="number" value="0" step="1">
                     <label class="text-right pr-2 text-sm">物品ID</label>
-                    <input id="i_id" type="text" placeholder="留空自动生成（指令使用此ID）">
+                    <input id="i_id" type="text" placeholder="留空自动生成（指令/显示使用此ID）">
+                    <label class="text-right pr-2 text-sm">类型</label>
+                    <select id="i_type">
+                        <option value="item">物品（背包/商店）</option>
+                        <option value="clothes">时装（可穿戴）</option>
+                    </select>
+                    <label class="text-right pr-2 text-sm">图片</label>
+                    <div class="flex gap-[6px] items-center">
+                        <button class="btn btn-green text-xs py-1 px-2" id="i_img_btn" type="button">🖼️ 上传图片</button>
+                        <span id="i_img_name" class="text-xs text-gray-400">未选择</span>
+                        <input type="file" id="i_img_file" accept="image/*" style="display:none;">
+                    </div>
+                    <label class="text-right pr-2 text-sm">商店物品</label>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="i_shop">
+                        <label for="i_shop">勾选即可上架：之后到「商店管理 → 添加商店物品」添加它，
+                            并在那里设置价格与货币</label>
+                    </div>
+                    <label class="text-right pr-2 text-sm">加入卡池</label>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="i_gacha">
+                        <label for="i_gacha">勾选后可作为卡池道具/消耗货币（需上传图片与展示图）</label>
+                    </div>
+                    <div id="i_gacha_box" class="hidden">
+                        <label class="text-right pr-2 text-sm">展示图</label>
+                        <div class="flex gap-[6px] items-center">
+                            <button class="btn btn-green text-xs py-1 px-2" id="i_gacha_btn" type="button">🖼️ 上传抽到后的展示图 (png)</button>
+                            <span id="i_gacha_name" class="text-xs text-gray-400">未选择</span>
+                            <input type="file" id="i_gacha_file" accept="image/png" style="display:none;">
+                        </div>
+                    </div>
+                </div>
+                <div id="i_clothes_box" class="hidden">
+                    <div class="text-yellow-400 text-sm font-bold mt-3 mb-1">👗 自定义时装资源（4 个尺寸 GIF）</div>
+                    <div class="grid gap-y-2 gap-x-[10px]" style="grid-template-columns:110px 1fr;align-items:center;">
+                        <label class="text-right pr-2 text-sm">标准 GIF</label>
+                        <div class="flex gap-[6px] items-center">
+                            <button class="btn btn-green text-xs py-1 px-2 i_gif_btn" data-key="Standby" type="button">📤 上传</button>
+                            <span class="text-xs text-gray-400" id="i_gif_name_Standby">未选择</span>
+                            <input type="file" class="i_gif_file" data-key="Standby" accept="image/gif" style="display:none;">
+                        </div>
+                        <label class="text-right pr-2 text-sm">大尺寸 GIF</label>
+                        <div class="flex gap-[6px] items-center">
+                            <button class="btn btn-green text-xs py-1 px-2 i_gif_btn" data-key="Standby_Large" type="button">📤 上传</button>
+                            <span class="text-xs text-gray-400" id="i_gif_name_Standby_Large">未选择</span>
+                            <input type="file" class="i_gif_file" data-key="Standby_Large" accept="image/gif" style="display:none;">
+                        </div>
+                        <label class="text-right pr-2 text-sm">中尺寸 GIF</label>
+                        <div class="flex gap-[6px] items-center">
+                            <button class="btn btn-green text-xs py-1 px-2 i_gif_btn" data-key="Standby_medium" type="button">📤 上传</button>
+                            <span class="text-xs text-gray-400" id="i_gif_name_Standby_medium">未选择</span>
+                            <input type="file" class="i_gif_file" data-key="Standby_medium" accept="image/gif" style="display:none;">
+                        </div>
+                        <label class="text-right pr-2 text-sm">小尺寸 GIF</label>
+                        <div class="flex gap-[6px] items-center">
+                            <button class="btn btn-green text-xs py-1 px-2 i_gif_btn" data-key="Standby_small" type="button">📤 上传</button>
+                            <span class="text-xs text-gray-400" id="i_gif_name_Standby_small">未选择</span>
+                            <input type="file" class="i_gif_file" data-key="Standby_small" accept="image/gif" style="display:none;">
+                        </div>
+                    </div>
                 </div>
                 <div class="text-gray-400 text-xs mt-3">
                     提示：物品作为模板，实际玩家背包数据由服务端业务逻辑生成。物品ID将作为 /give 等命令中的物品名称。
                 </div>
             </div>
+                                <!-- ===== 商店商品表单（选中商店商品时显示） ===== -->
+            <div id="shopForm" class="hidden">
+                <div class="grid gap-y-2 gap-x-[10px]" style="grid-template-columns:90px 1fr;align-items:center;">
+                    <label class="text-right pr-2 text-sm">商品名称</label>
+                    <input id="s_name" type="text" placeholder="商品名称">
+                    <label class="text-right pr-2 text-sm">物品 ID</label>
+                    <input id="s_id" type="text" placeholder="例如：cake（图标将按此 ID 自动对应）">
+                    <label class="text-right pr-2 text-sm">价格</label>
+                    <input id="s_price" type="number" min="0" value="0" step="1">
+                    <label class="text-right pr-2 text-sm">货币</label>
+                    <select id="s_currency">
+                        <option value="credit">信用点 (credit)</option>
+                        <option value="jade">星琼 (jade)</option>
+                        <option value="star_rail_ticket">星铁专票 (star_rail_ticket)</option>
+                    </select>
+                    <label class="text-right pr-2 text-sm">分区</label>
+                    <select id="s_category">
+                        <option value="美食">美食</option>
+                        <option value="兑换">兑换</option>
+                        <option value="更多">更多</option>
+                    </select>
+                    <label class="text-right pr-2 text-sm">上架</label>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="s_enabled">
+                        <label for="s_enabled">勾选后出现在客户端商店</label>
+                    </div>
+                </div>
+                <div class="text-gray-400 text-xs mt-3">
+                    提示：购买价格以此处设置为准（自定义物品在物品列表创建，勾选“添加进商店”后进入这里）。
+                </div>
+            </div>
+
+            <!-- ===== 卡池可视化编辑（选中抽卡菜单时显示） ===== -->
+            <div id="gachaPreviewBox" class="hidden">
+                <div class="gp-head">
+                    <div class="gp-icon" id="gpIcon" title="卡池图标">衍</div>
+                    <div class="gp-titles">
+                        <div class="gp-title-main" id="gpTitleMain">跃迁</div>
+                        <div class="gp-sub" id="gpSub">群星跃迁</div>
+                    </div>
+                </div>
+                <div class="gp-actions">
+                    <button class="gp-btn-outline" id="gpUploadCover" type="button">上传封面</button>
+                    <button class="gp-btn-outline" id="gpAddPool" type="button">＋ 增加卡池</button>
+                    <button class="gp-btn-outline" id="gpDelPool" type="button">🗑 删除卡池</button>
+                    <label class="gp-publish" title="公开需已上传：卡池封面 + 侧边封面 + 配置抽卡道具">
+                        <input type="checkbox" id="gpPublish"> 公开此卡池
+                    </label>
+                </div>
+                <div class="gp-canvas" id="gpCanvas" title="点击上传卡池图片资源">
+                    <span id="gpCanvasHint">上传卡池图片资源</span>
+                    <img id="gpCanvasImg" alt="" style="display:none;">
+                </div>
+                <div class="gp-bottom">
+                    <div class="gp-pulls">
+                        <button class="gp-pull" type="button" id="gpPull1">×1 跃迁1次</button>
+                        <button class="gp-pull" type="button" id="gpPull10">×10 跃迁10次</button>
+                    </div>
+                </div>
+                <div class="gp-pools-title">卡池列表（点击切换，绿色为当前卡池）</div>
+                <div class="gp-pools" id="gpPoolList"></div>
+                <div class="gp-tip" id="gpTip">改动即时生效并热更新给所有在线玩家</div>
+            </div>
         </div>
-        <div class="bottom-bar">
+<div class="bottom-bar">
             <button class="btn btn-green" id="btnRefresh">🔄 刷新</button>
             <button class="btn btn-green" id="btnApply">✅ 确定</button>
+            <button class="btn btn-green" id="btnDuplicate">📋 复制</button>
             <button class="btn btn-orange" id="btnGachaConfig">🎲 抽卡配置</button>
             <button class="btn btn-orange" id="btnHotUpdate">🔥 热更新</button>
             <button class="btn btn-green" id="btnPublish">📦 发布</button>
-            <button class="btn btn-red" id="btnDelete">🗑️ 删除</button>
-            <button class="btn btn-green" id="btnDuplicate">📋 复制</button>
             <button class="btn btn-green" id="btnClose">✖ 关闭</button>
         </div>
     </div>
@@ -297,13 +570,51 @@ input:focus,select:focus{
 <div id="gachaConfigOverlay">
     <div class="config-box">
         <h2>🎲 抽卡配置</h2>
+        <label style="display:flex;align-items:center;gap:8px;">当前卡池：
+            <select id="cfgPoolSelect" style="flex:1;"></select>
+            <button class="btn btn-green" id="cfgPoolAdd" type="button">➕ 新卡池</button>
+            <button class="btn btn-red" id="cfgPoolDel" type="button">🗑️ 删除</button>
+        </label>
+        <label>归属页面：<input id="cfg_menu_id" type="text"
+            placeholder="资源包 id（如 m11）；留空=所有抽卡页面都显示" /></label>
+        <hr style="border-color:#555; margin:8px 0;" />
+        <label>卡池标题：<input id="cfg_name" type="text" placeholder="例如：柿柿如意" /></label>
+        <label>UP 名称：<input id="cfg_up_name" type="text" placeholder="例如：柿子（玩家端显示「柿子 UP」）" /></label>
+        <label>卡池描述：<input id="cfg_desc" type="text" placeholder="例如：限定角色UP" /></label>
+        <label>标题颜色：<input id="cfg_color" type="text" placeholder="#e6c87a（留空用默认）" /></label>
+        <label>标题字体：<input id="cfg_font" type="text" placeholder="留空用默认" /></label>
+        <label>单抽消耗：<input id="cfg_cost_per" type="number" min="1" value="1" /></label>
+        <label>消耗货币：<input id="cfg_cost_type" type="text" placeholder="star_rail_ticket / jade" /></label>
+        <label>多连次数：<input id="cfg_multi" type="number" min="2" value="10" /></label>
+        <label>有效期：<input id="cfg_expiry" type="text" placeholder="永久 或 30D 或 2026-12-31" /></label>
+        <label style="display:flex;align-items:center;gap:8px;">卡池封面：
+            <button class="btn btn-green" id="cfgCoverBtn" type="button">📤 上传封面</button>
+            <span id="cfgCoverName" style="color:#8a8a8a;font-size:12px;">未选择</span>
+        </label>
+        <input type="file" id="cfgCoverFile" accept="image/*" style="display:none;" />
+        <input type="hidden" id="cfg_pack_id" value="m11" />
+        <hr style="border-color:#555; margin:8px 0;" />
         <label>五星保底抽数：<input id="cfg_pity5" type="number" value="90" /></label>
         <label>四星保底抽数：<input id="cfg_pity4" type="number" value="10" /></label>
         <label>五星基础概率（小数）：<input id="cfg_rate5" type="number" step="0.001" value="0.006" /></label>
         <label>四星基础概率（小数）：<input id="cfg_rate4" type="number" step="0.001" value="0.051" /></label>
         <hr style="border-color:#555; margin:10px 0;" />
-        <label style="font-weight:bold;">物品池（JSON格式）</label>
-        <textarea id="cfg_poolItems" rows="10" style="width:100%; background:#1e1e1e; color:#e0e0e0; border:1px solid #555; border-radius:4px; padding:4px; font-family:monospace; font-size:13px;">{"5":[{"type":"star_rail_ticket","amount":1}],"4":[{"type":"jade","amount":100}],"3":[{"type":"jade","amount":10}]}</textarea>
+        <label style="font-weight:bold;">物品池（按星级添加，无需写 JSON）</label>
+        <div class="pool-editor">
+            <div class="pool-head">
+                <span style="width:78px;">星级</span>
+                <span style="flex:1;">物品 ID（如 jade / cake / credit / star_rail_ticket）</span>
+                <span style="width:74px;">数量</span>
+                <span style="width:74px;">权重</span>
+                <span style="width:56px;">UP</span>
+                <span style="width:44px;"></span>
+            </div>
+            <div id="cfgPoolRows"></div>
+            <div class="pool-add">
+                <button class="btn btn-green" id="cfgAddRow" type="button">➕ 添加一行</button>
+                <span class="pool-tip">权重越大越容易抽到；UP 仅对五星有意义</span>
+            </div>
+        </div>
         <div class="btn-group">
             <button class="btn btn-green" id="cfgSave">保存</button>
             <button class="btn btn-red" id="cfgCancel">取消</button>
@@ -316,7 +627,219 @@ input:focus,select:focus{
 
 <script>
 let bridge = null;
+// 醒目的页面内提示层（替代 alert，用于保存失败等重要提示）
+function showNotice(title, text) {
+    let box = document.getElementById('pageNotice');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'pageNotice';
+        box.style.cssText = 'position:fixed;inset:0;z-index:100001;display:flex;' +
+            'align-items:center;justify-content:center;background:rgba(0,0,0,.55);';
+        box.innerHTML = '<div style="min-width:320px;max-width:70vw;padding:20px 24px;border-radius:12px;' +
+            'background:#20242c;border:1px solid #4d5460;box-shadow:0 16px 40px rgba(0,0,0,.6);">' +
+            '<div id="pageNoticeTitle" style="color:#ff9a9a;font-size:16px;font-weight:700;' +
+            'margin-bottom:10px;"></div>' +
+            '<div id="pageNoticeText" style="color:#e8e8e8;font-size:14px;line-height:1.6;' +
+            'white-space:pre-wrap;"></div>' +
+            '<div style="text-align:right;margin-top:16px;">' +
+            '<button id="pageNoticeOk" style="padding:6px 18px;border-radius:8px;cursor:pointer;' +
+            'background:#2F7A34;color:#fff;border:1px solid #3C8527;">知道了</button></div></div>';
+        document.body.appendChild(box);
+        document.getElementById('pageNoticeOk').onclick = function () { box.style.display = 'none'; };
+    }
+    document.getElementById('pageNoticeTitle').textContent = title || '提示';
+    document.getElementById('pageNoticeText').textContent = text || '';
+    box.style.display = 'flex';
+}
+window.showNotice = showNotice;
+
+// 右键一律使用页面内菜单：拦截浏览器/Qt 默认菜单
+document.addEventListener('contextmenu', function (e) {
+    e.preventDefault();
+    return false;
+}, false);
+
+// ===== 按钮防连点：同一按钮 0.8 秒内只响应 1 次，任意按钮之间留 0.4 秒 =====
+// 只拦真实用户点击（程序触发的 .click() 其 isTrusted 为 false，放行，
+// 不影响"添加菜单/物品后自动点确定"这类内部流程）
+(function () {
+    var SAME_MS = 800, ANY_MS = 400;
+    var lastEl = null, lastTs = 0;
+    document.addEventListener('click', function (e) {
+        if (e.isTrusted === false) return;
+        var t = e.target;
+        var el = (t && t.closest)
+            ? t.closest('button, .btn, .list-item, .tree-item, .gp-btn, .eb-btn, input[type="checkbox"]')
+            : null;
+        if (!el) return;
+        var now = Date.now();
+        var tooSoon = (el === lastEl && now - lastTs < SAME_MS) || (now - lastTs < ANY_MS);
+        if (tooSoon) {
+            e.stopImmediatePropagation();
+            if (e.preventDefault) e.preventDefault();
+            return false;
+        }
+        lastEl = el;
+        lastTs = now;
+    }, true);
+})();
+
+// ===== 页面内提示条（替代 alert，避免系统模态框） =====
+function toast(text, kind) {
+    let box = document.getElementById('pageToast');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'pageToast';
+        document.body.appendChild(box);
+    }
+    box.textContent = String(text === undefined || text === null ? '' : text);
+    box.classList.remove('error', 'ok');
+    if (kind === 'error') box.classList.add('error');
+    if (kind === 'ok') box.classList.add('ok');
+    box.classList.add('show');
+    clearTimeout(box._t);
+    box._t = setTimeout(function () { box.classList.remove('show'); }, 3600);
+}
+window.toast = toast;
+
+function toastKindFor(text) {
+    const t = String(text || '');
+    if (/失败|错误|无效|不存在|不足|不能|无法|非法|请先|缺少|异常/.test(t)) return 'error';
+    if (/成功|已完成|已保存|已更新|已添加|已删除|已复制/.test(t)) return 'ok';
+    return 'info';
+}
+
+
+
+function toastKindFor(text) {
+    const t = String(text || '');
+    if (/失败|错误|无效|不存在|不足|不能|无法|非法|请先|缺少|异常/.test(t)) return 'error';
+    if (/成功|已完成|已保存|已更新|已添加|已删除|已复制/.test(t)) return 'ok';
+    return 'info';
+}
+
 let gachaConfigCache = null;
+// 多卡池：pools 为真实数据源，activePoolIndex 指向当前编辑的卡池
+let gachaPools = [];
+let activePoolIndex = 0;
+
+function defaultPool() {
+    return {
+        id: 'pool_' + Date.now().toString(36),
+        menu_id: '',
+        name: '新卡池',
+        description: '限定角色UP',
+        icon: '✦',
+        banner: 'img/pool_banner.png',
+        color: '',
+        font: '',
+        cost_type: 'star_rail_ticket',
+        cost_per_pull: 1,
+        multi_pull: 10,
+        expiry: null,
+        rules: {
+            base_5star_rate: 0.006,
+            base_4star_rate: 0.051,
+            pity_hard_5star: 80,
+            pity_hard_4star: 10,
+            guarantee_up_5star: true
+        },
+        five_star_items: [{ id: '26_Newyear', weight: 50, up: true, amount: 1 }],
+        four_star_items: [
+            { id: 'jade', weight: 50, amount: 10 },
+            { id: 'cake', weight: 20, amount: 1 }
+        ],
+        three_star_items: [
+            { id: 'credit', weight: 70, amount: 100 },
+            { id: 'none', weight: 70, amount: 0 }
+        ]
+    };
+}
+
+function normalizePool(raw) {
+    const base = defaultPool();
+    const p = Object.assign(base, (raw && typeof raw === 'object') ? raw : {});
+    p.rules = Object.assign({}, base.rules, p.rules || {});
+    p.id = String(p.id || base.id);
+    p.cost_per_pull = parseInt(p.cost_per_pull || 1, 10) || 1;
+    p.multi_pull = Math.max(2, parseInt(p.multi_pull || 10, 10) || 10);
+    p.five_star_items = Array.isArray(p.five_star_items) ? p.five_star_items : [];
+    p.four_star_items = Array.isArray(p.four_star_items) ? p.four_star_items : [];
+    p.three_star_items = Array.isArray(p.three_star_items) ? p.three_star_items : [];
+    return p;
+}
+
+function poolFromLegacy(cfg) {
+    const p = defaultPool();
+    ['name', 'description', 'icon', 'banner', 'color', 'font', 'cost_type',
+        'cost_per_pull', 'multi_pull', 'expiry'].forEach(function (k) {
+        if (cfg && cfg[k] !== undefined && cfg[k] !== null && cfg[k] !== '') p[k] = cfg[k];
+    });
+    if (cfg && cfg.rules) p.rules = Object.assign({}, p.rules, cfg.rules);
+    ['five_star_items', 'four_star_items', 'three_star_items'].forEach(function (k) {
+        if (cfg && Array.isArray(cfg[k]) && cfg[k].length) p[k] = cfg[k];
+    });
+    return normalizePool(p);
+}
+
+function renderPoolSelect() {
+    const sel = document.getElementById('cfgPoolSelect');
+    if (!sel) return;
+    sel.innerHTML = '';
+    gachaPools.forEach(function (p, i) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = (p.name || p.id) + (p.menu_id ? '（' + p.menu_id + '）' : '');
+        sel.appendChild(opt);
+    });
+    sel.value = String(activePoolIndex);
+}
+
+function fillPoolForm(pool) {
+    const p = pool || defaultPool();
+    document.getElementById('cfg_name').value = p.name || '';
+    document.getElementById('cfg_up_name').value = p.up_name || '';
+    document.getElementById('cfg_desc').value = p.description || '';
+    document.getElementById('cfg_color').value = p.color || '';
+    document.getElementById('cfg_font').value = p.font || '';
+    document.getElementById('cfg_cost_type').value = p.cost_type || 'star_rail_ticket';
+    document.getElementById('cfg_cost_per').value = p.cost_per_pull || 1;
+    document.getElementById('cfg_multi').value = p.multi_pull || 10;
+    document.getElementById('cfg_expiry').value = p.expiry || '';
+    document.getElementById('cfg_menu_id').value = p.menu_id || '';
+    document.getElementById('cfg_pack_id').value = p.menu_id || 'm11';
+    cfgPity5.value = (p.rules && p.rules.pity_hard_5star) || 80;
+    cfgPity4.value = (p.rules && p.rules.pity_hard_4star) || 10;
+    cfgRate5.value = (p.rules && p.rules.base_5star_rate) || 0.006;
+    cfgRate4.value = (p.rules && p.rules.base_4star_rate) || 0.051;
+    document.getElementById('cfgCoverName').textContent =
+        (p.banner ? '当前：' + p.banner : '未选择');
+    renderPoolRows(p);
+}
+
+function readPoolForm() {
+    const expiryRaw = document.getElementById('cfg_expiry').value.trim();
+    const costType = document.getElementById('cfg_cost_type').value.trim() || 'star_rail_ticket';
+    return {
+        name: document.getElementById('cfg_name').value.trim() || '未命名卡池',
+        up_name: document.getElementById('cfg_up_name').value.trim(),
+        description: document.getElementById('cfg_desc').value.trim(),
+        color: document.getElementById('cfg_color').value.trim(),
+        font: document.getElementById('cfg_font').value.trim(),
+        menu_id: document.getElementById('cfg_menu_id').value.trim(),
+        cost_type: costType,
+        cost_per_pull: Math.max(1, parseInt(document.getElementById('cfg_cost_per').value || '1', 10) || 1),
+        multi_pull: Math.max(2, parseInt(document.getElementById('cfg_multi').value || '10', 10) || 10),
+        expiry: expiryRaw || null,
+        rules: {
+            pity_hard_5star: parseInt(cfgPity5.value) || 80,
+            pity_hard_4star: parseInt(cfgPity4.value) || 10,
+            base_5star_rate: parseFloat(cfgRate5.value) || 0.006,
+            base_4star_rate: parseFloat(cfgRate4.value) || 0.051,
+            guarantee_up_5star: true
+        }
+    };
+}
 let bridgeReady = false;
 let menus = [];
 let items = [];
@@ -344,13 +867,24 @@ const i_icon = document.getElementById('i_icon');
 const i_desc = document.getElementById('i_desc');
 const i_id = document.getElementById('i_id');
 const i_count = document.getElementById('i_count');
+const i_type = document.getElementById('i_type');
+const i_shop = document.getElementById('i_shop');
+const i_clothes_box = document.getElementById('i_clothes_box');
+const i_gacha = document.getElementById('i_gacha');
+const i_gacha_name = document.getElementById('i_gacha_name');
+const i_gacha_file = document.getElementById('i_gacha_file');
+let itemGachaB64 = '';   // 抽到展示图（png）暂存
+let itemOrigId = '';     // 首次设定的物品 id（编辑时锁定）
+// 待上传的图片/时装 GIF（base64，保存时随物品一起提交）
+let itemImageB64 = '';
+let itemGifsB64 = {};
 
 const cfgOverlay = document.getElementById('gachaConfigOverlay');
 const cfgPity5 = document.getElementById('cfg_pity5');
 const cfgPity4 = document.getElementById('cfg_pity4');
 const cfgRate5 = document.getElementById('cfg_rate5');
 const cfgRate4 = document.getElementById('cfg_rate4');
-const cfgPool = document.getElementById('cfg_poolItems');
+const cfgPool = document.getElementById('cfgPoolRows');  // 卡池表格容器（旧 JSON 文本框已移除）
 const uploadStatus = document.getElementById('uploadStatus');
 
 function initBridge() {
@@ -363,7 +897,7 @@ function initBridge() {
                 console.log('bridge object:', bridge);
                 if (!bridge) {
                     console.error('桥接对象为空');
-                    alert('❌ 桥接对象为空！请检查服务端注册。');
+                    toast('❌ 桥接对象为空！请检查服务端注册。', toastKindFor('❌ 桥接对象为空！请检查服务端注册。'));
                     bridgeReady = false;
                     return;
                 }
@@ -376,14 +910,24 @@ function initBridge() {
             });
         } catch(e) {
             console.error('QWebChannel 初始化异常:', e);
-            alert('❌ QWebChannel 初始化异常：' + e.message);
+            toast('❌ QWebChannel 初始化异常：' + e.message, 'error');
             bridgeReady = false;
         }
     } else {
         console.error('qt.webChannelTransport 不可用');
-        alert('❌ QWebChannel 不可用！请确保在 Qt WebEngine 环境中运行。');
+        toast('❌ QWebChannel 不可用！请确保在 Qt WebEngine 环境中运行。', toastKindFor('❌ QWebChannel 不可用！请确保在 Qt WebEngine 环境中运行。'));
         bridgeReady = false;
     }
+}
+
+function showLoading() {
+    const el = document.getElementById('loadingOverlay');
+    if (el) el.classList.remove('hidden');
+}
+
+function hideLoading() {
+    const el = document.getElementById('loadingOverlay');
+    if (el) el.classList.add('hidden');
 }
 
 function loadDataAndRender() {
@@ -391,6 +935,7 @@ function loadDataAndRender() {
         console.warn('bridge not ready');
         return;
     }
+    showLoading();
     Promise.resolve(bridge.getMenus()).then(menusStr => {
         return Promise.resolve(bridge.getItems()).then(itemsStr => {
             let menusData, itemsData;
@@ -409,6 +954,7 @@ function loadDataAndRender() {
             menus = menusData || [];
             items = itemsData || [];
             renderAll();
+            hideLoading();
             if (selectedType === 'menu' && selectedId) {
                 selectMenu(selectedId);
             } else if (selectedType === 'item' && selectedId) {
@@ -420,13 +966,16 @@ function loadDataAndRender() {
         });
     }).catch(e => {
         console.error('loadDataAndRender error:', e);
-        alert('❌ 数据加载失败：\n' + e.message);
+        hideLoading();
+        toast('❌ 数据加载失败：\n' + e.message, 'error');
     });
 }
 
 function renderAll() {
     renderTree();
     renderItems();
+    // 三个列表共用一个选中状态：任一列表刷新时同步重绘，保证"同时只有一个选中"
+    try { renderShopList(); } catch (e) { }
 }
 
 function renderTree() {
@@ -463,7 +1012,10 @@ function renderItems() {
         div.className = 'list-item';
         div.dataset.id = it.id;
         const count = (it.count !== undefined) ? it.count : 0;
-        div.innerText = '🎒 ' + it.name + ' ×' + count;
+        let badge = (it.type === 'clothes') ? '👗' : '🎒';
+        let tail = ' ×' + count;
+        if (it.shop) tail += ' ｜ 在售 ' + (it.price !== undefined ? it.price : 0) + ' ' + (it.currency || 'credit');
+        div.innerText = badge + ' ' + it.name + tail;
         if (selectedType === 'item' && selectedId === it.id) {
             div.classList.add('selected');
         }
@@ -473,7 +1025,864 @@ function renderItems() {
     itemEmptyHint.classList.toggle('hidden', items.length > 0);
 }
 
+
+// ===================== 商店管理 =====================
+let shopGoods = [];
+let shopSelId = null;
+let shopDirty = false;
+const shopIds = new Set();
+
+function loadShop(cb, attempt) {
+    // 桥接是异步建立的：静默等待就绪（约 12s 上限），不再弹「桥接未就绪」
+    if (!bridge) {
+        const at = attempt || 0;
+        if (at < 40) {
+            setTimeout(function () { loadShop(cb, at + 1); }, 300);
+        } else if (cb) {
+            cb();
+        }
+        return;
+    }
+    bridge.getShopGoods(function (jsonStr) {
+        try {
+            const d = (typeof jsonStr === 'string') ? JSON.parse(jsonStr || '{}') : (jsonStr || {});
+            shopGoods = (d.goods || []).filter(function (g) {
+                return g && g.id && g.id !== 'balance';   // 移除历史上误加的“余额”商品
+            });
+        } catch (e) { shopGoods = []; }
+        shopIds.clear();
+        shopGoods.forEach(function (g) { shopIds.add(g.id); });
+        renderShopList();
+        if (cb) cb();
+    });
+}
+
+function renderShopList() {
+    const box = document.getElementById('shopContainer');
+    if (!box) return;
+    box.innerHTML = '';
+    shopGoods.forEach(function (g) {
+        const d = document.createElement('div');
+        // 选中高亮跟随全局选中状态（selectedType/selectedId），而不是独立的 shopSelId，
+        // 这样选中菜单/物品时商店项的选中态会自动消失（三个列表互斥）
+        const _sel = (selectedType === 'shop' && selectedId === g.id);
+        d.className = 'list-item' + (_sel ? ' selected' : '');
+        d.innerText = (g.enabled ? '🟢 ' : '⚪ ') + (g.name || g.id) +
+            ' · ' + (g.price || 0) + ' ' + (g.currency || 'credit') +
+            (g.builtin ? '（原版）' : '');
+        d.onclick = function () { selectShop(g.id); };
+        box.appendChild(d);
+    });
+    const hint = document.getElementById('shopEmptyHint');
+    if (hint) hint.classList.toggle('hidden', shopGoods.length > 0);
+}
+
+function selectShop(id) {
+    // 切换到别的商品前，先把当前表单的改动写回上一项（否则改分区/改名会丢）
+    try {
+        if (shopSelId && shopSelId !== id) shopApply();
+    } catch (e) { }
+    shopSelId = id;
+    setEditMode('shop');
+    selectedType = 'shop';
+    selectedId = id;
+    const g = shopGoods.find(function (x) { return x.id === id; }) || {};
+    document.getElementById('s_name').value = g.name || '';
+    document.getElementById('s_name').readOnly = false;   // 名称只是显示名，随时可改
+    const sid = document.getElementById('s_id');
+    if (sid) { sid.value = g.id || ''; sid.readOnly = true; }   // 物品 ID 加入后不可改
+    document.getElementById('s_price').value = g.price || 0;
+    document.getElementById('s_currency').value = g.currency || 'credit';
+    document.getElementById('s_enabled').checked = !!g.enabled;
+    const sc = document.getElementById('s_category');
+    if (sc) sc.value = g.category || '';
+    renderAll();
+}
+
+// 把商店表单的当前值写回内存模型（静默：无提示，值未变则不算 dirty）
+function shopSyncFormToModel() {
+    const g = shopGoods.find(function (x) { return x.id === shopSelId; });
+    if (!g) return;
+    const nm = document.getElementById('s_name').value.trim();
+    const pr = Math.max(0, parseInt(document.getElementById('s_price').value || '0', 10) || 0);
+    const cu = document.getElementById('s_currency').value;
+    const en = document.getElementById('s_enabled').checked;
+    const sc = document.getElementById('s_category');
+    const ct = sc ? (sc.value || g.category || '更多') : g.category;
+    if (g.name !== (nm || g.name) || g.price !== pr || g.currency !== cu ||
+        g.enabled !== en || g.category !== ct) {
+        g.name = nm || g.name;
+        g.price = pr;
+        g.currency = cu;
+        g.enabled = en;
+        g.category = ct;
+        shopDirty = true;
+    }
+}
+
+function shopApply() {
+    const g = shopGoods.find(function (x) { return x.id === shopSelId; });
+    if (!g) return;
+    shopSyncFormToModel();
+    renderAll();
+    toast('商店改动已暂存，点【🔥 热更新】生效');
+}
+
+function shopAddBuiltin() {
+    const have = {};
+    shopGoods.forEach(function (g) { have[g.id] = 1; });
+    const inShop = function (id) { return !!have[id]; };
+    // 候选 = 原版两件（星铁专票 + 橡木蛋糕卷）+ 勾选了「商店物品」的自定义物品。
+    // 已在商店里的也照样列出（标"已在商店"）：选中它就是跳到右侧改价格/货币，
+    // 这样这个按钮永远不会走进"全部都已加入"的死胡同。
+    const pool = [
+        { id: 'star_rail_ticket', name: '星铁专票', currency: 'jade', price: 160,
+          emoji: '🎫', category: '兑换' },
+        { id: 'cake', name: '橡木蛋糕卷', currency: 'credit', price: 3600,
+          emoji: '🍰', category: '美食' },
+    ].concat((items || []).filter(function (it) {
+        return it.shop;
+    }).map(function (it) {
+        return { id: it.id, name: it.name || it.id, currency: it.currency || 'credit',
+                 price: it.price || 0, emoji: it.icon || '🎁', custom: true,
+                 item_type: 'custom', image: it.image || '', category: '更多' };
+    }));
+    // 去重（同名 id 只保留一个）
+    const seen = {};
+    const uniq = [];
+    pool.forEach(function (x) { if (x.id && !seen[x.id]) { seen[x.id] = 1; uniq.push(x); } });
+    if (!uniq.length) {
+        toast('还没有可上架的物品：请先到「物品列表」新建物品并勾选「商店物品」', 'error');
+        return;
+    }
+    const opts = uniq.map(function (x) {
+        return '<option value="' + x.id + '">' + x.name +
+            (inShop(x.id) ? '（已在商店，选中可改价格）' : '') + '</option>';
+    }).join('');
+    const body = '<label style="display:block;">选择物品：' +
+        '<select id="ctxBuiltin" style="width:100%;margin-top:4px;background:#2b2f38;color:#eee;' +
+        'border:1px solid #4d5460;border-radius:6px;padding:4px;">' + opts + '</select></label>' +
+        '<div style="color:#8a8a8a;font-size:12px;margin-top:6px;">' +
+        '只列出原版两件与勾选了「商店物品」的物品</div>';
+    gpOpenMenu(300, 300, '➕ 添加商店物品', body, function (m) {
+        const id = m.querySelector('#ctxBuiltin').value;
+        const meta = uniq.find(function (x) { return x.id === id; });
+        if (inShop(id)) {
+            // 已在商店：直接选中它，跳到右侧的价格/货币表单
+            selectShop(id);
+            toast('「' + (meta.name || id) + '」已在商店，请在右侧修改价格/货币', 'ok');
+            return;
+        }
+        shopGoods.push({ id: id, builtin: !meta.custom, name: meta.name, price: meta.price,
+                         currency: meta.currency, enabled: true,
+                         item_type: meta.item_type || id,
+                         emoji: meta.emoji || '🎁', image: meta.image || '',
+                         category: meta.category || '更多' });
+        shopDirty = true;
+        // 立即选中新加入的项，直接跳到右侧的「价格 / 货币」表单去设置
+        selectShop(id);
+        toast('已加入商店，请在右侧设置价格与货币，再点【🔥 热更新】生效', 'ok');
+    });
+}
+
+function shopCommitIfDirty(cb, force) {
+    // 提交前先把当前表单同步进内存（防止用户改完未失焦）
+    try { if (shopSelId) shopApply(); } catch (e) { }
+    if (!shopDirty && !force) { if (cb) cb(); return; }
+    if (!bridge) { toast('桥接未就绪', 'error'); if (cb) cb(); return; }
+    bridge.saveShopGoods(JSON.stringify({ goods: shopGoods }), function (ok) {
+        if (ok) {
+            shopDirty = false;
+            toast('✅ 商店已保存并热更新', 'ok');
+        } else {
+            toast('商店保存失败，请看服务端日志', 'error');
+        }
+        if (cb) cb(ok);
+    });
+}
+window.shopCommitIfDirty = shopCommitIfDirty;
+
+// ===================== 卡池可视化编辑（右侧面板） =====================
+let gpIndex = 0;
+let gpMenuId = '';
+let gpWebBase = '';
+
+function gpAbs(v) {
+    const s = String(v || '');
+    if (!s) return '';
+    if (/^https?:/i.test(s) || s.indexOf('data:') === 0) return s;
+    if (s.charAt(0) === '/' && gpWebBase) return gpWebBase + s;
+    return s;
+}
+
+function gpFindMenuId(node) {
+    const url = (node && (node.resource_url || '')) || '';
+    const m = /resources\/([^/.\)]+)\.zip/.exec(url);
+    return m ? m[1] : '';
+}
+
+function gpIsImgSrc(v) {
+    const s = String(v || '');
+    if (s.indexOf('data:image/') === 0) return true;   // 本地预览（base64）
+    return /\.(png|jpg|jpeg|gif|webp|bmp)$/i.test(s) || s.indexOf('/') === 0 || s.indexOf('http') === 0;
+}
+
+function gpLoadPreview(node) {
+    const box = document.getElementById('gachaPreviewBox');
+    if (!box) return;
+    if (!node || node.type !== 'gacha') {
+        box.classList.add('hidden');
+        return;
+    }
+    box.classList.remove('hidden');
+    gpMenuId = gpFindMenuId(node);
+    if (!bridge) { toast('桥接未就绪', 'error'); return; }
+    try {
+        bridge.getWebBase(function (base) { gpWebBase = base || ''; });
+    } catch (e) {}
+    bridge.getGachaConfig(function (configJson) {
+        try {
+            const cfg = (typeof configJson === 'string') ? JSON.parse(configJson || '{}')
+                : (configJson || {});
+            gachaConfigCache = cfg;
+            gachaPools = (Array.isArray(cfg.pools) && cfg.pools.length)
+                ? cfg.pools.map(normalizePool) : [poolFromLegacy(cfg)];
+            gpIndex = 0;
+            if (cfg.active_pool) {
+                const i = gachaPools.findIndex(function (p) { return p.id === cfg.active_pool; });
+                if (i >= 0) gpIndex = i;
+            }
+            gpRender();
+        } catch (e) {
+            toast('读取卡池配置失败：' + e.message, 'error');
+        }
+    });
+}
+
+
+// ===== 预览区改动暂存：点【🔥 热更新】才提交（先传图后保存广播） =====
+let gpDirty = false;
+let gpPendingImgs = {};   // kind -> base64（banner/side/res1/res2）
+
+function gpMarkDirty() {
+    gpDirty = true;
+    const t = document.getElementById('gpTip');
+    if (t) {
+        t.textContent = '有未提交的改动 —— 点底部【🔥 热更新】生效（会同时保存结果）';
+        t.style.color = '#ffd76a';
+    }
+}
+
+function gpClearDirty() {
+    gpDirty = false;
+    gpPendingImgs = {};
+    const t = document.getElementById('gpTip');
+    if (t) {
+        t.textContent = '改动已保存并热更新给所有在线玩家';
+        t.style.color = '#7d7d7d';
+    }
+}
+
+// 公开条件（与服务端一致）：封面/侧封必须真实上传，且配置了道具
+function gpPublishBlockers(p) {
+    const miss = [];
+    // 封面：已上传（/gacha_images/）或刚选择的预览图（data:）都算有 ——
+    // 之前只认 /gacha_images/，导致"刚上传完封面点公开"仍提示要上传封面
+    const _b = String(p.banner || '');
+    const _hasBanner = _b.startsWith('/gacha_images/') || _b.indexOf('data:image/') === 0;
+    if (!_hasBanner) miss.push('卡池封面（需上传）');
+    if (!((p.five_star_items || []).length || (p.four_star_items || []).length ||
+          (p.three_star_items || []).length)) miss.push('抽卡道具（至少一条）');
+    return miss;
+}
+
+function gpCur() { return gachaPools[gpIndex] || null; }
+
+function gpParseTime(v) {
+    if (!v) return null;
+    const d = new Date(String(v).trim().replace(' ', 'T'));
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function gpTimeShort(pool) {
+    if (!pool) return '永久';
+    const st = gpParseTime(pool.start_time);
+    const et = gpParseTime(pool.end_time || pool.expiry);
+    const now = Date.now();
+    if (st && now < st.getTime()) {
+        const p2 = n => String(n).padStart(2, '0');
+        return '未开启 ' + (st.getMonth() + 1) + '/' + st.getDate() + ' ' +
+            p2(st.getHours()) + ':' + p2(st.getMinutes());
+    }
+    if (et) {
+        const ms = et.getTime() - now;
+        if (ms <= 0) return '已结束';
+        const d = Math.floor(ms / 86400000);
+        const h = Math.floor((ms % 86400000) / 3600000);
+        const mi = Math.floor((ms % 3600000) / 60000);
+        return '剩 ' + (d ? d + '天' : '') + h + '小时' + mi + '分';
+    }
+    return '永久';
+}
+
+function gpSetResIcon(imgId, emojiId, value, fallbackEmoji, boundItemId) {
+    const img = document.getElementById(imgId);
+    const emo = document.getElementById(emojiId);
+    if (!img || !emo) return;
+    // 按绑定的物品 id 自动匹配：自定义物品 → 服务端统一图片；内置 → 内置映射
+    const _builtinIcon = {
+        star_rail_ticket: 'images/star_rail_ticket.png',
+        star_rail_tickets: 'images/star_rail_ticket.png',
+        ticket: 'images/star_rail_ticket.png', tickets: 'images/star_rail_ticket.png',
+        jade: 'images/stellar_jade.png', credit: 'images/credit.png',
+        cake: 'images/cake.png', balance: 'images/cake.png'
+    };
+    const _emojiMap = {
+        star_rail_ticket: '🎫', star_rail_tickets: '🎫', ticket: '🎫', tickets: '🎫',
+        jade: '💎', credit: '💰'
+    };
+    const _it = gpKnownOptions().find(function (o) { return o.id === String(boundItemId || '').trim(); });
+    if (_it && _it.image && gpIsImgSrc(_it.image)) {
+        value = _it.image;
+    } else if (!(String(value || '').indexOf('/gacha_images/') === 0)) {
+        const _key = String(boundItemId || '').trim();
+        const _bi = _builtinIcon[_key];
+        if (_bi) {
+            // 内置物品显示真实图片（失败自动退 emoji）
+            img.src = _bi;
+            img.style.display = '';
+            emo.style.display = 'none';
+            img.onerror = function () {
+                img.style.display = 'none';
+                emo.style.display = '';
+                emo.textContent = _emojiMap[_key] || '🎁';
+            };
+            return;
+        }
+        const _emo = _emojiMap[_key];
+        if (_emo) {
+            img.style.display = 'none';
+            emo.style.display = '';
+            emo.textContent = _emo;
+            return;
+        }
+    }
+    if (gpIsImgSrc(value)) {
+        img.src = gpAbs(value);
+        img.style.display = '';
+        emo.style.display = 'none';
+        img.onerror = function () { img.style.display = 'none'; emo.style.display = ''; };
+    } else {
+        img.style.display = 'none';
+        img.removeAttribute('src');
+        emo.style.display = '';
+        emo.textContent = value || fallbackEmoji;
+    }
+}
+
+function gpRender() {
+    const p = gpCur();
+    const box = document.getElementById('gachaPreviewBox');
+    if (!box || !p) return;
+    // 头部：方形图标（用卡池图标/首字）+「跃迁」+ 卡池名
+    const iconTxt = (p.icon && String(p.icon).length <= 2) ? p.icon : (String(p.name || '池')[0] || '池');
+    const iconEl = document.getElementById('gpIcon');
+    if (iconEl) iconEl.textContent = iconTxt;
+    const t1 = document.getElementById('gpTitleMain');
+    if (t1) t1.textContent = '跃迁';
+    const t2 = document.getElementById('gpSub');
+    if (t2) t2.textContent = p.name || '';
+    // 右上角两个小标识：单抽消耗 / 多连次数（点击可换图标）
+    const ui = p.ui || {};
+    // 画布：封面
+    const img = document.getElementById('gpCanvasImg');
+    const hint = document.getElementById('gpCanvasHint');
+    if (img && hint) {
+        const b = p.banner || '';
+        const _uploaded = String(b || '').indexOf('/gacha_images/') === 0 ||
+            String(b || '').indexOf('data:image/') === 0;
+        if (_uploaded && gpIsImgSrc(b)) {
+            img.classList.remove('hidden');
+            img.src = gpAbs(b);
+            img.style.display = 'block';
+            hint.style.display = 'none';
+            img.onerror = function () { img.style.display = 'none'; hint.style.display = ''; };
+        } else {
+            img.classList.add('hidden');
+            img.style.display = 'none';
+            hint.style.display = '';
+            hint.textContent = (b && b.indexOf('data:image/') === 0)
+                ? '已选择本地封面（点【🔥 热更新】提交生效）'
+                : '点击上传卡池图片资源';
+        }
+    }
+    // 保底与跃迁按钮
+
+    const b1 = document.getElementById('gpPull1');
+    if (b1) b1.textContent = '×1 跃迁1次';
+    const b10 = document.getElementById('gpPull10');
+    if (b10) {
+        const m = parseInt(p.multi_pull || 10, 10) || 10;
+        b10.textContent = '×' + m + ' 跃迁' + m + '次';
+    }
+    const pb = document.getElementById('gpPublish');
+    if (pb) pb.checked = !!p.published;
+    // 卡池列表（绿色为当前）
+    const list = document.getElementById('gpPoolList');
+    if (list) {
+        list.innerHTML = '';
+        gachaPools.forEach(function (pl, i) {
+            const d = document.createElement('div');
+            d.className = 'gp-pool-item' + (i === gpIndex ? ' active' : '');
+            const left = document.createElement('span');
+            left.textContent = (pl.name || pl.id) +
+                (pl.up_name ? '（' + pl.up_name + ' UP）' : '');
+            left.title = '右键可重命名卡池 / 设置 UP 名称';
+
+            const right = document.createElement('small');
+            const cname = ({ credit: '信用点', jade: '星琼', star_rail_ticket: '专票',
+                             star_rail_tickets: '专票', ticket: '专票', tickets: '专票' })
+                [pl.cost_type || 'star_rail_ticket'] || (pl.cost_type || '');
+            right.textContent = (parseInt(pl.cost_per_pull || 1, 10) || 1) + ' ' + cname +
+                '/抽 · ' + gpTimeShort(pl);
+            d.appendChild(left);
+            d.appendChild(right);
+            d.title = '右键可重命名卡池 / 设置 UP 名称';
+            d.oncontextmenu = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                gpRenameCtx(pl, e.clientX, e.clientY);
+                return false;
+            };
+            d.addEventListener('click', function () {
+                gpIndex = i;
+                gpRender();
+                try { fillPoolForm(gachaPools[i]); activePoolIndex = i; renderPoolSelect(); } catch (e) {}
+            });
+            list.appendChild(d);
+        });
+    }
+}
+window.gpRender = gpRender;
+
+function gpCommit(cb) {
+    // 1) 公开校验：勾了公开但条件不足 → 阻止提交
+    gachaPools.forEach(function (p) {
+        if (p.published) {
+            const miss = gpPublishBlockers(p);
+            if (miss.length) {
+                toast('「' + (p.name || p.id) + '」无法公开，缺少：' + miss.join('、'), 'error');
+                p.published = false;
+            }
+        }
+    });
+    // 2) 先上传暂存图片（按"kind@池id"归属，切池不会传错）
+    const jobs = [];
+    gachaPools.forEach(function (p) {
+        Object.keys(gpPendingImgs).forEach(function (key) {
+            const at = key.lastIndexOf('@');
+            const kind = at >= 0 ? key.slice(0, at) : key;
+            const pid = at >= 0 ? key.slice(at + 1) : '';
+            if (pid !== p.id) return;
+            jobs.push(new Promise(function (resolve) {
+                bridge.uploadPoolImage(gpMenuId || 'm11', pid, kind, gpPendingImgs[key],
+                    function (url) {
+                        if (url) {
+                            if (kind === 'banner') p.banner = url;
+                            else if (kind === 'side') p.side_banner = url;
+                            else { p.ui = p.ui || {}; p.ui[kind] = url; }
+                        }
+                        resolve(!!url);
+                    });
+            }));
+        });
+    });
+    Promise.all(jobs).then(function () {
+        // 3) 保存并广播（结果默认保持：直接落盘）
+        const cfg = Object.assign({}, gachaConfigCache || {}, gpCur() || {});
+        cfg.pools = gachaPools.map(function (p) { return p; });
+        cfg.active_pool = (gpCur() || {}).id || '';
+        gachaConfigCache = cfg;
+        if (!bridge) { toast('桥接未就绪', 'error'); if (cb) cb(false); return; }
+        bridge.saveGachaConfig(JSON.stringify(cfg), function (ok) {
+            if (ok) {
+                gpClearDirty();
+                gpRender();
+                toast('✅ 已更新：结果已保存并热更新给所有在线玩家', 'ok');
+            } else {
+                toast('保存失败，请看服务端日志', 'error');
+            }
+            if (cb) cb(ok);
+        });
+    });
+}
+window.gpCommit = gpCommit;
+
+function gpPersist(cb) { gpCommit(cb); }
+
+function gpAddPool() {
+    const cur = gpCur() || {};
+    let p;
+    try { p = JSON.parse(JSON.stringify(cur)); } catch (e) { p = {}; }
+    p.id = 'pool_' + Date.now().toString(36);
+    p.name = '新卡池 ' + (gachaPools.length + 1);
+    p.up_name = '';
+    p.description = '';
+    // 新卡池不继承上一池的封面/侧边封面（否则两个池共用同一张封面）
+    delete p.banner;
+    delete p.side_banner;
+    delete p._local_banner;
+    if (p.ui) { delete p.ui.banner; delete p.ui.side; }
+    p.published = false;   // 新卡池默认不公开，配置完成再公开
+    p.ui = p.ui || {};
+    if (!p.ui.res1) p.ui.res1 = 'img/star_rail_ticket.png';
+    if (!p.ui.res2) p.ui.res2 = 'img/stellar_jade.png';
+    const np = normalizePool(p);
+    gachaPools.push(np);
+    gpIndex = gachaPools.length - 1;
+    gpRender();
+    try { fillPoolForm(np); activePoolIndex = gpIndex; renderPoolSelect(); } catch (e) {}
+    gpMarkDirty();
+    // 立即弹出命名小窗：卡池名称 + UP 名
+    // 注意：必须把 normalizePool 之后、已经放进 gachaPools 的那个对象传进去 ——
+    // 之前传的是本地克隆 p，重命名只改到了克隆上，列表里永远还是"新卡池 N"
+    const rect = (document.getElementById('gpAddPool') || {}).getBoundingClientRect?.() || {};
+    gpRenameCtx(np, rect.left || 300, rect.top || 300);
+}
+
+function gpDelPool() {
+    if (gachaPools.length <= 1) { toast('至少保留一个卡池', 'error'); return; }
+    const cur = gpCur() || {};
+    gachaPools.splice(gpIndex, 1);
+    gpIndex = Math.max(0, gpIndex - 1);
+    gpRender();
+    try { fillPoolForm(gachaPools[gpIndex]); activePoolIndex = gpIndex; renderPoolSelect(); } catch (e) {}
+    gpPersist();
+}
+
+function gpPickFile(title, cb) {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
+    inp.onchange = function () {
+        const f = inp.files && inp.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = function () { cb(String(r.result), f.name); };
+        r.readAsDataURL(f);
+    };
+    inp.click();
+}
+
+function gpUpload(kind) {
+    const p = gpCur();
+    if (!p) { toast('请先选择卡池', 'error'); return; }
+    const names = { banner: '卡池封面', side: '侧边封面', res1: '物品图标1', res2: '物品图标2' };
+    gpPickFile(names[kind] || kind, function (b64, name) {
+        // 暂存按"卡池"存：切池后点热更新不会把封面传到别的池子
+        gpPendingImgs[kind + '@' + p.id] = b64;
+        if (kind === 'banner') p.banner = b64;
+        else if (kind === 'side') p.side_banner = b64;
+        else { p.ui = p.ui || {}; p.ui[kind] = b64; }
+        gpMarkDirty();
+        gpRender();
+        toast(names[kind] + '已选择（本地预览），点【🔥 热更新】生效');
+    });
+}
+
+
+// ===================== 预览区：双击编辑 + 右键参数 =====================
+function gpKnownOptions() {
+    const base = [
+        { id: 'star_rail_ticket', name: '专票' },
+        { id: 'jade', name: '星琼' },
+        { id: 'credit', name: '信用点' }
+    ];
+    const seen = {};
+    const out = [];
+    base.concat((items || []).map(function (it) {
+        return { id: it.id, name: it.name || it.id, image: it.image || '' };
+    })).forEach(function (x) {
+        if (!x || !x.id || seen[x.id]) return;
+        seen[x.id] = 1;
+        out.push(x);
+    });
+    return out;
+}
+
+function gpItemName(id) {
+    const k = String(id || '').trim();
+    const o = gpKnownOptions().find(function (x) { return x.id === k; });
+    return (o && o.name) || k;
+}
+
+function gpOpenMenu(x, y, title, bodyHtml, onOk, okText) {
+    const old = document.getElementById('gpCtxMenu');
+    if (old) old.remove();
+    const m = document.createElement('div');
+    m.id = 'gpCtxMenu';
+    m.style.cssText = 'position:fixed;z-index:100000;min-width:250px;padding:12px;' +
+        'border-radius:10px;background:#20242c;color:#eee;font-size:13px;' +
+        'border:1px solid #3d4450;box-shadow:0 10px 30px rgba(0,0,0,.55);';
+    m.innerHTML = '<div style="color:#ff9f43;font-weight:600;margin-bottom:8px;">' + title +
+        '</div>' + bodyHtml +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">' +
+        '<button id="ctxCancel" style="padding:5px 12px;border-radius:6px;cursor:pointer;' +
+        'background:#3a3f49;color:#eee;border:1px solid #4d5460;">取消</button>' +
+        '<button id="ctxOk" style="padding:5px 12px;border-radius:6px;cursor:pointer;' +
+        'background:#2F7A34;color:#fff;border:1px solid #3C8527;">' + (okText || '确定') +
+        '</button></div>';
+    document.body.appendChild(m);
+    const w = 270, h = m.offsetHeight || 220;
+    m.style.left = Math.max(8, Math.min(x, window.innerWidth - w - 8)) + 'px';
+    m.style.top = Math.max(8, Math.min(y, window.innerHeight - h - 8)) + 'px';
+    document.getElementById('ctxCancel').onclick = function () { m.remove(); };
+    m.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.getElementById('ctxOk').onclick = function () {
+        if (onOk(m) !== false) m.remove();
+    };
+}
+
+function gpGetField(path) {
+    const p = gpCur();
+    if (!p) return '';
+    if (path.indexOf('ui.') === 0) return ((p.ui || {})[path.slice(3)]) || '';
+    return p[path] || '';
+}
+
+function gpSetField(path, val) {
+    const p = gpCur();
+    if (!p) return;
+    if (path.indexOf('ui.') === 0) {
+        p.ui = p.ui || {};
+        p.ui[path.slice(3)] = val;
+    } else {
+        p[path] = val;
+    }
+}
+
+function gpTextCtx(elId, path, label) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.title = '双击修改' + label;
+    el.ondblclick = function (e) {
+        e.stopPropagation();
+        const x = (e.clientX || 200), y = (e.clientY || 200);
+        const body = '<input id="ctxText" type="text" style="width:100%;box-sizing:border-box;' +
+            'background:#2b2f38;color:#eee;border:1px solid #4d5460;border-radius:6px;' +
+            'padding:5px 8px;" placeholder="' + label + '">';
+        gpOpenMenu(x, y, '✏️ 修改' + label, body, function (m) {
+            const v = (m.querySelector('#ctxText').value || '').trim();
+            if (!v) { toast(label + '不能为空', 'error'); return false; }
+            gpSetField(path, v);
+            gpRender();
+            try { fillPoolForm(gachaPools[gpIndex]); } catch (err) {}
+            gpPersist();
+        });
+        const inp = document.getElementById('ctxText');
+        if (inp) { inp.value = gpGetField(path); inp.focus(); }
+    };
+}
+
+function gpPullCtx(i, x, y) {
+    const p = gpCur();
+    if (!p) return;
+    const opts = gpKnownOptions().map(function (o) {
+        return '<option value="' + o.id + '">' + o.name + '（' + o.id + '）</option>';
+    }).join('');
+    const body =
+        '<label style="display:block;margin-bottom:6px;">消耗货币：' +
+        '<select id="ctxCurrency" style="width:100%;margin-top:4px;background:#2b2f38;color:#eee;' +
+        'border:1px solid #4d5460;border-radius:6px;padding:4px;">' + opts + '</select></label>' +
+        '<label style="display:block;margin-bottom:6px;">单抽消耗数量：' +
+        '<input id="ctxCost" type="number" min="1" style="width:100%;margin-top:4px;' +
+        'background:#2b2f38;color:#eee;border:1px solid #4d5460;border-radius:6px;padding:4px;"></label>' +
+        '<label style="display:block;">连抽次数（多连）：' +
+        '<input id="ctxMulti" type="number" min="2" style="width:100%;margin-top:4px;' +
+        'background:#2b2f38;color:#eee;border:1px solid #4d5460;border-radius:6px;padding:4px;"></label>' +
+        '<div style="color:#8a8a8a;font-size:11px;margin-top:6px;">货币可以是自定义物品；' +
+        '玩家端抽卡将按此结算</div>';
+    gpOpenMenu(x, y, '🎮 抽卡按钮参数', body, function (m) {
+        const cur = m.querySelector('#ctxCurrency').value;
+        const per = Math.max(1, parseInt(m.querySelector('#ctxCost').value || '1', 10) || 1);
+        const multi = Math.max(2, parseInt(m.querySelector('#ctxMulti').value || '10', 10) || 10);
+        p.cost_type = cur;
+        p.cost_per_pull = per;
+        p.multi_pull = multi;
+        gpRender();
+        try { fillPoolForm(gachaPools[gpIndex]); } catch (err) {}
+        gpPersist();
+        toast('按钮参数已更新（' + gpItemName(cur) + ' ×' + per + '，多连 ' + multi + '）', 'ok');
+    });
+    const sel = document.getElementById('ctxCurrency');
+    if (sel) sel.value = String(p.cost_type || 'star_rail_ticket');
+    const ci = document.getElementById('ctxCost');
+    if (ci) ci.value = String(parseInt(p.cost_per_pull || 1, 10) || 1);
+    const cm = document.getElementById('ctxMulti');
+    if (cm) cm.value = String(parseInt(p.multi_pull || 10, 10) || 10);
+}
+
+function gpResCtx(i, x, y) {
+    const p = gpCur();
+    if (!p) return;
+    const opts = gpKnownOptions().map(function (o) {
+        return '<option value="' + o.id + '">' + o.name + '（' + o.id + '）</option>';
+    }).join('');
+    const ui = p.ui || {};
+    const cur = String(ui['res' + i + '_item'] || (i === 1 ? 'star_rail_ticket' : 'jade')).trim();
+    const body =
+        '<label style="display:block;margin-bottom:6px;">显示哪个物品（必须有效）：' +
+        '<select id="ctxItem" style="width:100%;margin-top:4px;background:#2b2f38;color:#eee;' +
+        'border:1px solid #4d5460;border-radius:6px;padding:4px;">' + opts + '</select></label>' +
+        '<div style="color:#8a8a8a;font-size:11px;">仅能选择内置物品或物品列表里的自定义物品；' +
+        '玩家端右上角将显示该物品的真实剩余量</div>';
+    gpOpenMenu(x, y, '🎒 右上角物品 ' + i, body, function (m) {
+        const id = m.querySelector('#ctxItem').value;
+        p.ui = p.ui || {};
+        p.ui['res' + i + '_item'] = id;
+        gpRender();
+        gpPersist();
+        toast('右上角 ' + i + ' 已绑定「' + gpItemName(id) + '」', 'ok');
+    });
+    const si = document.getElementById('ctxItem');
+    if (si) {
+        [].some.call(si.options, function (o) {
+            if (o.value === cur) { si.value = cur; return true; }
+            return false;
+        });
+    }
+}
+
+function gpRenameCtx(pool, x, y) {
+    const body =
+        '<label style="display:block;margin-bottom:6px;">卡池名称：' +
+        '<input id="ctxPoolName" type="text" style="width:100%;margin-top:4px;' +
+        'background:#2b2f38;color:#eee;border:1px solid #4d5460;border-radius:6px;padding:4px;"></label>' +
+        '<label style="display:block;">UP 名称（玩家端列表小字显示为「XX UP」）：' +
+        '<input id="ctxUpName" type="text" style="width:100%;margin-top:4px;' +
+        'background:#2b2f38;color:#eee;border:1px solid #4d5460;border-radius:6px;padding:4px;"></label>';
+    gpOpenMenu(x, y, '✏️ 重命名卡池', body, function (m) {
+        const nm = (m.querySelector('#ctxPoolName').value || '').trim();
+        const up = (m.querySelector('#ctxUpName').value || '').trim();
+        if (nm) pool.name = nm;
+        pool.up_name = up;
+        gpRender();
+        try { fillPoolForm(gachaPools[gpIndex]); } catch (err) {}
+        gpPersist();
+        toast('已重命名：' + (nm || pool.id) + (up ? '（' + up + ' UP）' : ''), 'ok');
+    });
+    const ni = document.getElementById('ctxPoolName');
+    if (ni) ni.value = pool.name || '';
+    const ui = document.getElementById('ctxUpName');
+    if (ui) ui.value = pool.up_name || '';
+}
+
+function gpInitCtxEvents() {
+    [['gpPull1', 1], ['gpPull10', 2]].forEach(function (pr) {
+        const el = document.getElementById(pr[0]);
+        if (!el) return;
+        el.oncontextmenu = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            gpPullCtx(pr[1], e.clientX, e.clientY);
+            return false;
+        };
+    });
+    gpTextCtx('gpSub', 'name', '卡池名');
+    gpTextCtx('gpPull1', 'ui.btn1', '单抽按钮文案');
+    gpTextCtx('gpPull10', 'ui.btn10', '多连按钮文案');
+}
+
+function gpInitEvents() {
+    const c = document.getElementById('gpCanvas');
+    if (c) c.addEventListener('click', function () { gpUpload('banner'); });
+    const u = document.getElementById('gpUploadCover');
+    if (u) u.addEventListener('click', function () { gpUpload('banner'); });
+    const a = document.getElementById('gpAddPool');
+    if (a) a.addEventListener('click', function () { gpAddPool(); });
+    const d = document.getElementById('gpDelPool');
+    if (d) d.addEventListener('click', function () { gpDelPool(); });
+    const pb = document.getElementById('gpPublish');
+    if (pb) pb.addEventListener('change', function () {
+        const p = gpCur();
+        if (!p) return;
+        p.published = pb.checked;
+        if (pb.checked) {
+            const miss = gpPublishBlockers(p);
+            if (miss.length) {
+                p.published = false;
+                pb.checked = false;
+                toast('无法公开，缺少：' + miss.join('、'), 'error');
+                return;
+            }
+        }
+        gpMarkDirty();
+        toast(pb.checked ? '将公开此卡池，点【🔥 热更新】生效' : '已取消公开（点【🔥 热更新】生效）');
+    });
+    const p1 = document.getElementById('gpPull1');
+    if (p1) p1.addEventListener('click', function () { toast('这里是预览：玩家端会执行 ×1 跃迁'); });
+    const p10 = document.getElementById('gpPull10');
+    if (p10) p10.addEventListener('click', function () { toast('这里是预览：玩家端会执行多连跃迁'); });
+    gpInitCtxEvents();
+    const di = document.getElementById('btnDeleteItem');
+    if (di) di.addEventListener('click', function () {
+        if (!selectedType) { toast('请先在左侧选择一个项目', 'error'); return; }
+        // 未保存的新物品占位（空 id）：直接从本地列表移除，不请求服务端
+        if (selectedType === 'item' && !selectedId) {
+            items = items.filter(function (it) { return !!it.id; });
+            selectedId = null;
+            selectedType = null;
+            setEditMode(null);
+            clearAllForm();
+            renderAll();
+            toast('已移除未保存的新物品', 'ok');
+            return;
+        }
+        if (!bridge) { toast('桥接未就绪', 'error'); return; }
+        // 商店商品选中时：删除 = 从商店移除（内置商品为下架，自定义商品彻底移除）
+        if (selectedType === 'shop') {
+            const g = shopGoods.find(function (x) { return x.id === selectedId; });
+            if (!g) return;
+            if (g.id === 'cake') {
+                toast('橡木蛋糕卷为默认商品，只能改价/上下架，不能移除', 'error');
+                return;
+            }
+            if (!confirm('确定把商品「' + (g.name || g.id) + '」从商店移除吗？')) return;
+            shopGoods = shopGoods.filter(function (x) { return x.id !== selectedId; });
+            shopDirty = true;
+            renderAll();
+            selectedId = null;
+            selectedType = null;
+            setEditMode(null);
+            clearAllForm();
+            toast('已从商店移除（点【🔥 热更新】生效）', 'ok');
+            return;
+        }
+        if (!confirm('确定删除当前选中的' + (selectedType === 'item' ? '物品' : '菜单') + '吗？')) return;
+        if (selectedType === 'item') {
+            const _delId = selectedId;
+            // 服务端会级联把该物品从商店配置里移除：删完立刻重载商店列表，左侧不留残影
+            bridge.deleteItem(_delId, function () {
+                try { loadShop(); } catch (e) { }
+            });
+            setTimeout(function () { try { loadShop(); } catch (e) { } }, 500);
+            toast('已删除物品（商店里的对应商品也已自动移除）', 'ok');
+        } else {
+            bridge.deleteMenu(selectedId);
+            toast('已删除菜单', 'ok');
+        }
+        selectedId = null;
+        selectedType = null;
+        setEditMode(null);
+        clearAllForm();
+        renderAll();
+    });
+}
+
+
 function selectMenu(id) {
+    // 离开商店选中时，先把商店表单改动静默写回（否则改分区/改名会丢）
+    if (selectedType === 'shop' && shopSelId) { try { shopSyncFormToModel(); } catch (e) { } }
     selectedType = 'menu';
     selectedId = id;
     const node = findMenuById(id, menus);
@@ -485,6 +1894,7 @@ function selectMenu(id) {
     }
     setEditMode('menu');
     fillMenuForm(node);
+    gpLoadPreview(node);
     const hasChildren = node.children && node.children.length > 0;
     const hint = document.getElementById('menuFormHint');
     const advanced = document.getElementById('advancedFields');
@@ -499,8 +1909,11 @@ function selectMenu(id) {
 }
 
 function selectItem(id) {
+    if (selectedType === 'shop' && shopSelId) { try { shopSyncFormToModel(); } catch (e) { } }
     selectedType = 'item';
     selectedId = id;
+    const _gp = document.getElementById('gachaPreviewBox');
+    if (_gp) _gp.classList.add('hidden');
     const it = items.find(x => x.id === id);
     if (it) {
         setEditMode('item');
@@ -518,6 +1931,16 @@ function setEditMode(mode) {
         editTitle.innerText = '✏️ 编辑物品';
         menuForm.classList.add('hidden');
         itemForm.classList.remove('hidden');
+        shopForm.classList.add('hidden');
+        const _gpb = document.getElementById('gachaPreviewBox');
+        if (_gpb) _gpb.classList.add('hidden');
+    } else if (mode === 'shop') {
+        editTitle.innerText = '🏪 商店商品';
+        menuForm.classList.add('hidden');
+        itemForm.classList.add('hidden');
+        shopForm.classList.remove('hidden');
+        const _gpb2 = document.getElementById('gachaPreviewBox');
+        if (_gpb2) _gpb2.classList.add('hidden');
     } else {
         editTitle.innerText = '✏️ 未选中项';
         menuForm.classList.add('hidden');
@@ -525,7 +1948,21 @@ function setEditMode(mode) {
     }
 }
 
+function toggleResourceBox(node) {
+    // 抽卡菜单不需要资源包：逐项隐藏（这些是网格的直接子项，逐个隐藏不会破坏"有效期"等行的对齐）
+    const isGacha = node ? (node.type === 'gacha') : (f_type.value === 'gacha');
+    document.querySelectorAll('.f-res-only').forEach(function (el) {
+        el.classList.toggle('hidden', isGacha);
+    });
+    if (isGacha) {
+        f_resource_required.checked = false;
+        f_resource_url.value = '';
+        f_resource_url.disabled = true;
+    }
+}
+
 function fillMenuForm(node) {
+    toggleResourceBox(node);
     f_label.value = node.label || '';
     f_type.value = node.type || 'none';
     f_data.value = node.data || '';
@@ -543,9 +1980,105 @@ function fillItemForm(it) {
     i_desc.value = it.description || '';
     i_id.value = it.id || '';
     i_count.value = (it.count !== undefined) ? it.count : 0;
+    i_type.value = it.type === 'clothes' ? 'clothes' : 'item';
+    i_shop.checked = !!it.shop;
+    itemImageB64 = '';
+    itemGifsB64 = {};
+    document.getElementById('i_img_name').textContent = it.image ? ('当前：' + it.image) : '未选择';
+    i_gacha.checked = !!it.gacha;
+    itemGachaB64 = '';
+    itemOrigId = it.id || '';
+    i_gacha_name.textContent = it.gacha_image ? ('当前：' + it.gacha_image) : '未选择';
+    // 物品 id 只能首次设定：编辑已有物品时锁定；新建时可选
+    const idInput = document.getElementById('i_id');
+    if (idInput) idInput.disabled = !!itemOrigId;
+    // 「添加进商店」勾选后锁定：必须删除物品重建才能取消
+    const shopCb = document.getElementById('i_shop');
+    if (shopCb) shopCb.checked = it.shop === true;
+    ['Standby', 'Standby_Large', 'Standby_medium', 'Standby_small'].forEach(function (k) {
+        const nm = document.getElementById('i_gif_name_' + k);
+        if (nm) nm.textContent = (it.gifs && it.gifs[k]) ? '当前：' + it.gifs[k].split('/').pop() : '未选择';
+    });
+    // 勾选后按需显示：加入卡池 → 展示图
+    // （「商店物品」不再需要价格/货币输入：上架在「商店管理 → 添加商店物品」里做）
+    const gb = document.getElementById('i_gacha_box');
+    if (gb) gb.classList.toggle('hidden', !i_gacha.checked);
 }
 
+function toggleShopBox() {
+    const gb = document.getElementById('i_gacha_box');
+    if (gb) gb.classList.toggle('hidden', !i_gacha.checked);
+}
+
+function toggleClothesBox() {
+    i_clothes_box.classList.toggle('hidden', i_type.value !== 'clothes');
+}
+i_type.addEventListener('change', toggleClothesBox);
+
+// ---- 图片上传 ----
+document.getElementById('i_img_btn').addEventListener('click', function () {
+    document.getElementById('i_img_file').click();
+});
+document.getElementById('i_img_file').addEventListener('change', function () {
+    const f = this.files && this.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = function () {
+        itemImageB64 = String(r.result);
+        document.getElementById('i_img_name').textContent = '待上传：' + f.name;
+    };
+    r.readAsDataURL(f);
+});
+
+i_shop.addEventListener('change', toggleShopBox);
+i_gacha.addEventListener('change', toggleShopBox);
+
+// ---- 加入卡池：抽到展示图上传 ----
+document.getElementById('i_gacha_btn').addEventListener('click', function () {
+    i_gacha_file.click();
+});
+i_gacha_file.addEventListener('change', function () {
+    const f = this.files && this.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = function () {
+        itemGachaB64 = String(r.result);
+        i_gacha_name.textContent = '待上传：' + f.name;
+    };
+    r.readAsDataURL(f);
+});
+
+// ---- 时装 GIF 上传（4 个尺寸）----
+document.querySelectorAll('.i_gif_btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        const key = btn.dataset.key;
+        const inp = document.querySelector('.i_gif_file[data-key="' + key + '"]');
+        if (inp) inp.click();
+    });
+});
+document.querySelectorAll('.i_gif_file').forEach(function (inp) {
+    inp.addEventListener('change', function () {
+        const f = inp.files && inp.files[0];
+        if (!f) return;
+        const key = inp.dataset.key;
+        const r = new FileReader();
+        r.onload = function () {
+            itemGifsB64[key] = String(r.result);
+            document.getElementById('i_gif_name_' + key).textContent = '待上传：' + f.name;
+        };
+        r.readAsDataURL(f);
+    });
+});
+
 function clearAllForm() {
+    itemImageB64 = '';
+    itemGifsB64 = {};
+    itemGachaB64 = '';
+    itemOrigId = '';
+    if (typeof i_gacha !== 'undefined' && i_gacha) i_gacha.checked = false;
+    if (typeof i_gacha_name !== 'undefined' && i_gacha_name) i_gacha_name.textContent = '未选择';
+    const _idInput = document.getElementById('i_id');
+    if (_idInput) _idInput.disabled = false;
     f_label.value = '';
     f_type.value = 'none';
     f_data.value = '';
@@ -579,12 +2112,12 @@ function generateId(prefix) {
 
 function safeBridgeCall(method, ...args) {
     if (!bridge) {
-        alert('❌ 桥接未初始化，请刷新页面或重启程序。');
+        toast('❌ 桥接未初始化，请刷新页面或重启程序。', toastKindFor('❌ 桥接未初始化，请刷新页面或重启程序。'));
         return Promise.resolve(null);
     }
     return Promise.resolve(method.apply(bridge, args)).catch(e => {
         console.error('Bridge call error:', e);
-        alert('❌ 操作失败：' + e.message);
+        toast('❌ 操作失败：' + e.message, 'error');
         return null;
     });
 }
@@ -592,7 +2125,7 @@ function safeBridgeCall(method, ...args) {
 // ========== 抽卡配置相关（保持不变） ==========
 function loadGachaConfig() {
     if (!bridge) {
-        alert('桥接未就绪');
+        toast('桥接未就绪', toastKindFor('桥接未就绪'));
         return;
     }
     bridge.getGachaConfig(function(configJson) {
@@ -608,7 +2141,7 @@ function loadGachaConfig() {
             // 若为空，初始化默认值（与服务端 default_config 保持一致）
             if (Object.keys(config).length === 0) {
                 config = {
-                    name: "角色活动跃迁",
+                    name: "新卡池",
                     description: "限定角色UP",
                     icon: "✦",
                     banner: "img/pool_banner.png",
@@ -637,85 +2170,131 @@ function loadGachaConfig() {
             // 缓存完整配置
             gachaConfigCache = config;
 
-            // 回填表单字段
-            cfgPity5.value = config.rules?.pity_hard_5star || 80;
-            cfgPity4.value = config.rules?.pity_hard_4star || 10;
-            cfgRate5.value = config.rules?.base_5star_rate || 0.006;
-            cfgRate4.value = config.rules?.base_4star_rate || 0.051;
-            // ★ 回填有效期
-            document.getElementById('cfg_expiry').value = config.expiry || '';
-
-            // 组合物品池（为显示方便，可提取为JSON，但这里保持原样）
-            const poolDisplay = {
-                "5": config.five_star_items || [],
-                "4": config.four_star_items || [],
-                "3": config.three_star_items || []
-            };
-            cfgPool.value = JSON.stringify(poolDisplay, null, 2);
+            // 多卡池：有 pools 用 pools，否则把顶层字段视为单个卡池（兼容旧配置）
+            gachaPools = (Array.isArray(config.pools) && config.pools.length)
+                ? config.pools.map(normalizePool)
+                : [poolFromLegacy(config)];
+            activePoolIndex = 0;
+            if (config.active_pool) {
+                const idx = gachaPools.findIndex(function (p) { return p.id === config.active_pool; });
+                if (idx >= 0) activePoolIndex = idx;
+            }
+            renderPoolSelect();
+            fillPoolForm(gachaPools[activePoolIndex]);
         } catch(e) {
-            alert('加载配置失败：' + e.message);
+            toast('加载配置失败：' + e.message, 'error');
         }
     });
 }
 
+function addPoolRow(star, id, amount, weight, up) {
+    const box = document.getElementById('cfgPoolRows');
+    const row = document.createElement('div');
+    row.className = 'pool-row';
+    row.innerHTML =
+        '<select style="width:78px;">' +
+        '<option value="5">五星</option><option value="4">四星</option><option value="3">三星</option>' +
+        '</select>' +
+        '<input type="text" placeholder="物品 ID">' +
+        '<input type="number" min="0" style="width:74px;" placeholder="数量">' +
+        '<input type="number" min="1" style="width:74px;" placeholder="权重">' +
+        '<input type="checkbox" style="width:56px;margin:0 auto;">' +
+        '<button type="button" class="pool-del">删除</button>';
+    const sel = row.querySelector('select');
+    const inputs = row.querySelectorAll('input');
+    const txt = inputs[0], num = inputs[1], wt = inputs[2], chk = inputs[3];
+    sel.value = String(star || 5);
+    txt.value = id || '';
+    num.value = (amount === undefined || amount === null) ? 1 : amount;
+    wt.value = (weight === undefined || weight === null) ? 50 : weight;
+    chk.checked = !!up;
+    row.querySelector('.pool-del').addEventListener('click', function () { row.remove(); });
+    box.appendChild(row);
+    return row;
+}
+
+function renderPoolRows(config) {
+    const box = document.getElementById('cfgPoolRows');
+    box.innerHTML = '';
+    const push = (items, star) => (items || []).forEach(it => {
+        if (typeof it !== 'object' || it === null) return;
+        addPoolRow(star, it.id || it.type || '', it.amount, it.weight, it.up);
+    });
+    push(config.five_star_items, 5);
+    push(config.four_star_items, 4);
+    push(config.three_star_items, 3);
+    if (!box.children.length) {
+        addPoolRow(5, 'star_rail_ticket', 1, 50, true);
+        addPoolRow(4, 'jade', 100, 50, false);
+        addPoolRow(3, 'credit', 100, 70, false);
+    }
+}
+
+function readPoolRows() {
+    const out = { '5': [], '4': [], '3': [] };
+    document.querySelectorAll('#cfgPoolRows .pool-row').forEach(row => {
+        const sel = row.querySelector('select');
+        const inputs = row.querySelectorAll('input');
+        const id = (inputs[0].value || '').trim();
+        if (!id) return;
+        const item = {
+            id: id,
+            amount: parseInt(inputs[1].value || '1', 10) || 0,
+            weight: parseInt(inputs[2].value || '50', 10) || 1
+        };
+        if (inputs[3].checked) item.up = true;
+        (out[sel.value] = out[sel.value] || []).push(item);
+    });
+    return out;
+}
+
 function saveGachaConfig() {
     try {
-        // 从表单读取数值
-        const pity5 = parseInt(cfgPity5.value);
-        const pity4 = parseInt(cfgPity4.value);
-        const rate5 = parseFloat(cfgRate5.value);
-        const rate4 = parseFloat(cfgRate4.value);
-        const expiry = document.getElementById('cfg_expiry').value.trim() || null;  // 空字符串转为null
-
-        if (isNaN(pity5) || isNaN(pity4) || isNaN(rate5) || isNaN(rate4)) {
-            alert('请填写有效的数字');
+        if (!gachaPools.length) { gachaPools = [defaultPool()]; activePoolIndex = 0; }
+        const form = readPoolForm();
+        if (!form) return;
+        const poolItems = readPoolRows();
+        if (!poolItems['5'].length && !poolItems['4'].length && !poolItems['3'].length) {
+            toast('请至少添加一个卡池物品', toastKindFor('请至少添加一个卡池物品'));
             return;
         }
+        // 写回当前卡池（保留 id 与封面路径）
+        const cur = gachaPools[activePoolIndex] || defaultPool();
+        Object.assign(cur, form);
+        cur.rules = form.rules;
+        cur.five_star_items = poolItems['5'] || [];
+        cur.four_star_items = poolItems['4'] || [];
+        cur.three_star_items = poolItems['3'] || [];
+        gachaPools[activePoolIndex] = normalizePool(cur);
 
-        // 解析物品池
-        let poolItems;
-        try {
-            poolItems = JSON.parse(cfgPool.value);
-        } catch(e) {
-            alert('物品池JSON格式错误：' + e.message);
-            return;
-        }
+        // 组装完整配置：pools 为数据源，顶层镜像当前卡池（兼容旧读取路径）
+        if (!gachaConfigCache) gachaConfigCache = {};
+        const active = gachaPools[activePoolIndex];
+        gachaConfigCache = Object.assign({}, gachaConfigCache, active);
+        gachaConfigCache.pools = gachaPools.map(function (p) { return p; });
+        gachaConfigCache.active_pool = active.id;
 
-        // 更新缓存配置对象
-        if (!gachaConfigCache) {
-            gachaConfigCache = {};
-        }
-        // 更新规则
-        gachaConfigCache.rules = gachaConfigCache.rules || {};
-        gachaConfigCache.rules.pity_hard_5star = pity5;
-        gachaConfigCache.rules.pity_hard_4star = pity4;
-        gachaConfigCache.rules.base_5star_rate = rate5;
-        gachaConfigCache.rules.base_4star_rate = rate4;
-        // 更新有效期
-        gachaConfigCache.expiry = expiry;
-        // 更新物品池
-        gachaConfigCache.five_star_items = poolItems["5"] || [];
-        gachaConfigCache.four_star_items = poolItems["4"] || [];
-        gachaConfigCache.three_star_items = poolItems["3"] || [];
+        renderPoolSelect();
 
         // 保存完整配置
         bridge.saveGachaConfig(JSON.stringify(gachaConfigCache), function(success) {
             if (success) {
-                alert('配置保存成功！\n有效期修改后，下次抽卡立即生效。');
+                toast('配置保存成功！有效期修改后下次抽卡立即生效。', 'ok');
+                try { if (typeof gpRender === 'function' && gpCur()) gpRender(); } catch (e) {}
                 cfgOverlay.classList.remove('open');
             } else {
-                alert('保存失败，请检查服务端日志');
+                toast('保存失败，请检查服务端日志', 'error');
             }
         });
     } catch(e) {
-        alert('保存失败：' + e.message);
+        toast('保存失败：' + e.message, 'error');
     }
 }
 
 // ========== 文件上传（打包资源）- 仅支持 ZIP ==========
 document.getElementById('btnUploadResource').addEventListener('click', function() {
     if (!selectedId || selectedType !== 'menu') {
-        alert('请先选中一个菜单项');
+        toast('请先选中一个菜单项', 'error');
         return;
     }
     document.getElementById('fileInput').click();
@@ -728,14 +2307,14 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
     const file = files[0];
     // 检查是否为 ZIP 文件
     if (!file.name.toLowerCase().endsWith('.zip')) {
-        alert('请选择 ZIP 文件（.zip）');
+        toast('请选择 ZIP 文件（.zip）', toastKindFor('请选择 ZIP 文件（.zip）'));
         this.value = '';
         return;
     }
 
     // 检查大小（1GB 限制）
     if (file.size > 1024 * 1024 * 1024) {
-        alert('资源包大小超过 1GB，请压缩后重试。');
+        toast('资源包大小超过 1GB，请压缩后重试。', toastKindFor('资源包大小超过 1GB，请压缩后重试。'));
         this.value = '';
         return;
     }
@@ -759,7 +2338,7 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
             const menuId = selectedId;
 
             if (!bridge) {
-                alert('桥接未就绪');
+                toast('桥接未就绪', toastKindFor('桥接未就绪'));
                 uploadStatus.style.display = 'none';
                 return;
             }
@@ -767,24 +2346,24 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
             bridge.uploadResource(menuId, jsonData, function(success) {
                 uploadStatus.style.display = 'none';
                 if (success) {
-                    alert('ZIP 资源上传成功！\n资源URL已自动设置为 /resources/' + menuId + '.zip');
+                    toast('ZIP 资源上传成功！\n资源URL已自动设置为 /resources/' + menuId + '.zip', 'ok');
                     document.getElementById('f_resource_url').value = '/resources/' + menuId + '.zip';
                     document.getElementById('f_resource_required').checked = true;
                     // 自动保存菜单
                     document.getElementById('btnApply').click();
                 } else {
-                    alert('上传失败，请查看服务端日志。');
+                    toast('上传失败，请查看服务端日志。', 'error');
                 }
             });
         } catch (err) {
             uploadStatus.style.display = 'none';
-            alert('读取 ZIP 文件失败：' + err.message);
+            toast('读取 ZIP 文件失败：' + err.message, 'error');
         }
     };
     reader.onerror = function(ev) {
         uploadStatus.style.display = 'none';
         const errorMsg = ev.target.error ? ev.target.error.message : '未知错误';
-        alert('读取 ZIP 文件失败：' + errorMsg);
+        toast('读取 ZIP 文件失败：' + errorMsg, 'error');
     };
     reader.readAsDataURL(file);
 
@@ -793,6 +2372,8 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 
 // ========== 事件绑定 ==========
 document.addEventListener('DOMContentLoaded', function() {
+    // 兜底：5 秒后仍未加载完成也隐藏"正在加载…"，避免遮罩常驻
+    setTimeout(hideLoading, 5000);
     // 初始化桥接
     initBridge();
 
@@ -823,12 +2404,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // 添加子菜单
     document.getElementById('btnAddChild').addEventListener('click', function() {
         if (!selectedId || selectedType !== 'menu') {
-            alert('请先选中一个父菜单');
+            toast('请先选中一个父菜单', 'error');
             return;
         }
         const parent = findMenuById(selectedId);
         if (!parent) {
-            alert('父菜单不存在');
+            toast('父菜单不存在', 'error');
             return;
         }
         const id = generateId('menu_');
@@ -854,28 +2435,73 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('btnApply').click();
     });
 
-    // 添加物品
+    try { loadShop(); } catch (e) { console.error(e); }
+    document.getElementById('btnAddBuiltinShop').addEventListener('click', function () { shopAddBuiltin(); });
+    ['s_name', 's_price', 's_currency', 's_enabled', 's_category'].forEach(function (fid) {
+        const el = document.getElementById(fid);
+        if (!el) return;
+        el.addEventListener('change', shopApply);
+        // input 也实时同步：避免"改了值没失焦就点热更新"导致改动丢失
+        if (fid !== 's_enabled') el.addEventListener('input', shopApply);
+        else el.addEventListener('click', shopApply);
+    });
+
+    try { gpInitEvents(); }
+    catch (e) {
+        console.error('预览初始化失败', e);
+        toast('预览初始化失败：' + e.message, 'error');
+    }
+
+    // 保存动作前先重新拉取服务端数据（防止页面数据陈旧/为空时覆盖服务端）
+    function refreshBeforeSave(cb) {
+        try {
+            if (!bridge) { if (cb) cb(); return; }
+            bridge.getItems(function (itemsStr) {
+                try {
+                    const parsed = JSON.parse(itemsStr);
+                    if (Array.isArray(parsed) && parsed.length && items.length === 0) {
+                        items = parsed;   // 页面是空的但服务端有数据 → 以服务端为准
+                        renderItems();
+                    }
+                } catch (e) { }
+                if (cb) cb();
+            });
+        } catch (e) { if (cb) cb(); }
+    }
+    window.refreshBeforeSave = refreshBeforeSave;
+
+    // 添加物品（id 留空 = 可自定义；保存时留空由服务端自动生成）
     document.getElementById('btnAddItem').addEventListener('click', function() {
-        const id = generateId('item_');
-        const newItem = {
-            id: id,
-            name: '新物品',
-            icon: '🎁',
-            description: '',
-            count: 0
-        };
-        items.push(newItem);
+        // 未保存的新物品只保留一个空 id 占位，避免列表里出现多个「新物品」
+        let newItem = items.find(function (it) { return !it.id; });
+        if (!newItem) {
+            newItem = {
+                id: '',
+                name: '新物品',
+                icon: '🎁',
+                description: '',
+                count: 0
+            };
+            items.push(newItem);
+        }
         selectedType = 'item';
-        selectedId = id;
+        selectedId = '';       // 空 id = 新建中（点【✅ 确定】才真正保存）
+        setEditMode('item');
         fillItemForm(newItem);
         renderAll();
-        document.getElementById('btnApply').click();
+        // 不再自动点【✅ 确定】：以前会立刻命中"未选中"判断而误报，还可能把空占位存到服务端
     });
 
     // 确定（保存当前编辑）
     document.getElementById('btnApply').addEventListener('click', function() {
-            if (!selectedId) {
-                alert('请先选择一个项目');
+            // 用 selectedType 判断是否选中（新建物品时 selectedId 为空字符串，是合法的"新建中"）
+            if (!selectedType) {
+                toast('请先选择一个项目', 'error');
+                return;
+            }
+            if (selectedType === 'shop') {
+                // 商店商品：确定 = 把表单改动写回并暂存（热更新生效）
+                try { shopApply(); } catch (e) { }
                 return;
             }
 
@@ -884,14 +2510,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const type = f_type.value;
                 const data = f_data.value.trim();
                 const tooltip = f_tooltip.value.trim();
-                const resource_required = f_resource_required.checked;
-                const resource_url = f_resource_url.value.trim();
+                let resource_required = f_resource_required.checked;
+                let resource_url = f_resource_url.value.trim();
+                if (type === 'gacha') {   // 抽卡菜单不再需要资源包
+                    resource_required = false;
+                    resource_url = '';
+                }
                 const icon_type = 'emoji';
                 const icon = f_icon.value.trim() || '📄';
                 const expiry = f_expiry.value.trim();
 
                 if (!bridge) {
-                    alert('桥接未就绪');
+                    toast('桥接未就绪', toastKindFor('桥接未就绪'));
                     return;
                 }
 
@@ -899,7 +2529,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (success) {
                         loadDataAndRender();
                     } else {
-                        alert('保存失败！可能原因：已存在其他抽卡菜单项，请先删除或修改原有的抽卡菜单。');
+                        toast('保存失败！可能原因：已存在其他抽卡菜单项，请先删除或修改原有的抽卡菜单。', 'error');
                     }
                 });
             } else if (selectedType === 'item') {
@@ -907,77 +2537,92 @@ document.addEventListener('DOMContentLoaded', function() {
                 const icon = i_icon.value.trim() || '🎁';
                 const description = i_desc.value.trim();
                 const count = parseInt(i_count.value) || 0;
-                const id = i_id.value.trim() || selectedId;
+                let id = i_id.value.trim() || selectedId;   // 下面会把空格换成下划线，故用 let
 
                 if (id !== selectedId && items.some(it => it.id === id)) {
-                    alert('物品ID已存在');
+                    toast('物品ID已存在', toastKindFor('物品ID已存在'));
                     return;
                 }
 
+                const type = i_type.value;
+                const shop = i_shop.checked;   // 价格/货币不在这里设置（改到「商店管理」里）
+                // 物品 id 允许自定义：输入带空格默认用下划线代替
+                id = id.replace(/\s+/g, '_');
+                if (itemOrigId && id !== itemOrigId) {
+                    showNotice('无法保存', '物品 ID 不能修改（删除后该 ID 才可复用）');
+                    return;
+                }
+                if (i_gacha.checked && !itemImageB64 && !((items.find(it => it.id === id) || {}).image)) {
+                    showNotice('无法保存', '勾选了「加入卡池」，需要先上传物品图片');
+                    return;
+                }
+                if (i_gacha.checked && !itemGachaB64 && !((items.find(it => it.id === id) || {}).gacha_image)) {
+                    showNotice('无法保存', '勾选了「加入卡池」，需要上传抽到后的展示图 (png)');
+                    return;
+                }
+                const payload = {
+                    id: id, name: name, icon: icon, description: description,
+                    count: count, type: type, shop: shop,
+                    gacha: i_gacha.checked, orig_id: itemOrigId || ''
+                };
+                if (itemImageB64) payload.image = itemImageB64;
+                if (itemGachaB64) payload.gacha_image = itemGachaB64;
+                if (type === 'clothes' && Object.keys(itemGifsB64).length > 0) payload.gifs = itemGifsB64;
+
                 const existing = items.find(it => it.id === selectedId);
                 if (existing) {
-                    existing.id = id;
-                    existing.name = name;
-                    existing.icon = icon;
-                    existing.description = description;
-                    existing.count = count;
+                    Object.assign(existing, payload);
                     if (id !== selectedId) {
+                        existing.id = id;
                         selectedId = id;
                     }
                 } else {
-                    items.push({ id, name, icon, description, count });
+                    items.push(payload);
                     selectedId = id;
                 }
 
                 if (!bridge) {
-                    alert('桥接未就绪');
+                    toast('桥接未就绪', toastKindFor('桥接未就绪'));
                     return;
                 }
 
-                bridge.saveItem(selectedId, name, icon, description, count, function(success) {
-                    if (success) {
-                        loadDataAndRender();
-                    } else {
-                        alert('保存物品失败，请检查服务端日志');
-                    }
-                });
+                // 用带原因的槽：失败时弹窗显示具体原因（ID 重复 / 保留名 / 服务端异常）
+                if (typeof bridge.saveCustomItemEx === 'function') {
+                    bridge.saveCustomItemEx(JSON.stringify(payload), function(reason) {
+                        if (!reason) {
+                            loadDataAndRender();
+                        } else {
+                            showNotice('保存物品失败', String(reason));
+                        }
+                    });
+                } else {
+                    bridge.saveCustomItem(JSON.stringify(payload), function(success) {
+                        if (success) {
+                            loadDataAndRender();
+                        } else {
+                            showNotice('保存物品失败', '请检查服务端日志');
+                        }
+                    });
+                }
             }
         });
 
     // 删除
-    document.getElementById('btnDelete').addEventListener('click', function() {
-        if (!selectedId) {
-            alert('请先选择一个项目');
-            return;
-        }
-        if (!confirm('确定要删除此项吗？')) return;
-        if (selectedType === 'menu') {
-            if (!bridge) { alert('桥接未就绪'); return; }
-            bridge.deleteMenu(selectedId);
-        } else if (selectedType === 'item') {
-            if (!bridge) { alert('桥接未就绪'); return; }
-            bridge.deleteItem(selectedId);
-        }
-        selectedId = null;
-        selectedType = null;
-        setEditMode(null);
-        clearAllForm();
-        renderAll();
-    });
+    // 底部栏删除按钮已移除（删除统一在物品列表底部的「删除」按钮）
 
     // 复制
     document.getElementById('btnDuplicate').addEventListener('click', function() {
         if (!selectedId) {
-            alert('请先选择一个项目');
+            toast('请先选择一个项目', 'error');
             return;
         }
         const newId = generateId(selectedType === 'menu' ? 'menu_' : 'item_');
         if (selectedType === 'menu') {
-            if (!bridge) { alert('桥接未就绪'); return; }
+            if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
             bridge.duplicateMenu(selectedId, newId);
             selectedId = newId;
         } else if (selectedType === 'item') {
-            if (!bridge) { alert('桥接未就绪'); return; }
+            if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
             bridge.duplicateItem(selectedId, newId);
             selectedId = newId;
         }
@@ -990,20 +2635,41 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // 热更新
+    document.getElementById('btnPublish').addEventListener('click', function() {
+        refreshBeforeSave();
+    }, true);
+
     document.getElementById('btnHotUpdate').addEventListener('click', function() {
-        if (!bridge) { alert('桥接未就绪'); return; }
-        bridge.hotUpdate();
+        refreshBeforeSave();
+        // 热更新必须等"商店提交 + 卡池保存（含待传封面）"都完成后再发：
+        // 之前立即 bridge.hotUpdate() 会和异步保存赛跑，广播读到旧文件，
+        // 表现为"要多点几次热更新才生效"
+        const doHotUpdate = function () {
+            if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
+            bridge.hotUpdate();
+        };
+        let pending = 0, done = 0;
+        const kick = function () { done += 1; if (done >= pending) doHotUpdate(); };
+        if (typeof shopCommitIfDirty === 'function') {
+            pending += 1;
+            shopCommitIfDirty(function () { kick(); }, true);
+        }
+        if (typeof gpDirty !== 'undefined' && gpDirty) {
+            pending += 1;
+            gpCommit(function () { kick(); });
+        }
+        if (pending === 0) doHotUpdate();
     });
 
     // 发布
     document.getElementById('btnPublish').addEventListener('click', function() {
-        if (!bridge) { alert('桥接未就绪'); return; }
+        if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
         bridge.publish();
     });
 
     // 关闭
     document.getElementById('btnClose').addEventListener('click', function() {
-        if (!bridge) { alert('桥接未就绪'); return; }
+        if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
         bridge.close();
     });
 
@@ -1016,6 +2682,73 @@ document.addEventListener('DOMContentLoaded', function() {
         cfgOverlay.classList.remove('open');
     });
     document.getElementById('cfgSave').addEventListener('click', saveGachaConfig);
+    document.getElementById('cfgAddRow').addEventListener('click', function () { addPoolRow(5, '', 1, 50, false); });
+
+    // 切换卡池：先把当前表单存回内存，再回填新卡池
+    f_type.addEventListener('change', function () { toggleResourceBox(null); });
+
+    document.getElementById('cfgPoolSelect').addEventListener('change', function () {
+        try {
+            if (gachaPools.length && gachaPools[activePoolIndex]) {
+                const form = readPoolForm();
+                const cur = gachaPools[activePoolIndex];
+                Object.assign(cur, form, { rules: form.rules });
+                const items = readPoolRows();
+                cur.five_star_items = items['5'] || [];
+                cur.four_star_items = items['4'] || [];
+                cur.three_star_items = items['3'] || [];
+            }
+            activePoolIndex = parseInt(this.value, 10) || 0;
+            fillPoolForm(gachaPools[activePoolIndex]);
+            renderPoolSelect();
+        } catch (e) { toast('切换卡池失败：' + e.message, 'error'); }
+    });
+
+    // 新增卡池
+    document.getElementById('cfgPoolAdd').addEventListener('click', function () {
+        const p = defaultPool();
+        p.name = '新卡池' + (gachaPools.length + 1);
+        gachaPools.push(p);
+        activePoolIndex = gachaPools.length - 1;
+        renderPoolSelect();
+        fillPoolForm(p);
+        toast('已新增卡池，编辑后点「保存」生效。', toastKindFor('已新增卡池，编辑后点「保存」生效。'));
+    });
+
+    // 删除当前卡池（至少保留一个）
+    document.getElementById('cfgPoolDel').addEventListener('click', function () {
+        if (gachaPools.length <= 1) { toast('至少保留一个卡池', toastKindFor('至少保留一个卡池')); return; }
+        const p = gachaPools[activePoolIndex];
+        if (!confirm('确定删除卡池「' + ((p && p.name) || '') + '」？')) return;
+        gachaPools.splice(activePoolIndex, 1);
+        activePoolIndex = Math.max(0, activePoolIndex - 1);
+        renderPoolSelect();
+        fillPoolForm(gachaPools[activePoolIndex]);
+    });
+
+    // 卡池封面上传：写入资源包内的 img/pool_banner.png（保存后由服务端广播给客户端即时生效）
+    document.getElementById('cfgCoverBtn').addEventListener('click', function () {
+        document.getElementById('cfgCoverFile').click();
+    });
+    document.getElementById('cfgCoverFile').addEventListener('change', function () {
+        const f = this.files && this.files[0];
+        if (!f) return;
+        if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
+        const reader = new FileReader();
+        reader.onload = function () {
+            const b64 = String(reader.result).split(',')[1] || '';
+            const mid = (document.getElementById('cfg_menu_id') || {}).value ||
+                ((document.getElementById('cfg_pack_id') || {}).value || 'm11');
+            try {
+                bridge.uploadGachaCover(mid, b64, function (ok) {
+                    document.getElementById('cfgCoverName').textContent =
+                        ok ? ('已更新封面（' + f.name + '）') : '上传失败';
+                    if (ok) toast('封面已更新：客户端重新打开卡池即可看到（或在保存后即时下发）', toastKindFor('封面已更新：客户端重新打开卡池即可看到（或在保存后即时下发）'));
+                });
+            } catch (e) { toast('上传失败：' + e.message, 'error'); }
+        };
+        reader.readAsDataURL(f);
+    });
     cfgOverlay.addEventListener('click', function(e) {
         if (e.target === this) this.classList.remove('open');
     });

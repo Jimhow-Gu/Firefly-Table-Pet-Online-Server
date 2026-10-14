@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "id": "m11",
+    "label": "群星跃迁",
+    "type": "gacha",
+    "data": "",
+    "tooltip": "星穹铁道风格抽卡（点击后自动下载并打开）",
+    "resource_required": false,
+    "resource_url": "",
+    "icon_type": "emoji",
+    "icon": "✦",
+    "children": [],
+    "expiry": null
+  }
+]

@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "Oneiric_Shard",
+    "name": "古老梦华",
+    "icon": "❀",
+    "description": "",
+    "count": 0,
+    "type": "item",
+    "shop": true,
+    "price": 0,
+    "currency": "credit",
+    "image": "/custom_items/Oneiric_Shard.png",
+    "gacha": false,
+    "ver": 1791971534
+  }
+]
