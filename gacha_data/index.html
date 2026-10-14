@@ -1325,7 +1325,21 @@
         box-shadow: 0 12px 34px rgba(0, 0, 0, .55) !important;
     }
 
-    </style>
+    
+        /* ===== 页面内确认框（替代原生 confirm）===== */
+        .gacha-confirm{position:fixed;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;
+            justify-content:center;background:rgba(0,0,0,.55);z-index:9999;}
+        .gacha-confirm .gc-panel{min-width:300px;max-width:80%;padding:22px 26px;border-radius:16px;
+            background:linear-gradient(180deg,#22222a,#1a1a20);border:1px solid rgba(255,255,255,.14);
+            box-shadow:0 14px 44px rgba(0,0,0,.6);color:#eee;text-align:center;}
+        .gacha-confirm .gc-text{font-size:16px;line-height:1.65;margin-bottom:20px;white-space:pre-wrap;}
+        .gacha-confirm .gc-btns{display:flex;gap:14px;justify-content:center;}
+        .gacha-confirm .gc-btns button{cursor:pointer;border:none;border-radius:999px;
+            padding:10px 30px;font-size:15px;transition:filter .15s;}
+        .gacha-confirm .gc-cancel{background:rgba(255,255,255,.16);color:#e8e8e8;}
+        .gacha-confirm .gc-ok{background:#5ec27a;color:#0f2318;font-weight:700;}
+        .gacha-confirm .gc-btns button:hover{filter:brightness(1.12);}
+</style>
 </head>
 <body>
     <!-- ===== 主界面 ===== -->
@@ -1458,7 +1472,8 @@
                 const need = count * _costPer - tickets,
                     cost = need * 160;
                 if (jades < cost) { toast('专票不足，且星琼不足以兑换', 'error'); return; }
-                if (!confirm(`消耗${cost}星琼兑换${need}张？`)) return;
+                if (!(await window.gachaConfirm(
+                    `是否将${cost}星琼转化为${need}张星铁专票？`, '兑换', '取消'))) return;
                 try {
                     const res = JSON.parse(await gacha_bridge.exchange(need));
                     if (!res.success) { toast('兑换失败', 'error'); return; }
@@ -2812,6 +2827,37 @@
             else console.log('[gacha]', text);
         }
 
+        // ===== 页面内确认框（替代浏览器原生 confirm）=====
+        // QtWebEngine 里的原生 confirm 是系统样式的 Qt 询问框，和卡池页面完全不搭；
+        // 这里自绘一个同风格弹窗，返回 Promise<boolean>（async 流程里直接 await）。
+        window.gachaConfirm = function (text, okText, cancelText) {
+            return new Promise(function (resolve) {
+                const old = document.getElementById('gachaConfirm');
+                if (old && old.parentNode) old.parentNode.removeChild(old);
+                const box = document.createElement('div');
+                box.id = 'gachaConfirm';
+                box.className = 'gacha-confirm';
+                box.innerHTML = '<div class="gc-panel"><div class="gc-text"></div>' +
+                    '<div class="gc-btns"><button class="gc-cancel" type="button"></button>' +
+                    '<button class="gc-ok" type="button"></button></div></div>';
+                box.querySelector('.gc-text').textContent = text || '';
+                box.querySelector('.gc-ok').textContent = okText || '确定';
+                box.querySelector('.gc-cancel').textContent = cancelText || '取消';
+                document.body.appendChild(box);
+                let done = false;
+                function finish(v) {
+                    if (done) return;
+                    done = true;
+                    try { box.parentNode.removeChild(box); } catch (e) { box.style.display = 'none'; }
+                    resolve(v);
+                }
+                box.querySelector('.gc-ok').addEventListener('click', function () { finish(true); });
+                box.querySelector('.gc-cancel').addEventListener('click', function () { finish(false); });
+                box.addEventListener('click', function (e) { if (e.target === box) finish(false); });
+            });
+        };
+        window.gachaConfirmSync = window.gachaConfirm;
+
         function toLocalInputValue(d) {
             const p = n => String(n).padStart(2, '0');
             return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
@@ -2820,7 +2866,25 @@
 
         function parseLocalTime(s) {
             if (!s) return null;
-            const t = String(s).trim().replace(' ', 'T');
+            const raw = String(s).trim();
+            // 相对写法（30D / 30d / 30天 / 2h / 2H / 30m / 30分钟 / 1D12H）：从现在起算。
+            // 以前只走 new Date()，相对写法一律 Invalid Date → 倒计时永远显示"永久"。
+            const relRe = /^(?:\d+\s*(?:[dD]|days?|天|日|[hH]|hrs?|hours?|小时|时|[mM]|mins?|minutes?|分|分钟)\s*)+$/;
+            if (relRe.test(raw)) {
+                const unitRe = /(\d+)\s*([dD]|days?|天|日|[hH]|hrs?|hours?|小时|时|[mM]|mins?|minutes?|分|分钟)/g;
+                let ms = 0, m2, hit = false;
+                while ((m2 = unitRe.exec(raw)) !== null) {
+                    hit = true;
+                    const n = parseInt(m2[1], 10);
+                    const u = m2[2];
+                    if (/^(?:[dD]|days?|天|日)$/i.test(u)) ms += n * 86400000;
+                    else if (/^(?:[hH]|hrs?|hours?|小时|时)$/i.test(u)) ms += n * 3600000;
+                    else if (u === 'M') ms += n * 30 * 86400000;   // 大写 M = 月（与 Python 端一致）
+                    else ms += n * 60000;                          // m/min/分/分钟
+                }
+                return hit ? new Date(Date.now() + ms) : null;
+            }
+            const t = raw.replace(' ', 'T');
             const d = new Date(t);
             return isNaN(d.getTime()) ? null : d;
         }

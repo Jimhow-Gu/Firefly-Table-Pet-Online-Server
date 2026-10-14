@@ -1287,18 +1287,18 @@ def parse_time_spec(spec):
 
     # 3. 时长格式（支持大小写区分版和纯小写备选版）
     # 定义所有支持的符号（严格区分大小写）
+    # 单位表：只要不与另一单位冲突就大小写都收（D/d=天、H/h=小时、Y/y=年、S/s=秒），
+    # 并收下中文单位（天/日/小时/时/分/分钟/月/年/秒）。
+    # 仍区分大小写的只有一对：'M'=月、'm'=分钟（两个都常用，不能混）。
     units = {
-        'Y': 'years',
-        'yr': 'years',
-        'M': 'months',
-        'D': 'days',
-        'd': 'days',
-        'H': 'hours',
-        'hr': 'hours',
-        'm': 'minutes',
-        'min': 'minutes',
-        's': 'seconds',
-        'sec': 'seconds'
+        'Y': 'years', 'y': 'years', 'yr': 'years', 'yrs': 'years', 'year': 'years', 'years': 'years', '年': 'years',
+        'M': 'months', 'mo': 'months', 'mon': 'months', 'month': 'months', 'months': 'months', '月': 'months',
+        'D': 'days', 'd': 'days', 'day': 'days', 'days': 'days', '天': 'days', '日': 'days',
+        'H': 'hours', 'h': 'hours', 'hr': 'hours', 'hrs': 'hours', 'hour': 'hours', 'hours': 'hours',
+        '小时': 'hours', '时': 'hours',
+        'm': 'minutes', 'min': 'minutes', 'mins': 'minutes', 'minute': 'minutes', 'minutes': 'minutes',
+        '分': 'minutes', '分钟': 'minutes',
+        's': 'seconds', 'sec': 'seconds', 'secs': 'seconds', 'second': 'seconds', 'seconds': 'seconds', '秒': 'seconds',
     }
     # 按长度降序排列，避免 `yr` 被 `y` 误匹配
     unit_pattern = '|'.join(sorted(units.keys(), key=len, reverse=True))
@@ -1314,17 +1314,18 @@ def parse_time_spec(spec):
     years = months = days = hours = minutes = seconds = 0
     for num_str, unit in matches:
         num = int(num_str)
-        if unit in ('Y', 'yr'):
+        kind = units.get(unit)
+        if kind == 'years':
             years += num
-        elif unit == 'M':
+        elif kind == 'months':
             months += num
-        elif unit in ('D', 'd'):
+        elif kind == 'days':
             days += num
-        elif unit in ('H', 'hr'):
+        elif kind == 'hours':
             hours += num
-        elif unit in ('m', 'min'):
+        elif kind == 'minutes':
             minutes += num
-        elif unit in ('s', 'sec'):
+        elif kind == 'seconds':
             seconds += num
         else:
             return None, None
@@ -1536,7 +1537,18 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         print(f"[配置加载] {key} 类型异常，回退默认")
                         config[key] = default_config[key]
                 # 多卡池规范化（无 pools 时用顶层字段兼容成单卡池）
-                return normalize_gacha_pools(config, default_config)
+                _raw_dump = json.dumps(config, ensure_ascii=False, sort_keys=True)
+                config = normalize_gacha_pools(config, default_config)
+                if json.dumps(config, ensure_ascii=False, sort_keys=True) != _raw_dump:
+                    # 相对有效期（30D/2h…）在这里被换算成绝对时间：落盘一次，
+                    # 否则每次重启都会从"现在"重新计时（卡池永远不过期）
+                    try:
+                        with open(config_path, 'w', encoding='utf-8') as f:
+                            json.dump(config, f, indent=2, ensure_ascii=False)
+                        print("[配置加载] 卡池配置已规范化并落盘（相对有效期→绝对时间）")
+                    except Exception as _e:
+                        print(f"[配置加载] 规范化结果落盘失败: {_e}")
+                return config
             except Exception as e:
                 print(f"[配置加载错误] {e}，使用默认配置")
                 return default_config
@@ -2607,6 +2619,17 @@ class TCPHandler(socketserver.BaseRequestHandler):
             return player
 
         elif mtype == 'exchange' and player:
+
+            # 兑换响应里要带"当前卡池自己的保底"：先取一次保底字段名。
+            # （此前这一步漏了 → UnboundLocalError: local variable '_pity5_key'，
+            #   兑换 1600 星琼换 10 张专票时服务端抛未处理异常、客户端拿不到 exchange_result）
+            try:
+                _ex_cfg = self._load_gacha_config()
+                _ex_pool = get_gacha_pool(_ex_cfg, None) or {}
+                _pity5_key, _pity4_key, _guar_key = pool_pity_keys(_ex_pool.get('id') or 'default')
+            except Exception as _ex_e:
+                print(f"[兑换] 保底字段回退默认: {_ex_e}")
+                _pity5_key, _pity4_key, _guar_key = pool_pity_keys('default')
 
             amount = data.get('amount', 1)
 
@@ -7016,11 +7039,55 @@ def parse_pool_time(value):
     return dt
 
 
-def resolve_pool_time(value):
-    """把卡池有效期（永久 / 30D / 2h / 30m / 2026-12-31 / ISO）规整为可解析的时间字符串。
+_REL_UNIT_MINUTES = {
+    'd': 1440, 'day': 1440, 'days': 1440, '天': 1440, '日': 1440,
+    'h': 60, 'hr': 60, 'hrs': 60, 'hour': 60, 'hours': 60, '小时': 60, '时': 60,
+    'm': 1, 'min': 1, 'mins': 1, 'minute': 1, 'minutes': 1, '分': 1, '分钟': 1,
+    's': 1.0 / 60, 'sec': 1.0 / 60, 'secs': 1.0 / 60, 'second': 1.0 / 60,
+    'seconds': 1.0 / 60, '秒': 1.0 / 60,
+}
 
-    - 相对写法（30D/2h/30m）→ 换算成绝对时间 '%Y-%m-%d %H:%M:%S'
-      （页面倒计时用 JS Date 解析，"30D" 这类相对写法解析不了会一直显示"永久"）；
+
+def parse_relative_minutes(text):
+    """解析相对时长 → 总分钟数（解析不了返回 None）。
+
+    大小写与中文都不敏感：30D / 30d / 30天 / 2H / 2h / 2小时 / 30m / 30分钟 /
+    1D12H / 1天2小时；纯数字按"天"（与 parse_time_spec 一致）。
+    注意 'M'（大写）= 月（按 30 天），'m' = 分钟 —— 这一对仍然区分大小写。
+    """
+    if text is None:
+        return None
+    v = str(text).strip()
+    if not v:
+        return None
+    if v.isdigit():
+        return int(v) * 1440
+    # 必须是"纯相对写法"，避免把 2026-12-31 / ISO 里的数字误当相对时长
+    if not re.fullmatch(r'(?:\d+\s*[A-Za-z\u4e00-\u9fff]+\s*)+', v):
+        return None
+    total = 0.0
+    found = False
+    for num, unit in re.findall(r'(\d+)\s*([A-Za-z\u4e00-\u9fff]+)', v):
+        n = int(num)
+        if unit in ('M', 'mo', 'mon', 'month', 'months', '月'):
+            total += n * 30 * 1440
+        else:
+            k = _REL_UNIT_MINUTES.get(unit)
+            if k is None:
+                k = _REL_UNIT_MINUTES.get(unit.lower())
+            if k is None:
+                return None
+            total += n * k
+        found = True
+    return total if found else None
+
+
+def resolve_pool_time(value):
+    """把卡池有效期规整为可解析的时间字符串（页面倒计时用 JS Date 解析）。
+
+    - 相对写法（30D / 30d / 30天 / 2h / 2H / 2小时 / 30m / 30分钟 / 1D12H / 纯数字=天）
+      → 换算成绝对时间 '%Y-%m-%d %H:%M:%S'；
+      **大小写、中文都不敏感**："30D 无效、必须写 30d" 这类差异在这里统一掉；
     - 已是绝对时间（ISO / 日期）→ 原样返回（页面两种格式都能解析）；
     - 永久 / 空 / 无法解析 → None。
     """
@@ -7028,19 +7095,11 @@ def resolve_pool_time(value):
         return None
     if isinstance(value, str):
         v = value.strip()
-        if not v or v.lower() in ('none', 'null', '永久', 'permanent', 'forever'):
+        if not v or v.lower() in ('none', 'null', '永久', 'permanent', 'forever', '不限', '无限'):
             return None
-        m = re.match(r'^(\d+)\s*([dDhHmM])$', v)
-        if m:
-            n = int(m.group(1))
-            u = m.group(2).lower()
-            now = datetime.now(SERVER_TIMEZONE)
-            if u == 'd':
-                dt = now + timedelta(days=n)
-            elif u == 'h':
-                dt = now + timedelta(hours=n)
-            else:
-                dt = now + timedelta(minutes=n)
+        mins = parse_relative_minutes(v)
+        if mins:
+            dt = datetime.now(SERVER_TIMEZONE) + timedelta(minutes=mins)
             return dt.strftime('%Y-%m-%d %H:%M:%S')
     dt = parse_pool_time(value)
     if dt is None:
@@ -8246,6 +8305,7 @@ class SlashCompleter(QObject):
         self._cycle_token = ''         # 刚补齐的 token
         self._in_cycle = False         # 循环替换中（避免 refresh 重算候选位置）
         self._ime_composing = False   # 输入法组合中（此时不显示提示，避免与输入法候选窗重叠）
+        self.allow_at_s = True         # @目标里是否给 '@s'（本人）：服务端控制台没有本人，置 False
         self._ime_seq = 0            # 输入法事件序号（用于延迟恢复提示）
         self._hint_lbl = QLabel(edit)
         self._hint_lbl.setStyleSheet('color: rgba(255,255,255,110); background:transparent;')
@@ -8310,11 +8370,12 @@ class SlashCompleter(QObject):
         elif arg == 'online_user':
             cands = users_fn(True)
         elif arg == 'target':
-            cands = ['@a', '@s'] + users_fn(False)
+            cands = (['@a', '@s'] if getattr(self, 'allow_at_s', True) else ['@a']) + users_fn(False)
         elif arg == 'ban_target':
             cands = ['ip', 'area', 'timezone'] + users_fn(False)
         elif arg == 'set_target':
-            cands = ['newcode', '@a', '@s'] + users_fn(False)
+            cands = (['newcode', '@a', '@s'] if getattr(self, 'allow_at_s', True)
+                     else ['newcode', '@a']) + users_fn(False)
         elif isinstance(arg, (list, tuple)):
             cands = list(arg)
         else:
@@ -8332,7 +8393,7 @@ class SlashCompleter(QObject):
             elif a == 'online_user':
                 ph.append('<在线玩家>')
             elif a == 'target':
-                ph.append('<@a/@s/玩家>')
+                ph.append('<@a/@s/玩家>' if getattr(self, 'allow_at_s', True) else '<@a/玩家>')
             elif a == 'ban_target':
                 ph.append('<玩家|ip|area|timezone>')
             elif a == 'duration':
@@ -8366,11 +8427,12 @@ class SlashCompleter(QObject):
                 elif a == 'online_user':
                     cands = users_fn(True)
                 elif a == 'target':
-                    cands = ['@a', '@s'] + users_fn(False)
+                    cands = (['@a', '@s'] if getattr(self, 'allow_at_s', True) else ['@a']) + users_fn(False)
                 elif a == 'ban_target':
                     cands = ['ip', 'area', 'timezone'] + users_fn(False)
                 elif a == 'set_target':
-                    cands = ['newcode', '@a', '@s'] + users_fn(False)
+                    cands = (['newcode', '@a', '@s'] if getattr(self, 'allow_at_s', True)
+                             else ['newcode', '@a']) + users_fn(False)
                 elif isinstance(a, (list, tuple)):
                     cands = list(a)
                 else:
@@ -8781,6 +8843,8 @@ class ServerWindow(QMainWindow):
         # 参数候选（按命令需要提供 在线玩家 / 全部玩家档案 / 固定选项）
         self.cmd_completer = SlashCompleter(self.cmd_edit, self._console_completer_provider,
                                             CONSOLE_COMMAND_SPECS)
+        # 服务端控制台没有"本人"：/give /set /clear 等目标候选里不再给 @s
+        self.cmd_completer.allow_at_s = False
 
         self.cmd_edit.returnPressed.connect(self.send_command)
         send_btn = QPushButton("发送")

@@ -1303,7 +1303,24 @@ function gpCur() { return gachaPools[gpIndex] || null; }
 
 function gpParseTime(v) {
     if (!v) return null;
-    const d = new Date(String(v).trim().replace(' ', 'T'));
+    const raw = String(v).trim();
+    // 相对写法（30D / 30d / 30天 / 2h / 30m / 1D12H）：从现在起算 —— 与后端 resolve_pool_time 一致
+    const relRe = /^(?:\d+\s*(?:[dD]|days?|天|日|[hH]|hrs?|hours?|小时|时|[mM]|mins?|minutes?|分|分钟)\s*)+$/;
+    if (relRe.test(raw)) {
+        const unitRe = /(\d+)\s*([dD]|days?|天|日|[hH]|hrs?|hours?|小时|时|[mM]|mins?|minutes?|分|分钟)/g;
+        let ms = 0, m2, hit = false;
+        while ((m2 = unitRe.exec(raw)) !== null) {
+            hit = true;
+            const n = parseInt(m2[1], 10);
+            const u = m2[2];
+            if (/^(?:[dD]|days?|天|日)$/i.test(u)) ms += n * 86400000;
+            else if (/^(?:[hH]|hrs?|hours?|小时|时)$/i.test(u)) ms += n * 3600000;
+            else if (u === 'M') ms += n * 30 * 86400000;
+            else ms += n * 60000;
+        }
+        return hit ? new Date(Date.now() + ms) : null;
+    }
+    const d = new Date(raw.replace(' ', 'T'));
     return isNaN(d.getTime()) ? null : d;
 }
 
