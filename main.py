@@ -89,7 +89,12 @@ def _player_files():
 _ensure_data_dirs()
 
 HOST = '0.0.0.0'
-PORT = 20082
+# 监听端口：可在服务端窗口里改（server_config.json 的 tcp_port），不写死
+# 留空/未配置/非法 → DEFAULT_TCP_PORT（20082，与客户端默认一致）
+DEFAULT_TCP_PORT = 20082
+PORT = DEFAULT_TCP_PORT
+# 日志/控制台文本大小（px）：可在窗口里改（server_config.json 的 log_font_size）
+DEFAULT_LOG_FONT_SIZE = 13
 SERVER_VERSION = "4.7.0"
 
 # 全局版本放行开关（默认关闭）
@@ -703,6 +708,34 @@ def load_server_config():
     # allow_hosts: 来源 IP 白名单（支持 10.0.0.* 通配）；非空时只有这些来源能连
     config.setdefault('allow_hosts', [])
     return config
+
+
+def get_tcp_port():
+    """生效的监听端口：server_config.json 的 tcp_port；留空/非法/越界 → DEFAULT_TCP_PORT"""
+    try:
+        raw = load_server_config().get('tcp_port')
+        s = str(raw if raw is not None else '').strip()
+        if s:
+            p = int(s)
+            if 1 <= p <= 65535:
+                return p
+    except Exception:
+        pass
+    return DEFAULT_TCP_PORT
+
+
+def get_log_font_size():
+    """日志/控制台文本大小（px）：只认整数，非法/越界 → DEFAULT_LOG_FONT_SIZE"""
+    try:
+        raw = load_server_config().get('log_font_size')
+        s = str(raw if raw is not None else '').strip()
+        if s:
+            v = int(s)
+            if 6 <= v <= 72:
+                return v
+    except Exception:
+        pass
+    return DEFAULT_LOG_FONT_SIZE
 
 
 def get_security_level():
@@ -9316,6 +9349,13 @@ class SlashCompleter(QObject):
         return False
 
 
+class NoWheelComboBox(QComboBox):
+    """不响应滚轮的 ComboBox：鼠标滚轮划过时不再误改选项（时区这种关键设置尤其要命）"""
+
+    def wheelEvent(self, event):
+        event.ignore()      # 不调用父类：滚轮事件继续传给父窗口（该滚的滚动条照常滚）
+
+
 class ServerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -9540,25 +9580,61 @@ class ServerWindow(QMainWindow):
 
         self.log_edit = QTextEdit()
         self.log_edit.setReadOnly(True)
+        # 服务端自己的右键菜单（全选/复制），替代 Qt 自带菜单
+        self.log_edit.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.log_edit.customContextMenuRequested.connect(
+            lambda pos, w=self.log_edit: self.show_text_menu(w, pos))
         layout.addWidget(self.log_edit, 1)
 
-        # 时区选择行（带应用按钮）
+        # 设置行：时区 + 端口 + 文本大小，共用一个「应用并重启」按钮（放在最右侧）
         tz_layout = QHBoxLayout()
         tz_label = QLabel("服务器时区:")
-        self.tz_combo = QComboBox()
+        self.tz_combo = NoWheelComboBox()          # 不允许滚轮改时区（用户要求）
         all_timezones = sorted(pytz.common_timezones)
         self.tz_combo.addItems(all_timezones)
-        apply_tz_btn = QPushButton("应用并重启")
-        apply_tz_btn.clicked.connect(self.on_apply_timezone)
+
+        self.port_label = QLabel("端口:")
+        self.port_edit = QLineEdit()
+        self.port_edit.setFixedWidth(90)
+        self.port_edit.setPlaceholderText(str(DEFAULT_TCP_PORT))
+        self.port_edit.setToolTip("TCP 监听端口；留空 = %d" % DEFAULT_TCP_PORT)
+        _saved_port = ''
+        try:
+            _saved_port = str(load_server_config().get('tcp_port') or '').strip()
+        except Exception:
+            _saved_port = ''
+        self.port_edit.setText(_saved_port)
+
+        self.font_label = QLabel("文本大小:")
+        self.font_spin = QSpinBox()                # 只允许整数
+        self.font_spin.setRange(6, 72)
+        self.font_spin.setFixedWidth(90)
+        self.font_spin.setValue(get_log_font_size())
+        self.font_spin.setToolTip("日志/控制台字号（整数 px），字体与服务端一致")
+
+        apply_btn = QPushButton("应用并重启")
+        apply_btn.clicked.connect(self.on_apply_settings)
+
         tz_layout.addWidget(tz_label)
         tz_layout.addWidget(self.tz_combo)
-        tz_layout.addWidget(apply_tz_btn)
+        tz_layout.addSpacing(12)
+        tz_layout.addWidget(self.port_label)
+        tz_layout.addWidget(self.port_edit)
+        tz_layout.addSpacing(12)
+        tz_layout.addWidget(self.font_label)
+        tz_layout.addWidget(self.font_spin)
+        tz_layout.addSpacing(12)
+        tz_layout.addWidget(apply_btn)
         tz_layout.addStretch()
         layout.addLayout(tz_layout)
 
         cmd_layout = QHBoxLayout()
         self.cmd_edit = QLineEdit()
         self.cmd_edit.setPlaceholderText("输入命令 (/help获取用法)")
+        # 命令行输入框也用自己的右键菜单（全选/复制）
+        self.cmd_edit.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.cmd_edit.customContextMenuRequested.connect(
+            lambda pos, w=self.cmd_edit: self.show_text_menu(w, pos))
 
         # Minecraft 风格命令补全：灰色内联提示 + Tab 补齐 +
         # 参数候选（按命令需要提供 在线玩家 / 全部玩家档案 / 固定选项）
@@ -9595,6 +9671,8 @@ class ServerWindow(QMainWindow):
         btn_layout.addWidget(self.check_update_btn)
         layout.addLayout(btn_layout)
 
+        # 字号必须等 log_edit / cmd_edit 都建好再套用（放在设置行时会漏掉命令行）
+        self._apply_text_size(self.font_spin.value(), save=False)
 
         self.log_emitter = LogEmitter()
         self.log_emitter.log_signal.connect(self.append_log)
@@ -9691,23 +9769,150 @@ class ServerWindow(QMainWindow):
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(timestamp + text + "\n")
 
-    def on_apply_timezone(self):
+    def show_text_menu(self, widget, pos):
+        """服务端自己的文本右键菜单：全选 / 复制（替代 Qt 自带菜单）"""
+        menu = QMenu(widget)
+        menu.setStyleSheet("""
+            QMenu { background-color: #2D2D2D; border: 1px solid #555; border-radius: 6px; padding: 4px; }
+            QMenu::item { padding: 6px 22px; border-radius: 4px; color: #E0E0E0; }
+            QMenu::item:selected { background-color: #3F6D8F; color: #FFFFFF; }
+            QMenu::item:disabled { color: #808080; }
+        """)
+        try:
+            if isinstance(widget, QTextEdit):
+                has_sel = widget.textCursor().hasSelection()
+            else:
+                has_sel = bool(widget.selectedText())
+        except Exception:
+            has_sel = False
+        copy_act = menu.addAction("复制")
+        copy_act.setEnabled(bool(has_sel))
+        copy_act.triggered.connect(widget.copy)
+        all_act = menu.addAction("全选")
+        all_act.triggered.connect(widget.selectAll)
+        try:
+            menu.exec_(widget.mapToGlobal(pos))
+        except Exception:
+            menu.exec_(QCursor.pos())
+
+    def _apply_text_size(self, size, save=True):
+        """应用日志/控制台文字大小（只改字号，字体族与服务端保持一致）"""
+        try:
+            px = int(size)
+        except Exception:
+            px = DEFAULT_LOG_FONT_SIZE
+        px = max(6, min(72, px))
+        try:
+            _log = getattr(self, 'log_edit', None)
+            if _log is not None:
+                _log.setStyleSheet(
+                    "QTextEdit { background-color: #2D2D2D; border:1px solid #555; border-radius:8px;"
+                    " color:#CCC; font-family:Consolas, \"Microsoft YaHei\"; font-size:%dpx; padding:5px; }" % px)
+            _cmd = getattr(self, 'cmd_edit', None)
+            if _cmd is not None:
+                _f = _cmd.font()
+                _f.setPixelSize(px)
+                _cmd.setFont(_f)
+        except Exception as e:
+            print(f"[界面] 设置文本大小失败: {e}")
+        if save:
+            try:
+                cfg = load_server_config()
+                cfg['log_font_size'] = px
+                save_server_config(cfg)
+            except Exception as e:
+                print(f"[界面] 保存文本大小失败: {e}")
+
+    def on_apply_settings(self):
+        """共用「应用并重启」：时区 + 端口 + 文本大小一起保存，需要时重启"""
         tzname = self.tz_combo.currentText()
-        msg_box = QMessageBox(self)
-        msg_box.setWindowTitle("确认修改时区")
-        msg_box.setText(f"确定要将服务器时区修改为 {tzname} 并重启服务器吗？\n重启后所有玩家将被断开连接。")
-        msg_box.setIcon(QMessageBox.Question)
-        msg_box.setStyleSheet("""
+        # 端口：留空 = 默认 20082；填了必须是 1~65535 的整数
+        raw_port = self.port_edit.text().strip()
+        if raw_port:
+            try:
+                port = int(raw_port)
+            except ValueError:
+                self._warn_dialog("端口无效", "端口只能是整数（留空 = 默认 %d）。" % DEFAULT_TCP_PORT)
+                return
+            if not (1 <= port <= 65535):
+                self._warn_dialog("端口无效", "端口范围必须是 1 ~ 65535（留空 = 默认 %d）。" % DEFAULT_TCP_PORT)
+                return
+        else:
+            port = DEFAULT_TCP_PORT
+        try:
+            font_px = int(self.font_spin.value())
+        except Exception:
+            font_px = DEFAULT_LOG_FONT_SIZE
+
+        old_port = None
+        try:
+            old_cfg = load_server_config()
+            old_port = get_tcp_port()
+            old_tz = old_cfg.get('timezone') or ''
+        except Exception:
+            old_tz = ''
+        _running = self.server is not None
+        msg = ("确定要应用以下设置吗？\n\n"
+               "  时区：%s\n  端口：%d%s\n  文本大小：%d px\n\n"
+               "%s" % (tzname, port,
+                       "（留空用默认）" if not raw_port else "",
+                       font_px,
+                       "服务器正在运行，将重启以完全应用（在线玩家会被断开）。" if _running
+                       else "服务器未启动，保存后下次启动生效。"))
+        if not self._confirm_dialog("确认应用设置", msg):
+            return
+
+        if not set_server_timezone(tzname):
+            self.append_log(f"无效时区 {tzname}，切换失败")
+            return
+        cfg = load_server_config()
+        cfg['timezone'] = tzname
+        cfg['tcp_port'] = '' if not raw_port else int(raw_port)
+        cfg['log_font_size'] = font_px
+        save_server_config(cfg)
+        self._apply_text_size(font_px, save=False)
+        self.append_log("设置已保存：时区 %s，端口 %d%s，文本大小 %d px"
+                        % (tzname, port, "（默认）" if not raw_port else "", font_px))
+        if _running and old_port is not None and port != old_port:
+            self.append_log(f"监听端口 %d → %d，重启后生效（客户端地址也要改成 :%d）" % (old_port, port, port))
+        if not _running:
+            self.append_log("服务器未启动，设置已保存，无需重启。")
+        else:
+            self.append_log("服务器正在运行，将重启以完全应用新设置...")
+            self.restart_server()
+
+    def _confirm_dialog(self, title, text):
+        """深色风格的确认框（是/否）"""
+        box = QMessageBox(self)
+        box.setWindowTitle(title)
+        box.setText(text)
+        box.setIcon(QMessageBox.Question)
+        box.setStyleSheet("""
             QMessageBox { background-color: #2D2D2D; color: #E0E0E0; }
             QMessageBox QLabel { color: #E0E0E0; background-color: #2D2D2D; }
             QPushButton { background-color: #4CAF50; color: white; border: none; border-radius: 4px; padding: 5px 10px; }
             QPushButton:hover { background-color: #45A049; }
         """)
-        msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        msg_box.setDefaultButton(QMessageBox.No)
-        reply = msg_box.exec_()
-        if reply == QMessageBox.Yes:
-            self.apply_timezone_and_restart(tzname)
+        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        box.setDefaultButton(QMessageBox.No)
+        return box.exec_() == QMessageBox.Yes
+
+    def _warn_dialog(self, title, text):
+        box = QMessageBox(self)
+        box.setWindowTitle(title)
+        box.setText(text)
+        box.setIcon(QMessageBox.Warning)
+        box.setStyleSheet("""
+            QMessageBox { background-color: #2D2D2D; color: #E0E0E0; }
+            QMessageBox QLabel { color: #E0E0E0; background-color: #2D2D2D; }
+            QPushButton { background-color: #4CAF50; color: white; border: none; border-radius: 4px; padding: 5px 10px; }
+        """)
+        box.setStandardButtons(QMessageBox.Ok)
+        box.exec_()
+
+    def on_apply_timezone(self):
+        """兼容旧入口：现在和「应用并重启」是同一个（一起应用时区/端口/文本大小）"""
+        self.on_apply_settings()
 
     def apply_timezone_and_restart(self, tzname):
         if not set_server_timezone(tzname):
@@ -9730,13 +9935,14 @@ class ServerWindow(QMainWindow):
                 _host = str(load_server_config().get('listen_host') or '0.0.0.0').strip() or '0.0.0.0'
             except Exception:
                 _host = HOST
-            self.server = ThreadedTCPServer((_host, PORT), TCPHandler, self.log_emitter)
+            _port = get_tcp_port()      # 端口可配（留空 = 20082）
+            self.server = ThreadedTCPServer((_host, _port), TCPHandler, self.log_emitter)
             self.server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
             self.server_thread.start()
             # 启动 Web 服务器（如果尚未启动）
             if not hasattr(self, 'web_server') or self.web_server is None:
                 self.start_web_server()
-            self.append_log(f"服务器已启动，监听 {HOST}:{PORT}")
+            self.append_log(f"服务器已启动，监听 {_host}:{_port}")
             self.append_log("提示：输入 /help 查看命令提示")
             self.start_btn.setEnabled(False)
             self.restart_btn.setEnabled(True)
