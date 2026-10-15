@@ -8417,6 +8417,11 @@ class ContentBridge(QObject):
             elif 'currency' not in rec:
                 rec['currency'] = 'credit'
 
+            # 物品必须有图片：本次没传、之前也没有 → 拒绝（页面已限制，这里是双保险）
+            if self._decode_b64(data.get('image')) is None and not rec.get('image'):
+                print(f"[物品] {item_id} 缺少物品图片，拒绝保存")
+                return '请先给物品上传一张图片（管理页「物品图片」）'
+
             assets = self._custom_assets_dir()
             img = self._decode_b64(data.get('image'))
             if img is not None:

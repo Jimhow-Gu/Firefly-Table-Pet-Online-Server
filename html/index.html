@@ -437,8 +437,11 @@ input:focus,select:focus{
                 <div class="grid gap-y-2 gap-x-[10px]" style="grid-template-columns:90px 1fr;align-items:center;">
                     <label class="text-right pr-2 text-sm">物品名称</label>
                     <input id="i_name" type="text" placeholder="客户端背包显示的物品名称">
+                    <!-- 物品图标改为"必须上传图片"：界面上不再有 emoji 输入框（保留隐藏字段兼容旧逻辑） -->
                     <label class="text-right pr-2 text-sm">图标</label>
-                    <input id="i_icon" type="text" placeholder="emoji 例如：🎁">
+                    <div class="text-xs text-gray-400">由「图片」自动生成（必须上传物品图片）</div>
+                    <input id="i_icon" type="hidden" value="🎁">
+                    <div class="hidden"></div>
                     <label class="text-right pr-2 text-sm">描述文本</label>
                     <input id="i_desc" type="text" placeholder="鼠标悬浮显示的物品描述">
                     <label class="text-right pr-2 text-sm">数量</label>
@@ -886,7 +889,7 @@ const f_resource_url = document.getElementById('f_resource_url');
 const f_icon = document.getElementById('f_icon');
 const f_expiry = document.getElementById('f_expiry');  // 新增
 const i_name = document.getElementById('i_name');
-const i_icon = document.getElementById('i_icon');
+const i_icon = document.getElementById('i_icon');   // 已移除输入框：下面用 [兼容] 方式读取旧值
 const i_desc = document.getElementById('i_desc');
 const i_id = document.getElementById('i_id');
 const i_count = document.getElementById('i_count');
@@ -2091,7 +2094,7 @@ window.gpTimeTargetPool = gpTimeTargetPool;
 
 function fillItemForm(it) {
     i_name.value = it.name || '';
-    i_icon.value = it.icon || '';
+    if (i_icon) i_icon.value = it.icon || '';   // 元素已移除：有就填旧图标
     i_desc.value = it.description || '';
     i_id.value = it.id || '';
     i_count.value = (it.count !== undefined) ? it.count : 0;
@@ -2216,7 +2219,7 @@ function clearAllForm() {
     f_icon.value = '';
     f_expiry.value = '';
     i_name.value = '';
-    i_icon.value = '';
+    if (i_icon) i_icon.value = '';
     i_desc.value = '';
     i_id.value = '';
     i_count.value = 0;
@@ -2682,7 +2685,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             } else if (selectedType === 'item') {
                 const name = i_name.value.trim() || '未命名';
-                const icon = i_icon.value.trim() || '🎁';
+                // 图标不再手填：沿用旧值/默认 🎁（图片才是必须的，见下面的图片校验）
+                const icon = ((i_icon && i_icon.value) || '').trim() || '🎁';
                 const description = i_desc.value.trim();
                 const count = parseInt(i_count.value) || 0;
                 let id = i_id.value.trim() || selectedId;   // 下面会把空格换成下划线，故用 let
@@ -2698,6 +2702,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 id = id.replace(/\s+/g, '_');
                 if (itemOrigId && id !== itemOrigId) {
                     showNotice('无法保存', '物品 ID 不能修改（删除后该 ID 才可复用）');
+                    return;
+                }
+                // 新规则：物品必须有图片（新建必须有；编辑时已有图也可以）
+                if (!itemImageB64 && !((items.find(it => it.id === id) || {}).image)) {
+                    showNotice('无法保存', '请先给物品上传一张图片（物品图标就用它显示）');
                     return;
                 }
                 if (i_gacha.checked && !itemImageB64 && !((items.find(it => it.id === id) || {}).image)) {
