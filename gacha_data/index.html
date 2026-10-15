@@ -1477,10 +1477,15 @@
                 try {
                     const res = JSON.parse(await gacha_bridge.exchange(need));
                     if (!res.success) { toast('兑换失败', 'error'); return; }
-                    tickets = res.tickets;
-                    jades = res.jade;
-                    if (ticketCountEl) ticketCountEl.textContent = tickets;
-                    if (jadeCountEl) jadeCountEl.textContent = jades;
+                    // 返回值只是"已提交"，真实余额由 onExchangeResult / onGachaResult 推送
+                    if (res.tickets !== undefined && res.tickets !== null) {
+                        tickets = res.tickets;
+                        if (ticketCountEl) ticketCountEl.textContent = tickets;
+                    }
+                    if (res.jade !== undefined && res.jade !== null) {
+                        jades = res.jade;
+                        if (jadeCountEl) jadeCountEl.textContent = jades;
+                    }
                 } catch (e) { toast('兑换异常', 'error'); return; }
             }
             isGachaInProgress = true;
@@ -1581,6 +1586,28 @@
                 } else if (!isFiveStarGuaranteed && hint) hint.remove();
             }
             if (data.uid) { uid = data.uid; if (uidDisplayEl) uidDisplayEl.textContent = 'UID: ' + uid; }
+        };
+
+        // ===== onExchangeResult（兑换专票：只更新余额，不碰抽卡结果）=====
+        window.onExchangeResult = function(resp) {
+            try {
+                if (!resp || !resp.success) {
+                    if (resp && resp.reason) toast('兑换失败：' + resp.reason, 'error');
+                    return;
+                }
+                if (resp.tickets !== undefined && resp.tickets !== null) {
+                    tickets = resp.tickets;
+                    if (ticketCountEl) ticketCountEl.textContent = tickets;
+                }
+                if (resp.jade !== undefined && resp.jade !== null) {
+                    jades = resp.jade;
+                    if (jadeCountEl) jadeCountEl.textContent = jades;
+                }
+                if (resp.pity !== undefined && resp.pity !== null) {
+                    pityCounter = resp.pity;
+                    if (pityCountEl) pityCountEl.textContent = pityCounter;
+                }
+            } catch (e) { console.log('onExchangeResult', e); }
         };
 
         // ===== onGachaResult =====
