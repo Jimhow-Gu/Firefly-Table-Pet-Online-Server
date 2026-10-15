@@ -5117,7 +5117,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                 'data': {'success': False, 'message': '格式错误，请使用 /give <用户> <物品id> [数量]'}})
                 return
             user_spec = parts[1]
-            item_id = parts[2].lower()
+            # 大小写不敏感地解析物品 id（自定义物品可能含大写，如 Oneiric_Shard）
+            item_id = self.resolve_item_id(parts[2]) or parts[2].strip().lower()
             # 别名映射（时装）
             fashion_alias = {'ruyi': '26_Newyear'}
             if item_id in fashion_alias:
@@ -5352,7 +5353,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
                                 'data': {'success': False, 'message': '格式错误，请使用 /set <用户> <物品id> <数量>'}})
                 return
             user_spec = parts[1]
-            item_id = parts[2].lower()
+            # 大小写不敏感解析（自定义物品可能含大写）
+            item_id = self.resolve_item_id(parts[2]) or parts[2].strip().lower()
             # 别名映射
             fashion_alias = {'ruyi': '26_Newyear'}
             if item_id in fashion_alias:
@@ -5403,13 +5405,34 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         {'type': 'command_result', 'data': {'success': False, 'message': f'未找到用户 {user_spec}'}})
                     return
 
-            is_fashion = item_id not in ['cake', 'credit', 'ticket', 'star_rail_tickets', 'jade']
+            # 按物品真实类型区分：内置货币/材料 | 时装（数量 0/1）| 自定义物品（数量任意）
+            _builtin = ['cake', 'credit', 'ticket', 'star_rail_tickets', 'jade']
+            is_fashion = False
+            is_custom_item = False
+            if item_id not in _builtin:
+                try:
+                    _ci = next((it for it in (self.server.load_custom_items() or [])
+                                if it.get('id') == item_id), None)
+                except Exception:
+                    _ci = None
+                if _ci is not None:
+                    is_custom_item = (str(_ci.get('type') or 'item') != 'clothes')
+                    is_fashion = not is_custom_item
+                else:
+                    is_fashion = True     # 内置时装
             for p in target_players:
                 # 读取旧库存
                 old_inv = load_player_inventory(p['server_uid'])
                 new_inv = old_inv.copy()
 
-                if is_fashion:
+                if is_custom_item:
+                    # 自定义物品：直接设定数量（0 = 清空）
+                    _items = new_inv.setdefault('custom_items', {})
+                    if amount <= 0:
+                        _items.pop(item_id, None)
+                    else:
+                        _items[item_id] = amount
+                elif is_fashion:
                     if amount == 0:
                         if item_id in new_inv.get('owned_clothes', []):
                             new_inv['owned_clothes'].remove(item_id)
@@ -5483,7 +5506,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
                     {'type': 'command_result', 'data': {'success': False, 'message': '格式: /clear <用户> <物品或*>'}})
                 return
             user_spec = parts[1]
-            item_spec = parts[2].lower()
+            # 大小写不敏感（* 与内置名照旧；自定义物品 id 也允许清空）
+            _raw_spec = parts[2].strip()
+            item_spec = '*' if _raw_spec == '*' else (self.resolve_item_id(_raw_spec) or _raw_spec.lower())
 
             # 仅允许清空 cake、credit 或 *（全部）
             if item_spec not in ('cake', 'credit', '*'):
@@ -6307,6 +6332,13 @@ class TCPHandler(socketserver.BaseRequestHandler):
         self.send_json({'type': 'command_result',
                         'data': {'success': False, 'message': f'未知指令 {cmd_name} 或该命令未完全实现'}})
 
+    def resolve_item_id(self, raw):
+        """委托给服务器：把命令里写的物品 id 解析成规范 id（大小写不敏感）"""
+        try:
+            return self.server.resolve_item_id(raw)
+        except Exception:
+            return None
+
     def is_valid_item(self, item_id):
         if item_id in ('cake', 'credit', 'ticket', 'star_rail_tickets', 'jade'):
             return True
@@ -6847,6 +6879,45 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
                 _fix(it.get('children'))
         _fix(data)
         return data
+
+    def resolve_item_id(self, raw):
+        """把命令里写的物品 id 解析成规范 id（大小写不敏感；解析不了返回 None）。
+
+        以前 /give、/set 等先 `parts[2].lower()` 再精确匹配 → 自定义物品 id 只要含大写字母
+        （例如 Oneiric_Shard）就永远提示"未知物品ID"。现在：精确匹配优先，其次忽略大小写，
+        内置名与别名（ticket / star_rail_ticket / ruyi 等）照旧。
+        """
+        if not raw:
+            return None
+        try:
+            txt = str(raw).strip()
+        except Exception:
+            return None
+        if not txt:
+            return None
+        low = txt.lower()
+        alias = {'ruyi': '26_Newyear', 'ticket': 'ticket',
+                 'star_rail_ticket': 'ticket', 'star_rail_tickets': 'star_rail_tickets',
+                 'cake': 'cake', 'credit': 'credit', 'jade': 'jade', 'none': 'none'}
+        try:
+            _ci = self.load_custom_items()
+        except Exception:
+            _ci = []
+        for it in (_ci or []):
+            if it.get('id') == txt:
+                return txt
+        if low in alias:
+            return alias[low]
+        try:
+            for cid in AVAILABLE_CLOTHES:
+                if cid.lower() == low:
+                    return cid
+        except Exception:
+            pass
+        for it in (_ci or []):
+            if str(it.get('id') or '').lower() == low:
+                return it.get('id')
+        return None
 
     def load_custom_items(self):
         if os.path.exists(self.custom_items_file):
@@ -7889,6 +7960,12 @@ class ContentBridge(QObject):
                         return True
                 return False
             if remove(self.window.menu_data):
+                # 删完立即落盘（allow_empty=True：删到最后一个菜单也要保存，
+                # 否则重启后被删的菜单又回来了）
+                try:
+                    self.window.save_files(allow_empty=True)
+                except Exception as _e:
+                    print(f"deleteMenu 保存失败: {_e}")
                 self.dataChanged.emit()
                 return True
             return False
@@ -7957,7 +8034,7 @@ class ContentBridge(QObject):
                     print(f"[deleteItem] 已从卡池移除 {item_id}")
             except Exception as e:
                 print(f"[deleteItem] 卡池级联失败: {e}")
-            self.window.save_files()
+            self.window.save_files(allow_empty=True)   # 删到一件不剩也要落盘
             self._broadcast_custom_items()
             self.dataChanged.emit()
             return True
@@ -8195,13 +8272,17 @@ class ContentManagerWindow(QDialog):
             print(f"[save_json] 写入失败: {e}")
             raise
 
-    def save_files(self):
+    def save_files(self, allow_empty=False):
         """保存菜单和物品数据到文件（无界面提示）。
-        保护：内存为空而磁盘非空时**拒绝覆盖**——防止管理页面加载失败/滞后把数据清空。"""
+
+        保护：内存为空而磁盘非空时**拒绝覆盖**——防止管理页面加载失败/滞后把数据清空。
+        例外：删除操作传 allow_empty=True —— 删到一件不剩也必须落盘，
+        否则"删掉最后一个物品/菜单"不会写盘，重启后被删的又回来了（用户实测）。
+        """
         try:
             for fname, data in (('custom_menu.json', self.menu_data),
                                 ('custom_items.json', self.items_data)):
-                if not data:
+                if not data and not allow_empty:
                     path = os.path.join(SERVER_DATA, fname)
                     try:
                         if os.path.exists(path):
@@ -10325,7 +10406,9 @@ class ServerWindow(QMainWindow):
             self.append_log("用法: /give <用户> <物品id> [数量] (数量默认为1，时装自动为1)")
             return
         user_spec = parts[1]
-        item_id = parts[2].lower()
+        # 大小写不敏感解析（自定义物品可能含大写）
+        item_id = self.server.resolve_item_id(parts[2]) if getattr(self, 'server', None) else None
+        item_id = item_id or parts[2].strip().lower()
 
         # 别名映射（仅限已知时装）
         fashion_alias = {'ruyi': '26_Newyear'}
@@ -10468,18 +10551,25 @@ class ServerWindow(QMainWindow):
             self.append_log("用法: /set <用户> <物品id> <数量>")
             return
         user_spec = parts[1]
-        item_id = parts[2].lower()
+        # 大小写不敏感解析；同时也认自定义物品（以前只认内置名 → 自定义物品报"未知物品ID"）
+        _rid = self.server.resolve_item_id(parts[2]) if getattr(self, 'server', None) else None
+        item_id = _rid or parts[2].strip().lower()
 
         # 别名映射
         fashion_alias = {'ruyi': '26_Newyear'}
         if item_id in fashion_alias:
             item_id = fashion_alias[item_id]
 
-        # ★★★ 物品合法性校验
+        # ★★★ 物品合法性校验（内置 + 自定义物品/时装）
         def is_valid_item(iid):
             if iid in ('cake', 'credit', 'ticket', 'jade', 'star_rail_tickets'):
                 return True
-            return iid in AVAILABLE_CLOTHES
+            if iid in AVAILABLE_CLOTHES:
+                return True
+            try:
+                return any(it.get('id') == iid for it in (self.server.load_custom_items() or []))
+            except Exception:
+                return False
 
         if not is_valid_item(item_id):
             self.append_log(f"未知物品ID：{item_id}")
@@ -10520,10 +10610,33 @@ class ServerWindow(QMainWindow):
                 self.append_log(f"未找到用户 {user_spec}")
                 return
 
-        is_fashion = item_id not in ['cake', 'credit', 'ticket', 'jade', 'star_rail_tickets']
+        # 按物品"真实类型"区分，不能再用"非内置即时装"（用户实测：随便给个不存在的 id 也被当成了时装）
+        _builtin = ['cake', 'credit', 'ticket', 'star_rail_tickets', 'jade']
+        _custom_rec = None
+        if item_id not in _builtin:
+            try:
+                _custom_rec = next((it for it in (self.server.load_custom_items() or [])
+                                    if it.get('id') == item_id), None)
+            except Exception:
+                _custom_rec = None
+        is_custom_item = bool(_custom_rec) and (str(_custom_rec.get('type') or 'item') != 'clothes')
+        is_fashion = (item_id not in _builtin) and not is_custom_item
+        # 双重校验：未知 id 直接拒绝（别静默当时装塞进衣柜）
+        if is_fashion and item_id not in AVAILABLE_CLOTHES and not (
+                _custom_rec and str(_custom_rec.get('type')) == 'clothes'):
+            self.append_log(f"未知物品ID：{item_id}（已拒绝；不再自动当成时装）")
+            return
         for p in target_players:
             inv = load_player_inventory(p['server_uid'])
-            if is_fashion:
+            if is_custom_item:
+                _items = inv.setdefault('custom_items', {})
+                if amount <= 0:
+                    _items.pop(item_id, None)
+                    self.append_log(f"已清空玩家 {p['name']} 的物品 {item_id}")
+                else:
+                    _items[item_id] = amount
+                    self.append_log(f"已设置玩家 {p['name']} 的物品 {item_id} 为 {amount}")
+            elif is_fashion:
                 if amount == 0:
                     if item_id in inv.get('owned_clothes', []):
                         inv['owned_clothes'].remove(item_id)
@@ -10567,7 +10680,9 @@ class ServerWindow(QMainWindow):
             self.append_log("用法: /clear <用户> <物品或*>")
             return
         user_spec = parts[1]
-        item_spec = parts[2].lower()
+        _raw = parts[2].strip()
+        item_spec = '*' if _raw == '*' else ((self.server.resolve_item_id(_raw) if getattr(self, 'server', None)
+                                              else None) or _raw.lower())
 
         # 不支持 @a，只支持具体玩家名或ID（控制台不需要 @s）
         target_players = []
@@ -11272,6 +11387,22 @@ class ServerWindow(QMainWindow):
                             pass
         except Exception as e:
             print(f"[热更新] 卡池配置广播失败: {e}")
+        # 商店商品也一起推：这样"热更新"一键就把 菜单/物品/商店/卡池 全推给在线玩家，
+        # 不需要先跑进对应的管理页（用户要求"点击之后全内容热更新"）。
+        try:
+            _shop = load_json_safe(os.path.join(SERVER_DATA, 'shop_config.json'), {})
+            _goods = _shop.get('goods') if isinstance(_shop, dict) else None
+            if isinstance(_goods, list):
+                with server_lock:
+                    for client in list(clients.keys()):
+                        try:
+                            TCPHandler.send_to(client, {'type': 'shop_goods',
+                                                        'data': {'goods': _goods}})
+                        except Exception:
+                            pass
+                print(f"[热更新] 商店商品 {len(_goods)} 件已广播")
+        except Exception as e:
+            print(f"[热更新] 商店配置广播失败: {e}")
         self.append_log(f"[热更新] 已广播配置给 {len(clients)} 个在线玩家")
 
     def closeEvent(self, event):

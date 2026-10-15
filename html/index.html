@@ -581,13 +581,10 @@ input:focus,select:focus{
             </div>
         </div>
 <div class="bottom-bar">
-            <button class="btn btn-green" id="btnRefresh">🔄 刷新</button>
             <button class="btn btn-green" id="btnApply">✅ 确定</button>
-            <button class="btn btn-green" id="btnDuplicate">📋 复制</button>
             <button class="btn btn-orange" id="btnGachaConfig">🎲 抽卡配置</button>
             <button class="btn btn-orange" id="btnHotUpdate">🔥 热更新</button>
             <button class="btn btn-green" id="btnPublish">📦 发布</button>
-            <button class="btn btn-green" id="btnClose">✖ 关闭</button>
         </div>
     </div>
 </div>
@@ -1934,14 +1931,19 @@ function gpInitEvents() {
         if (!confirm('确定删除当前选中的' + (selectedType === 'item' ? '物品' : '菜单') + '吗？')) return;
         if (selectedType === 'item') {
             const _delId = selectedId;
-            // 服务端会级联把该物品从商店配置里移除：删完立刻重载商店列表，左侧不留残影
-            bridge.deleteItem(_delId, function () {
+            // 服务端会级联把该物品从商店配置里移除：删完立刻重载商店 + 物品列表，
+            // 否则页面还留着"幽灵条目"——再建同一个 id 会说"已存在"、创建像没反应
+            bridge.deleteItem(_delId, function (ok) {
                 try { loadShop(); } catch (e) { }
+                try { loadDataAndRender(); } catch (e) { }
             });
             setTimeout(function () { try { loadShop(); } catch (e) { } }, 500);
             toast('已删除物品（商店里的对应商品也已自动移除）', 'ok');
         } else {
-            bridge.deleteMenu(selectedId);
+            const _delM = selectedId;
+            bridge.deleteMenu(_delM, function () {
+                try { loadDataAndRender(); } catch (e) { }
+            });
             toast('已删除菜单', 'ok');
         }
         selectedId = null;
@@ -1949,6 +1951,8 @@ function gpInitEvents() {
         setEditMode(null);
         clearAllForm();
         renderAll();
+        // 再兜底刷一次（服务端级联/异步可能有延迟）
+        setTimeout(function () { try { loadDataAndRender(); } catch (e) { } }, 600);
     });
 }
 
@@ -2093,13 +2097,22 @@ function fillItemForm(it) {
     i_count.value = (it.count !== undefined) ? it.count : 0;
     i_type.value = it.type === 'clothes' ? 'clothes' : 'item';
     i_shop.checked = !!it.shop;
-    itemImageB64 = '';
-    itemGifsB64 = {};
-    document.getElementById('i_img_name').textContent = it.image ? ('当前：' + it.image) : '未选择';
+    // 待上传的图片状态：**同一个物品**（重新回填/列表重绘）要保留，切换到别的物品才清。
+    // 以前无条件清空 —— 用户上传完图片后点一下别处再点回来就"未选择"，只好反复重传。
+    const _sameItem = (String(itemOrigId || '') === String(it.id || ''));
+    if (!_sameItem) {
+        itemImageB64 = '';
+        itemGifsB64 = {};
+        itemGachaB64 = '';
+    }
+    document.getElementById('i_img_name').textContent = itemImageB64
+        ? '已选择新图片（待上传）'
+        : (it.image ? ('当前：' + it.image) : '未选择');
     i_gacha.checked = !!it.gacha;
-    itemGachaB64 = '';
     itemOrigId = it.id || '';
-    i_gacha_name.textContent = it.gacha_image ? ('当前：' + it.gacha_image) : '未选择';
+    i_gacha_name.textContent = itemGachaB64
+        ? '已选择新展示图（待上传）'
+        : (it.gacha_image ? ('当前：' + it.gacha_image) : '未选择');
     // 物品 id 只能首次设定：编辑已有物品时锁定；新建时可选
     const idInput = document.getElementById('i_id');
     if (idInput) idInput.disabled = !!itemOrigId;
@@ -2139,6 +2152,7 @@ document.getElementById('i_img_file').addEventListener('change', function () {
         document.getElementById('i_img_name').textContent = '待上传：' + f.name;
     };
     r.readAsDataURL(f);
+    this.value = '';        // 清空，保证再选同一个文件也能再次触发 change
 });
 
 i_shop.addEventListener('change', toggleShopBox);
@@ -2157,6 +2171,7 @@ i_gacha_file.addEventListener('change', function () {
         i_gacha_name.textContent = '待上传：' + f.name;
     };
     r.readAsDataURL(f);
+    this.value = '';        // 同上：允许重复选择同一个文件
 });
 
 // ---- 时装 GIF 上传（4 个尺寸）----
@@ -2178,6 +2193,7 @@ document.querySelectorAll('.i_gif_file').forEach(function (inp) {
             document.getElementById('i_gif_name_' + key).textContent = '待上传：' + f.name;
         };
         r.readAsDataURL(f);
+        inp.value = '';     // 同上：允许重复选择同一个文件
     });
 });
 
@@ -2743,28 +2759,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 底部栏删除按钮已移除（删除统一在物品列表底部的「删除」按钮）
 
     // 复制
-    document.getElementById('btnDuplicate').addEventListener('click', function() {
-        if (!selectedId) {
-            toast('请先选择一个项目', 'error');
-            return;
-        }
-        const newId = generateId(selectedType === 'menu' ? 'menu_' : 'item_');
-        if (selectedType === 'menu') {
-            if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
-            bridge.duplicateMenu(selectedId, newId);
-            selectedId = newId;
-        } else if (selectedType === 'item') {
-            if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
-            bridge.duplicateItem(selectedId, newId);
-            selectedId = newId;
-        }
-        renderAll();
-    });
-
-    // 刷新
-    document.getElementById('btnRefresh').addEventListener('click', function() {
-        loadDataAndRender();
-    });
+    // （「刷新 / 复制 / 关闭」三个按钮已按用户要求移除）
 
     // 热更新
     document.getElementById('btnPublish').addEventListener('click', function() {
@@ -2797,12 +2792,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('btnPublish').addEventListener('click', function() {
         if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
         bridge.publish();
-    });
-
-    // 关闭
-    document.getElementById('btnClose').addEventListener('click', function() {
-        if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
-        bridge.close();
     });
 
     // 抽卡配置
@@ -2902,6 +2891,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (e) { toast('上传失败：' + e.message, 'error'); }
         };
         reader.readAsDataURL(f);
+        this.value = '';        // 清空，保证再选同一个文件也能再次触发 change
     });
     cfgOverlay.addEventListener('click', function(e) {
         if (e.target === this) this.classList.remove('open');
