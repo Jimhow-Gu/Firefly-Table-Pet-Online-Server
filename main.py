@@ -695,7 +695,158 @@ def load_server_config():
     # ===== 新增两行 =====
     config.setdefault('max_players', 10)
     config.setdefault('access_mode', 'none')
+    # ===== 连接安全（默认全关，不影响任何现有客户端）=====
+    # security_level: 0=关 1=只告警 2=未绑定→受限会话 3=未绑定→拒绝登录（灰度强制）
+    config.setdefault('security_level', 0)
+    # listen_host: 监听地址；只信任网关时填 127.0.0.1 或网关所在内网地址
+    config.setdefault('listen_host', '0.0.0.0')
+    # allow_hosts: 来源 IP 白名单（支持 10.0.0.* 通配）；非空时只有这些来源能连
+    config.setdefault('allow_hosts', [])
     return config
+
+
+def get_security_level():
+    """连接安全等级（0=关 1=告警 2=受限会话 3=拒绝）"""
+    try:
+        lv = int(load_server_config().get('security_level') or 0)
+    except Exception:
+        lv = 0
+    return max(0, min(3, lv))
+
+
+def host_allowed(ip):
+    """来源 IP 是否允许连接（allow_hosts 为空 = 不限制）。
+
+    用于"前置 mTLS/VPN 网关 + 后端只信任网关"的部署：把 listen_host 指向内网/
+    127.0.0.1，并把 allow_hosts 填成网关注入后的来源地址即可。
+    """
+    try:
+        allow = load_server_config().get('allow_hosts') or []
+        if not isinstance(allow, list) or not allow:
+            return True
+        ip = str(ip or '').strip()
+        for a in allow:
+            a = str(a or '').strip()
+            if not a:
+                continue
+            if a == '*' or a == ip:
+                return True
+            if a.endswith('*') and ip.startswith(a[:-1]):
+                return True
+        return False
+    except Exception:
+        return True
+
+
+LOGIN_AUDIT_FILE = os.path.join(SERVER_DATA, 'login_audit.jsonl')
+_LOGIN_FAILS = {}          # ip -> [时间戳, ...]（内存限速）
+LOGIN_FAIL_WINDOW = 300    # 5 分钟内
+LOGIN_FAIL_MAX = 20        # 失败上限（超过则临时拒绝）
+LOGIN_FAIL_BLOCK = 300     # 临时拒绝时长（秒）
+SCRAM_ITER = 120000        # PBKDF2 迭代次数
+
+
+def audit_login(uid, ip, version, method, ok, note=''):
+    """登录审计：一行一条 JSON（uid/来源/版本/认证方式/结果），供 /audit 查看"""
+    try:
+        rec = {
+            'time': datetime.now(SERVER_TIMEZONE).strftime('%Y-%m-%d %H:%M:%S'),
+            'uid': str(uid or ''), 'ip': str(ip or ''), 'version': str(version or ''),
+            'method': str(method or ''), 'ok': bool(ok), 'note': str(note or ''),
+            'level': get_security_level(),
+        }
+        with open(LOGIN_AUDIT_FILE, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + chr(10))
+    except Exception as e:
+        print(f"[审计] 写入失败: {e}")
+
+
+def read_audit(limit=20):
+    try:
+        if not os.path.exists(LOGIN_AUDIT_FILE):
+            return []
+        with open(LOGIN_AUDIT_FILE, 'r', encoding='utf-8') as f:
+            lines = f.read().splitlines()
+        return [json.loads(x) for x in lines[-max(1, int(limit)):] if x.strip()]
+    except Exception:
+        return []
+
+
+def ip_rate_limited(ip):
+    """按来源 IP 限速：LOGIN_FAIL_WINDOW 内失败超过 LOGIN_FAIL_MAX 次 → 临时拒绝"""
+    try:
+        ip = str(ip or '')
+        now = time.time()
+        hist = [t for t in _LOGIN_FAILS.get(ip, []) if now - t < LOGIN_FAIL_WINDOW]
+        if hist:
+            _LOGIN_FAILS[ip] = hist
+        else:
+            _LOGIN_FAILS.pop(ip, None)
+        return len(hist) >= LOGIN_FAIL_MAX
+    except Exception:
+        return False
+
+
+def note_login_fail(ip):
+    try:
+        _LOGIN_FAILS.setdefault(str(ip or ''), []).append(time.time())
+    except Exception:
+        pass
+
+
+def is_trusted_source(ip):
+    """是否"可信来源"（局域网/本机/白名单）：可信来源的首次登录才允许直接 TOFU 绑定"""
+    try:
+        ip = str(ip or '').strip()
+        if not ip:
+            return False
+        try:
+            allow = load_server_config().get('allow_hosts') or []
+            if isinstance(allow, list) and allow:
+                return host_allowed(ip)
+        except Exception:
+            pass
+        if ip in ('127.0.0.1', '::1', 'localhost'):
+            return True
+        parts = ip.split('.')
+        if len(parts) == 4:
+            try:
+                a, b = int(parts[0]), int(parts[1])
+            except Exception:
+                return False
+            if a == 10 or (a == 172 and 16 <= b <= 31) or (a == 192 and b == 168):
+                return True
+        return False
+    except Exception:
+        return False
+
+
+def scram_keys(password, salt_hex, iterations=SCRAM_ITER):
+    """SCRAM 式密钥：StoredKey = PBKDF2(password, salt)（服务端只存它，不存密码）"""
+    try:
+        salt = bytes.fromhex(str(salt_hex or ''))
+        if not salt:
+            salt = os.urandom(16)
+            salt_hex = salt.hex()
+        key = hashlib.pbkdf2_hmac('sha256', str(password).encode('utf-8'), salt, int(iterations))
+        return salt_hex, key.hex()
+    except Exception:
+        return salt_hex, ''
+
+
+def scram_proof(stored_key_hex, nonce):
+    """客户端/服务端一致的应答：HMAC-SHA256(StoredKey, nonce)"""
+    import hmac as _hmac
+    try:
+        key = bytes.fromhex(str(stored_key_hex or ''))
+        return _hmac.new(key, str(nonce or '').encode('utf-8'), hashlib.sha256).hexdigest()
+    except Exception:
+        return ''
+
+
+def bind_code_hash(code):
+    """绑定码的存储形式（只存哈希，10 分钟有效）"""
+    return hashlib.sha256(('bind|' + str(code or '').strip()).encode('utf-8')).hexdigest()
 
 def load_whitelist():
     return load_json_safe(WHITELIST_FILE, [])
@@ -2000,6 +2151,19 @@ class TCPHandler(socketserver.BaseRequestHandler):
         peername = self.client_address
         log_emitter = self.server.log_emitter
         _ensure_data_dirs()   # 数据目录缺失自愈（首次运行/被清理后）
+        # 后端只信任网关：来源不在白名单直接断开（allow_hosts 为空 = 不限制）
+        try:
+            _ip = self.client_address[0] if self.client_address else ''
+            if not host_allowed(_ip):
+                try:
+                    self.send_json({'type': 'login_fail',
+                                    'data': {'reason': '本服务器仅接受来自授权网关的连接'}})
+                except Exception:
+                    pass
+                log_emitter.log_signal.emit(f"[安全] 拒绝来源 {_ip}（不在 allow_hosts 白名单内）")
+                return
+        except Exception as _he:
+            print(f"[安全] 来源校验异常(放行): {_he}")
         # 不再输出 [连接] 日志，改为登录成功或失败时输出
 
         buffer = b''
@@ -2068,7 +2232,62 @@ class TCPHandler(socketserver.BaseRequestHandler):
         if not isinstance(data, dict):
             self.send_json({'type': 'login_fail', 'data': {'reason': '数据格式错误，请更新客户端'}})
             return None
+        if mtype == 'hello':
+            # 登录前握手：下发 salt/nonce，客户端据此算 SCRAM 应答（不在线上传密码）
+            _hdata = msg.get('data', {}) if isinstance(msg.get('data'), dict) else {}
+            _uid_h = str(_hdata.get('uid') or '').strip()
+            _userid_h = str(_hdata.get('userid') or '').strip()
+            # 档案文件名是 "userid-数字"（与登录时同一套规则），这里必须按同一规则解析，
+            # 否则取不到真实的 salt → 客户端算出的应答永远对不上
+            _key_h = ''
+            try:
+                if _userid_h and '-' in _uid_h and _uid_h.split('-', 1)[1].isdigit():
+                    _key_h = '%s-%s' % (_userid_h, _uid_h.split('-', 1)[1])
+                elif _uid_h:
+                    _key_h = _uid_h
+                _pd_h = load_player_data(_key_h) if _key_h else {}
+                if not _pd_h and _uid_h:
+                    # 兜底：按 uid 字段在 players 里找（兼容文件名不同的老账号）
+                    try:
+                        for _fn in _player_files():
+                            if not _fn.endswith('.json'):
+                                continue
+                            with open(os.path.join(PLAYERS_DIR, _fn), 'r', encoding='utf-8') as _f:
+                                _d_try = json.load(_f)
+                            if _d_try.get('uid') == _uid_h:
+                                _pd_h = _d_try
+                                break
+                    except Exception:
+                        pass
+            except Exception:
+                _pd_h = {}
+            _salt = str(_pd_h.get('auth_salt') or '')
+            _stored = str(_pd_h.get('auth_key') or '')
+            if not _salt:
+                # 未知账号也返回"看起来正常"的 salt：不泄露账号是否存在
+                _salt = hashlib.sha256(('fake|' + str(load_pack_secret()) + '|' + _uid_h)
+                                       .encode('utf-8')).hexdigest()[:32]
+            _nonce = os.urandom(16).hex()
+            self.hello_nonce = _nonce
+            self.hello_uid = _uid_h
+            self.hello_ts = time.time()
+            self.send_json({'type': 'hello_ok', 'data': {
+                'salt': _salt, 'iterations': SCRAM_ITER, 'nonce': _nonce,
+                'bound': bool(_stored), 'version': SERVER_VERSION}})
+            return player
+
         if mtype == 'login':
+            # 止血：同一来源短时间内失败太多 → 临时拒绝（防暴力/枚举）
+            try:
+                _ip_rl = self.client_address[0] if self.client_address else ''
+                if ip_rate_limited(_ip_rl):
+                    audit_login('-', _ip_rl, msg.get('data', {}).get('version') if isinstance(msg.get('data'), dict) else '',
+                                'rate', False, '来源被限速')
+                    self.send_json({'type': 'login_fail', 'data': {
+                        'reason': '登录尝试过于频繁，请稍后再试'}})
+                    return player
+            except Exception as _rle:
+                print(f"[安全] 限速检查异常(放行): {_rle}")
             data = msg.get('data', {})
             if not isinstance(data, dict):
                 self.send_json({'type': 'login_fail', 'data': {'reason': '数据格式错误，请更新客户端'}})
@@ -2147,6 +2366,9 @@ class TCPHandler(socketserver.BaseRequestHandler):
                         msg_text = f"服务器正在维护\n{maintenance_message}"
                     else:
                         msg_text = "服务器正在维护。"
+                    note_login_fail(self.client_address[0] if self.client_address else '')
+                    audit_login('-', self.client_address[0] if self.client_address else '',
+                                data.get('version'), 'legacy', False, '维护模式')
                     self.send_json({'type': 'login_fail', 'data': {'reason': msg_text}})
                     return None
 
@@ -2510,12 +2732,155 @@ class TCPHandler(socketserver.BaseRequestHandler):
             custom_items = self.server.load_custom_items()
             # ------------------------------------------
 
+            # ---------- 三态账号校验（SCRAM 挑战响应；旧协议完全兼容） ----------
+            _auth = data.get('auth') if isinstance(data.get('auth'), dict) else {}
+            _proof = str(_auth.get('proof') or '')
+            _nonce_ok = ''
+            try:
+                if getattr(self, 'hello_uid', '') == str(data.get('uid') or '') and \
+                        time.time() - float(getattr(self, 'hello_ts', 0) or 0) < 120:
+                    _nonce_ok = str(getattr(self, 'hello_nonce', '') or '')
+            except Exception:
+                _nonce_ok = ''
+            _stored_key = str(pdata.get('auth_key') or '')
+            _auth_state = str(pdata.get('auth_state') or ('bound' if _stored_key else 'unbound'))
+            _auth_method = 'scram' if _proof else 'legacy'
+            _sec_lv = get_security_level()
+            if _auth_state == 'bound' and _stored_key:
+                if _proof and _nonce_ok:
+                    _want = scram_proof(_stored_key, _nonce_ok)
+                    if not _want or _proof != _want:
+                        note_login_fail(self.client_address[0] if self.client_address else '')
+                        audit_login(pdata.get('uid'), self.client_address[0] if self.client_address else '',
+                                    data.get('version'), 'scram', False, '应答不匹配')
+                        self.send_json({'type': 'login_fail', 'data': {'reason': '登录凭证不正确'}})
+                        return None
+                elif _sec_lv == 1:
+                    # 影子模式：只记录"如果强制校验，这次会被拒绝"，不真的拒绝（老客户端照常进）
+                    audit_login(pdata.get('uid'), self.client_address[0] if self.client_address else '',
+                                data.get('version'), 'legacy', True, '影子模式：已绑定账号缺凭证（未拒绝）')
+                    self.server.log_emitter.log_signal.emit(
+                        f"[安全·影子] {pdata.get('name') or server_uid} 已绑定账号但未提供凭证（等级1不拦）")
+                elif _sec_lv >= 2:
+                    # 等级≥2：已绑定账号必须带正确应答
+                    note_login_fail(self.client_address[0] if self.client_address else '')
+                    audit_login(pdata.get('uid'), self.client_address[0] if self.client_address else '',
+                                data.get('version'), 'legacy', False, '已绑定账号缺少凭证')
+                    self.send_json({'type': 'login_fail', 'data': {'reason': '该账号已启用登录校验，请更新客户端后登录'}})
+                    return None
+
+            # ---------- 设备绑定（TOFU/绑定码）+ 灰度强制 ----------
+            # 0=关：完全不管；1=只告警；2=未绑定→受限会话；3=未绑定→拒绝登录
+            _sec_level = get_security_level()
+            _bind_id_in = str(data.get('bind_id') or '').strip()
+            _bind_out = ''
+            _restricted = False
+            _restrict_reason = ''
+            if _sec_level >= 1:
+                try:
+                    _rec_bind = str(pdata.get('device_bind') or '').strip()
+                    if not _rec_bind:
+                        # 首次登录：只有"可信来源"（局域网/白名单/本机）才直接 TOFU 绑定；
+                        # 公网来源不再抢先把账号绑走（否则冒名者先到先得）
+                        if is_trusted_source(self.client_address[0] if self.client_address else ''):
+                            _rec_bind = os.urandom(8).hex()
+                            pdata['device_bind'] = _rec_bind
+                            save_player_data(server_uid, pdata)
+                            print(f"[安全] 设备绑定(TOFU/可信来源) {server_uid} → {_rec_bind}")
+                        else:
+                            # 不可信来源且账号未绑定：不自动绑定 → 走受限会话（等级2）
+                            # 或拒绝（等级3）；等级1 只告警
+                            if _sec_level == 1:
+                                self.server.log_emitter.log_signal.emit(
+                                    f"[安全告警] {pdata.get('name') or server_uid} 来自不可信来源"
+                                    f" {self.client_address[0] if self.client_address else ''}（等级1：放行）")
+                            elif _sec_level == 2:
+                                _restricted = True
+                                _restrict_reason = ('本账号尚未绑定设备：当前为受限会话（只读，不能使用管理员/敏感功能）。'
+                                                    '请在服务器控制台执行 /bindcode <玩家> 取一次性绑定码，'
+                                                    '然后在本机客户端输入 /bind <绑定码> 完成绑定。')
+                                self.server.log_emitter.log_signal.emit(
+                                    f"[安全] {pdata.get('name') or server_uid} 来自不可信来源且未绑定 → 受限会话")
+                            else:
+                                self.send_json({'type': 'login_fail', 'data': {
+                                    'reason': '本账号尚未绑定设备，且当前来源不被信任。'
+                                              '请在服务器控制台执行 /bindcode <玩家> 取绑定码后重试。'}})
+                                return None
+                    elif not _bind_id_in or _bind_id_in != _rec_bind:
+                        _who = pdata.get('name') or server_uid
+                        if _sec_level == 1:
+                            self.server.log_emitter.log_signal.emit(
+                                f"[安全告警] {_who} 未绑定设备登录（等级1：放行）")
+                        elif _sec_level == 2:
+                            _restricted = True
+                            _restrict_reason = ('设备未绑定：当前为受限会话（不能使用管理员功能）。'
+                                                '在服务器控制台执行 /bindcode <玩家> 生成绑定码后，'
+                                                '在本机客户端输入 /bind <绑定码> 即可绑定。')
+                            self.server.log_emitter.log_signal.emit(
+                                f"[安全] {_who} 未绑定设备登录 → 受限会话")
+                        else:
+                            self.server.log_emitter.log_signal.emit(
+                                f"[安全] 已拒绝未绑定设备登录：{_who}（等级3）")
+                            self.send_json({'type': 'login_fail', 'data': {
+                                'reason': '本账号已绑定其他设备。若这是你的新设备：请在服务器控制台执行'
+                                          ' /bindcode <你的玩家名> 取绑定码，然后在客户端输入 /bind <绑定码>。'}})
+                            return None
+                    _bind_out = _rec_bind
+                except Exception as _be:
+                    print(f"[安全] 设备绑定检查异常(放行): {_be}")
+                    _bind_out = ''
+
+            # ---------- 审计 + 同 uid 多地登录告警 ----------
+            try:
+                _ip_now = self.client_address[0] if self.client_address else ''
+                _prev_ip = str(pdata.get('last_ip') or '')
+                _online_other = False
+                with server_lock:
+                    for _c, _pl in list(clients.items()):
+                        if _pl is not player and _pl.get('server_uid') == server_uid:
+                            _online_other = True
+                            break
+                if _prev_ip and _ip_now and _prev_ip != _ip_now:
+                    self.server.log_emitter.log_signal.emit(
+                        f"[安全告警] 账号 {pdata.get('name') or server_uid} 换了登录来源：{_prev_ip} → {_ip_now}")
+                    try:
+                        self.send_json({'type': 'system_message', 'data': {
+                            'text': '安全提醒：你的账号刚刚从新的网络位置登录（%s）。'
+                                    '如非本人操作，请联系管理员在控制台解绑并重置。' % _ip_now}})
+                    except Exception:
+                        pass
+                if _online_other:
+                    self.server.log_emitter.log_signal.emit(
+                        f"[安全告警] 账号 {pdata.get('name') or server_uid} 存在多地/多设备同时在线")
+                pdata['last_ip'] = _ip_now
+                pdata['last_client_version'] = str(data.get('version') or '')
+                pdata['auth_state'] = _auth_state
+                save_player_data(server_uid, pdata)
+                audit_login(pdata.get('uid'), _ip_now, data.get('version'), _auth_method, True,
+                            '受限会话' if _restricted else '正常')
+            except Exception as _ae:
+                print(f"[安全] 审计/告警异常(忽略): {_ae}")
+
+            if _restricted:
+                # 受限会话：本次会话不给管理员权限（只改会话对象，不动玩家档案）
+                try:
+                    player['permission'] = 'user'
+                    player['restricted'] = True
+                    print(f"[安全] 受限会话：{player.get('server_uid')} 本次登录无管理员权限")
+                except Exception:
+                    pass
+
             # 在 login 分支末尾，找到 self.send_json 调用，添加一行
             self.send_json({
                 'type': 'login_ok',
                 'data': {
                     # 资源包密钥种子：客户端用它解密资源包、校验清单签名（不落盘、每次登录都发）
                     'pack_secret': load_pack_secret(),
+                    # 设备绑定：把本机绑定的 id 下发（客户端存起来，下次登录带上）
+                    'bind_id': _bind_out,
+                    'restricted': _restricted,
+                    'restricted_reason': _restrict_reason,
+                    'security_level': _sec_level,
                     'server_uid': server_uid,
                     'uid': pdata['uid'],
                     'permission': player['permission'],
@@ -3361,6 +3726,58 @@ class TCPHandler(socketserver.BaseRequestHandler):
 
                 })
 
+            return player
+
+        elif mtype == 'bind_device' and player:
+            # 用一次性绑定码绑定本机（可同时设置登录口令的 SCRAM 校验值：只存 salt+StoredKey）
+            try:
+                _code = str(data.get('code') or '').strip()
+                _salt_in = str(data.get('salt') or '').strip()
+                _key_in = str(data.get('key') or '').strip()
+                _uid_b = player.get('server_uid')
+                _pd_b = load_player_data(_uid_b)
+                _want = str(_pd_b.get('bind_code_hash') or '')
+                try:
+                    _exp = float(_pd_b.get('bind_code_expire') or 0)
+                except Exception:
+                    _exp = 0
+                if not _want or time.time() > _exp:
+                    self.send_json({'type': 'bind_result', 'data': {
+                        'success': False, 'message': '绑定码不存在或已过期，请在服务器控制台重新生成'}})
+                    return player
+                if bind_code_hash(_code) != _want:
+                    note_login_fail(self.client_address[0] if self.client_address else '')
+                    audit_login(_pd_b.get('uid'), self.client_address[0] if self.client_address else '',
+                                data.get('version'), 'bind', False, '绑定码不正确')
+                    self.send_json({'type': 'bind_result', 'data': {
+                        'success': False, 'message': '绑定码不正确'}})
+                    return player
+                _bid = os.urandom(8).hex()
+                _pd_b['device_bind'] = _bid
+                _pd_b.pop('bind_code_hash', None)
+                _pd_b.pop('bind_code_expire', None)
+                if _salt_in and _key_in:
+                    # 口令只以 salt+StoredKey 保存（不存明文，也不在线上传明文）
+                    _pd_b['auth_salt'] = _salt_in
+                    _pd_b['auth_key'] = _key_in
+                    _pd_b['auth_state'] = 'bound'
+                else:
+                    _pd_b['auth_state'] = 'device'
+                save_player_data(_uid_b, _pd_b)
+                player['restricted'] = False
+                self.send_json({'type': 'bind_result', 'data': {
+                    'success': True, 'bind_id': _bid,
+                    'message': '绑定成功：本机已绑定，登录口令也已设置' if _salt_in and _key_in
+                               else '绑定成功：本机已绑定该账号'}})
+                self.server.log_emitter.log_signal.emit(
+                    f"[安全] {_pd_b.get('name') or _uid_b} 已用绑定码绑定新设备"
+                    f"{'（含口令）' if _salt_in and _key_in else ''}")
+                audit_login(_pd_b.get('uid'), self.client_address[0] if self.client_address else '',
+                            data.get('version'), 'bind', True, '绑定码绑定')
+            except Exception as _be:
+                print(f"[安全] 绑定失败: {_be}")
+                self.send_json({'type': 'bind_result', 'data': {
+                    'success': False, 'message': '绑定失败：%s' % _be}})
             return player
 
         elif mtype == 'command' and player:
@@ -4361,6 +4778,41 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 self.send_json(
                     {'type': 'command_result', 'data': {'success': False, 'message': '此命令只能在服务器控制台执行'}})
                 return
+
+        # ---------- /bind <绑定码>：把当前设备绑定到账号（绑定码由控制台 /bindcode 生成） ----------
+        if cmd_name == '/bind':
+            if len(parts) < 2:
+                self.send_json({'type': 'bind_result', 'data': {
+                    'success': False,
+                    'message': '用法：/bind <绑定码>（绑定码请在服务器控制台用 /bindcode <玩家> 生成）'}})
+                return
+            _code = parts[1].strip()
+            _uid = player.get('server_uid')
+            _pd = load_player_data(_uid)
+            _want = str(_pd.get('bind_code_hash') or '')
+            try:
+                _exp = float(_pd.get('bind_code_expire') or 0)
+            except Exception:
+                _exp = 0
+            if not _want or time.time() > _exp:
+                self.send_json({'type': 'bind_result', 'data': {
+                    'success': False, 'message': '绑定码不存在或已过期，请在服务器控制台重新生成'}})
+                return
+            if bind_code_hash(_code) != _want:
+                self.send_json({'type': 'bind_result', 'data': {
+                    'success': False, 'message': '绑定码不正确'}})
+                return
+            _bid = os.urandom(8).hex()
+            _pd['device_bind'] = _bid
+            _pd.pop('bind_code_hash', None)
+            _pd.pop('bind_code_expire', None)
+            save_player_data(_uid, _pd)
+            player['restricted'] = False
+            self.send_json({'type': 'bind_result', 'data': {
+                'success': True, 'message': '本机已绑定该账号（受限状态已解除）', 'bind_id': _bid}})
+            self.server.log_emitter.log_signal.emit(
+                f"[安全] {_pd.get('name') or _uid} 已绑定新设备 {_bid}")
+            return
 
         # ---------- /help ----------
         if cmd_name == '/help':
@@ -8446,6 +8898,12 @@ CONSOLE_COMMAND_SPECS = [
     ('/restart', False, []),
     ('/close', False, []),
     ('/fix', False, [('on', 'off')]),
+    ('/seclevel', False, [('0', '1', '2', '3')]),
+    ('/bindcode', False, ['user']),
+    ('/unbind', False, ['user']),
+    ('/passwd', False, ['user', '新口令']),
+    ('/audit', False, ['条数']),
+    ('/unbound', False, []),
     ('/change', False, [('name',), '新名称']),
     ('/ban', False, ['ban_target', 'ban_value']),
     ('/unban', False, ['ban_target']),
@@ -9262,7 +9720,12 @@ class ServerWindow(QMainWindow):
 
     def start_server(self):
         try:
-            self.server = ThreadedTCPServer((HOST, PORT), TCPHandler, self.log_emitter)
+            # 监听地址可配："后端只信任网关"时填 127.0.0.1 或内网地址
+            try:
+                _host = str(load_server_config().get('listen_host') or '0.0.0.0').strip() or '0.0.0.0'
+            except Exception:
+                _host = HOST
+            self.server = ThreadedTCPServer((_host, PORT), TCPHandler, self.log_emitter)
             self.server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
             self.server_thread.start()
             # 启动 Web 服务器（如果尚未启动）
@@ -9560,6 +10023,98 @@ class ServerWindow(QMainWindow):
         if cmd == '/help':
             self.show_help_dialog()
             return
+
+        # ---------- 连接安全：控制台命令（绑定码/解绑/重置口令/灰度/审计） ----------
+        if cmd.split()[0].lower() in ('/bindcode', '/unbind', '/passwd', '/seclevel', '/audit', '/unbound'):
+            parts = cmd.split()
+            name = parts[0].lower()
+            if name == '/seclevel':
+                try:
+                    lv = int(parts[1]) if len(parts) > 1 else get_security_level()
+                except Exception:
+                    self.append_log("用法：/seclevel 0|1|2|3（0=关 1=只告警 2=受限会话 3=拒绝）")
+                    return
+                lv = max(0, min(3, lv))
+                cfg = load_server_config()
+                cfg['security_level'] = lv
+                save_server_config(cfg)
+                _desc = {0: '关闭（完全兼容老客户端）', 1: '影子模式：只记录/告警，不拦不限制',
+                         2: '未绑定且来源不可信 → 受限会话', 3: '未绑定且来源不可信 → 拒绝登录'}[lv]
+                self.append_log(f"[安全] 灰度等级已设为 {lv}：{_desc}")
+                audit_login('-', '-', '-', 'console', True, 'seclevel=%d' % lv)
+                return
+            if name == '/audit':
+                try:
+                    lim = int(parts[1]) if len(parts) > 1 else 15
+                except Exception:
+                    lim = 15
+                recs = read_audit(lim)
+                if not recs:
+                    self.append_log("（暂无登录审计记录）")
+                    return
+                self.append_log("===== 最近 %d 条登录审计 =====" % len(recs))
+                for r in recs:
+                    self.append_log(
+                        "[%s] %s %s v%s %s → %s%s" % (
+                            r.get('time', ''), r.get('uid', '') or '-', r.get('ip', '') or '-',
+                            r.get('version', '') or '-', r.get('method', '') or '-',
+                            '成功' if r.get('ok') else '失败',
+                            ('（' + str(r.get('note') or '') + '）') if r.get('note') else ''))
+                return
+            if name == '/unbound':
+                try:
+                    rows = []
+                    for fn in _player_files():
+                        try:
+                            with open(os.path.join(PLAYERS_DIR, fn), 'r', encoding='utf-8') as f:
+                                _d = json.load(f)
+                        except Exception:
+                            continue
+                        if not str(_d.get('device_bind') or '').strip():
+                            rows.append('%s(%s)' % (_d.get('name') or fn[:-5], _d.get('uid') or ''))
+                    self.append_log("未绑定设备的账号 %d 个：%s" % (len(rows), '、'.join(rows[:30]) or '无'))
+                except Exception as e:
+                    self.append_log("统计失败: %s" % e)
+                return
+            if len(parts) < 2:
+                self.append_log("用法：/bindcode <玩家> | /unbind <玩家> | /passwd <玩家> <新口令> | /unbound")
+                return
+            uid_t, pd_t = self.find_player_file_by_identifier(parts[1])
+            if not uid_t:
+                self.append_log("未找到玩家 %s" % parts[1])
+                return
+            if name == '/bindcode':
+                code = ''.join(random.choice('0123456789') for _ in range(8))
+                pd_t['bind_code_hash'] = bind_code_hash(code)
+                pd_t['bind_code_expire'] = time.time() + 600
+                save_player_data(uid_t, pd_t)
+                self.append_log("[安全] 已为 %s 生成一次性绑定码：%s（10 分钟内有效；"
+                                "让玩家在本机客户端聊天框输入 /bind %s）"
+                                % (pd_t.get('name') or uid_t, code, code))
+                audit_login(pd_t.get('uid'), '-', '-', 'console', True, '生成绑定码 %s' % uid_t)
+                return
+            if name == '/unbind':
+                for _k in ('device_bind', 'auth_salt', 'auth_key', 'bind_code_hash', 'bind_code_expire'):
+                    pd_t.pop(_k, None)
+                pd_t['auth_state'] = 'unbound'
+                save_player_data(uid_t, pd_t)
+                self.append_log("[安全] 已解除 %s 的设备绑定与口令（下次登录重新绑定）"
+                                % (pd_t.get('name') or uid_t))
+                audit_login(pd_t.get('uid'), '-', '-', 'console', True, '解绑 %s' % uid_t)
+                return
+            if name == '/passwd':
+                if len(parts) < 3:
+                    self.append_log("用法：/passwd <玩家> <新口令>")
+                    return
+                salt_hex, key_hex = scram_keys(parts[2], '')
+                pd_t['auth_salt'] = salt_hex
+                pd_t['auth_key'] = key_hex
+                pd_t['auth_state'] = 'bound'
+                save_player_data(uid_t, pd_t)
+                self.append_log("[安全] 已为 %s 重置登录口令（只保存 salt+校验值，不存明文）"
+                                % (pd_t.get('name') or uid_t))
+                audit_login(pd_t.get('uid'), '-', '-', 'console', True, '重置口令 %s' % uid_t)
+                return
 
         if cmd == '/stop':
             self.stop_server()
