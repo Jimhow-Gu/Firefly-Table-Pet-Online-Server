@@ -2200,6 +2200,59 @@ document.querySelectorAll('.i_gif_file').forEach(function (inp) {
     });
 });
 
+// ---- 待上传状态的清理 / 发布前自动保存 ----
+// 保存成功后必须清掉 pending：以前同一个物品重新回填会保留 pending 标记，
+// 于是图片明明已经传上去了，标签还死盯着「待上传：xxx.png」（用户反馈）
+function clearPendingUploads() {
+    itemImageB64 = '';
+    itemGachaB64 = '';
+    itemGifsB64 = {};
+    const _fi = document.getElementById('i_img_file');
+    if (_fi) _fi.value = '';
+    const _fg = document.getElementById('i_gacha_file');
+    if (_fg) _fg.value = '';
+    document.querySelectorAll('.i_gif_file').forEach(function (inp) { inp.value = ''; });
+}
+window.clearPendingUploads = clearPendingUploads;
+
+function itemHasPendingUpload() {
+    return !!(itemImageB64 || itemGachaB64 || Object.keys(itemGifsB64 || {}).length);
+}
+window.itemHasPendingUpload = itemHasPendingUpload;
+
+// 物品保存（确定）的收尾回调：发布/热更新在等它
+function itemCommitFinished() {
+    const f = window.__itemCommitDone;
+    window.__itemCommitDone = null;
+    if (typeof f === 'function') f();
+}
+
+// 「发布 / 热更新」时如果还有没保存的图片，先替用户点一次「确定」
+// （和商店 / 卡池的做法一致：不然上传完图片直接点发布，图片根本没存进服务端）
+function commitItemIfPending(done) {
+    if (!itemHasPendingUpload()) { done(); return; }
+    // 必须正停在物品表单上：pending 也可能是"传完图又切去编辑菜单/商店"的残留，
+    // 这时点【确定】会去保存菜单或商店（不是用户想要的），所以直接跳过并提示
+    if (selectedType !== 'item') {
+        toast('物品图片还没保存：请回到该物品点「✅ 确定」再发布', toastKindFor('请先保存物品图片'));
+        done();
+        return;
+    }
+    const idv = (i_id && i_id.value ? i_id.value : '').trim();
+    if (!idv) {
+        toast('物品图片还没保存：请先点「✅ 确定」再发布', toastKindFor('请先保存物品图片'));
+        done();
+        return;
+    }
+    let fired = false;
+    const finish = function () { if (fired) return; fired = true; done(); };
+    window.__itemCommitDone = finish;
+    setTimeout(finish, 3000);   // 兜底：回调没回来也不卡住发布
+    const btn = document.getElementById('btnApply');
+    if (btn) btn.click(); else finish();
+}
+window.commitItemIfPending = commitItemIfPending;
+
 function clearAllForm() {
     itemImageB64 = '';
     itemGifsB64 = {};
@@ -2693,6 +2746,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (id !== selectedId && items.some(it => it.id === id)) {
                     toast('物品ID已存在', toastKindFor('物品ID已存在'));
+                    itemCommitFinished();
                     return;
                 }
 
@@ -2702,19 +2756,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 id = id.replace(/\s+/g, '_');
                 if (itemOrigId && id !== itemOrigId) {
                     showNotice('无法保存', '物品 ID 不能修改（删除后该 ID 才可复用）');
+                    itemCommitFinished();
                     return;
                 }
                 // 新规则：物品必须有图片（新建必须有；编辑时已有图也可以）
                 if (!itemImageB64 && !((items.find(it => it.id === id) || {}).image)) {
                     showNotice('无法保存', '请先给物品上传一张图片（物品图标就用它显示）');
+                    itemCommitFinished();
                     return;
                 }
                 if (i_gacha.checked && !itemImageB64 && !((items.find(it => it.id === id) || {}).image)) {
                     showNotice('无法保存', '勾选了「加入卡池」，需要先上传物品图片');
+                    itemCommitFinished();
                     return;
                 }
                 if (i_gacha.checked && !itemGachaB64 && !((items.find(it => it.id === id) || {}).gacha_image)) {
                     showNotice('无法保存', '勾选了「加入卡池」，需要上传抽到后的展示图 (png)');
+                    itemCommitFinished();
                     return;
                 }
                 const payload = {
@@ -2740,6 +2798,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (!bridge) {
                     toast('桥接未就绪', toastKindFor('桥接未就绪'));
+                    itemCommitFinished();
                     return;
                 }
 
@@ -2747,18 +2806,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (typeof bridge.saveCustomItemEx === 'function') {
                     bridge.saveCustomItemEx(JSON.stringify(payload), function(reason) {
                         if (!reason) {
+                            clearPendingUploads();      // 已落盘：不再是"待上传"
+                            const _nm = document.getElementById('i_img_name');
+                            if (_nm) _nm.textContent = '已上传，正在刷新…';
                             loadDataAndRender();
                         } else {
                             showNotice('保存物品失败', String(reason));
                         }
+                        itemCommitFinished();
                     });
                 } else {
                     bridge.saveCustomItem(JSON.stringify(payload), function(success) {
                         if (success) {
+                            clearPendingUploads();
+                            const _nm = document.getElementById('i_img_name');
+                            if (_nm) _nm.textContent = '已上传，正在刷新…';
                             loadDataAndRender();
                         } else {
                             showNotice('保存物品失败', '请检查服务端日志');
                         }
+                        itemCommitFinished();
                     });
                 }
             }
@@ -2777,30 +2844,54 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('btnHotUpdate').addEventListener('click', function() {
         refreshBeforeSave();
-        // 热更新必须等"商店提交 + 卡池保存（含待传封面）"都完成后再发：
+        // 热更新必须等"物品图片 + 商店提交 + 卡池保存（含待传封面）"都完成后再发：
         // 之前立即 bridge.hotUpdate() 会和异步保存赛跑，广播读到旧文件，
         // 表现为"要多点几次热更新才生效"
         const doHotUpdate = function () {
             if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
             bridge.hotUpdate();
         };
-        let pending = 0, done = 0;
-        const kick = function () { done += 1; if (done >= pending) doHotUpdate(); };
+        // 先把所有任务登记完再派发：回调可能是同步的，边加边发会让计数对不上（发两次广播）
+        const jobs = [];
+        if (typeof commitItemIfPending === 'function') {
+            jobs.push(function (cb) { commitItemIfPending(cb); });
+        }
         if (typeof shopCommitIfDirty === 'function') {
-            pending += 1;
-            shopCommitIfDirty(function () { kick(); }, true);
+            jobs.push(function (cb) { shopCommitIfDirty(cb, true); });
         }
         if (typeof gpDirty !== 'undefined' && gpDirty) {
-            pending += 1;
-            gpCommit(function () { kick(); });
+            jobs.push(function (cb) { gpCommit(cb); });
         }
-        if (pending === 0) doHotUpdate();
+        if (jobs.length === 0) { doHotUpdate(); return; }
+        let done = 0, fired = false;
+        const kick = function () {
+            done += 1;
+            if (done >= jobs.length && !fired) { fired = true; doHotUpdate(); }
+        };
+        jobs.forEach(function (job) { job(kick); });
     });
 
-    // 发布
+    // 发布（先把没保存的改动落盘：物品图片 → 商店 → 卡池，再发布；
+    // 以前直接 publish，用户上传完图片点发布等于什么都没存）
     document.getElementById('btnPublish').addEventListener('click', function() {
         if (!bridge) { toast('桥接未就绪', toastKindFor('桥接未就绪')); return; }
-        bridge.publish();
+        const jobs = [];
+        if (typeof commitItemIfPending === 'function') {
+            jobs.push(function (cb) { commitItemIfPending(cb); });
+        }
+        if (typeof shopCommitIfDirty === 'function') {
+            jobs.push(function (cb) { shopCommitIfDirty(cb, true); });
+        }
+        if (typeof gpDirty !== 'undefined' && gpDirty) {
+            jobs.push(function (cb) { gpCommit(cb); });
+        }
+        if (jobs.length === 0) { bridge.publish(); return; }
+        let done = 0, fired = false;
+        const kick = function () {
+            done += 1;
+            if (done >= jobs.length && !fired) { fired = true; bridge.publish(); }
+        };
+        jobs.forEach(function (job) { job(kick); });
     });
 
     // 抽卡配置
