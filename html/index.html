@@ -414,14 +414,19 @@ input:focus,select:focus{
                             <input id="f_resource_url" type="text" placeholder="/resources/xxx.zip" disabled>
                             <button class="btn btn-green text-xs py-1 px-2" id="btnUploadResource">📤 上传资源</button>
                         </div>
-                        <!-- 有效期：与其它字段一样成对（label 左 / 输入框 右） -->
-                        <label class="text-right pr-2 text-sm">有效期</label>
+                        <!-- 有效期：抽卡菜单 = 卡池有效期（卡池剩余时间）；其它菜单 = 按钮有效期 -->
+                        <label class="text-right pr-2 text-sm" id="f_expiry_label">按钮有效期</label>
                         <input id="f_expiry" type="text" placeholder="永久 或 30D 或 2026-12-31">
-                        <!-- 抽卡菜单专用提示：菜单有效期 ≠ 卡池结束时间（用户常把这两个弄混） -->
+                        <!-- 抽卡菜单专用提示 -->
                         <div id="f_expiry_hint" class="text-yellow-400 text-xs hidden" style="grid-column:1 / -1;">
-                            ⓘ 这里是「菜单」有效期（到期后点开菜单会提示已过期）。
-                            卡池的结束时间请用下面「卡池」面板里的「卡池结束时间」设置，它决定卡池显示为期
-                            <b>限定</b> 还是 <b>常驻</b>。
+                            ⓘ 抽卡菜单的「卡池有效期」= <b>卡池剩余时间</b>：抽卡页面会显示
+                            "距离卡池结束还有:…"（精确到秒），到点后该卡池自动下架。
+                            菜单按钮本身的有效期见下面的「按钮有效期」（<b>到期也不影响点击</b>）。
+                        </div>
+                        <!-- 按钮有效期：只对抽卡菜单显示（非抽卡菜单上面那个就是按钮有效期） -->
+                        <div id="f_btn_expiry_box" class="hidden" style="display:contents;">
+                            <label class="text-right pr-2 text-sm">按钮有效期</label>
+                            <input id="f_btn_expiry" type="text" placeholder="永久 或 30D（到期后按钮仍可点击）">
                         </div>
                     </div>
                     <!-- 上传状态移出网格，避免占用网格单元格导致后续字段错列 -->
@@ -2019,9 +2024,18 @@ function setEditMode(mode) {
 function toggleResourceBox(node) {
     // 抽卡菜单不需要资源包：逐项隐藏（这些是网格的直接子项，逐个隐藏不会破坏"有效期"等行的对齐）
     const isGacha = node ? (node.type === 'gacha') : (f_type.value === 'gacha');
-    // 抽卡菜单：提示"菜单有效期 ≠ 卡池结束时间"
+    // 抽卡菜单：提示 + 标签改成「卡池有效期」+ 显示「按钮有效期」行
     const _eh = document.getElementById('f_expiry_hint');
     if (_eh) _eh.classList.toggle('hidden', !isGacha);
+    const _el = document.getElementById('f_expiry_label');
+    if (_el) _el.textContent = isGacha ? '卡池有效期' : '按钮有效期';
+    const _ex = document.getElementById('f_expiry');
+    if (_ex) {
+        _ex.placeholder = isGacha ? '永久 或 30D 或 2026-12-31（卡池剩余时间）'
+                                  : '永久 或 30D 或 2026-12-31';
+    }
+    const _bb = document.getElementById('f_btn_expiry_box');
+    if (_bb) _bb.classList.toggle('hidden', !isGacha);
     document.querySelectorAll('.f-res-only').forEach(function (el) {
         el.classList.toggle('hidden', isGacha);
     });
@@ -2042,8 +2056,34 @@ function fillMenuForm(node) {
     f_resource_url.value = node.resource_url || '';
     f_resource_url.disabled = !node.resource_required;
     f_icon.value = node.icon || '';
-    f_expiry.value = node.expiry || '';  // 新增
+    // 抽卡菜单：这个框显示的是"卡池有效期"（当前菜单对应的卡池结束时间 / 活动池）
+    // 其它菜单：显示菜单自身到期时间（按钮有效期）
+    const _btnv = node.expiry || '';
+    const _be = document.getElementById('f_btn_expiry');
+    if (_be) _be.value = _btnv;
+    if ((node.type || '') === 'gacha') {
+        const _tp = gpTimeTargetPool(node.id);
+        f_expiry.value = (_tp && (_tp.end_time || _tp.expiry)) || '';
+    } else {
+        f_expiry.value = _btnv;
+    }
 }
+
+// 卡池有效期要写到哪个池上：优先"归属本菜单的池"，否则退回当前活动池
+function gpTimeTargetPool(menuId) {
+    try {
+        const mid = String(menuId || '');
+        const byMenu = (gachaPools || []).filter(function (p) {
+            return mid && String(p.menu_id || '') === mid;
+        });
+        if (byMenu.length) {
+            const active = byMenu.filter(function (p) { return p.id === (gachaConfigCache || {}).active_pool; });
+            return active[0] || byMenu[0];
+        }
+    } catch (e) { }
+    return window.gpCur ? window.gpCur() : null;
+}
+window.gpTimeTargetPool = gpTimeTargetPool;
 
 function fillItemForm(it) {
     i_name.value = it.name || '';
@@ -2589,13 +2629,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 const icon_type = 'emoji';
                 const icon = f_icon.value.trim() || '📄';
-                const expiry = f_expiry.value.trim();
+                // 抽卡菜单：f_expiry 是「卡池有效期」→ 菜单自身到期改用「按钮有效期」
+                const _isGachaMenu = (type === 'gacha');
+                const _btnExpiryEl = document.getElementById('f_btn_expiry');
+                const expiry = _isGachaMenu
+                    ? (_btnExpiryEl ? _btnExpiryEl.value.trim() : '')
+                    : f_expiry.value.trim();
+                let _poolTimeChanged = false;
+                if (_isGachaMenu) {
+                    // 卡池有效期 → 写到该菜单对应的卡池（end_time/expiry），随后立即保存并热更新
+                    const _tp = gpTimeTargetPool(selectedId);
+                    const _tv = f_expiry.value.trim();
+                    if (_tp && (_tp.end_time || '') !== _tv) {
+                        _tp.end_time = _tv || null;
+                        _tp.expiry = _tp.end_time;
+                        _poolTimeChanged = true;
+                        gpMarkDirty();
+                    }
+                }
 
                 if (!bridge) {
                     toast('桥接未就绪', toastKindFor('桥接未就绪'));
                     return;
                 }
 
+                if (_poolTimeChanged) {
+                    // 先提交卡池（保存 + 广播），菜单也照常保存 —— 用户改完一处就够，不必再找热更新
+                    try { gpCommit(); } catch (e) { console.error('卡池时间提交失败', e); }
+                }
                 bridge.saveMenu(selectedId, label, type, data, tooltip, resource_required, resource_url, icon_type, icon, expiry, function(success) {
                     if (success) {
                         loadDataAndRender();
