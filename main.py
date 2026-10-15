@@ -1,4 +1,5 @@
 # server_gui.py
+import hashlib
 import gc
 import os
 import random
@@ -274,6 +275,108 @@ def versions_compatible(client_ver, server_ver):
     return c_num == s_num
 
 # ==================== 数据持久化函数 ====================
+# ==================== 资源包加密与完整性（防篡改 / 防抓包复用） ====================
+PACK_MAGIC = b'FLYENC1'                 # 加密资源包的文件头
+PACK_KEY_SALT = b'FireflyPack-v1'       # 密钥盐（与服务器私密 pack_secret 一起派生）
+
+
+def pack_key(menu_id, secret=b''):
+    """资源包密钥（32 字节）= sha256(盐 + 服务器私密 secret + 菜单 id)。
+
+    服务器私密 secret 存在 server_config.json 且只在登录时下发 —— 别人即便从
+    /resources/xxx.zip 抓到文件，也只是乱码，拿不到密钥。
+    """
+    if isinstance(secret, str):
+        secret = secret.encode('utf-8')
+    return hashlib.sha256(PACK_KEY_SALT + b'|' + (secret or b'') + b'|' +
+                          str(menu_id or '').encode('utf-8')).digest()
+
+
+def pack_encrypt(data, key):
+    """加密：8 字节随机 nonce + HMAC-SHA256 计数器密钥流异或（同样的 key 才能还原）"""
+    if data is None:
+        return b''
+    nonce = os.urandom(8)
+    n = len(data)
+    if n == 0:
+        return PACK_MAGIC + nonce
+    blocks = (n + 31) // 32
+    ks = b''.join(hashlib.sha256(key + nonce + i.to_bytes(8, 'big')).digest()
+                  for i in range(blocks))[:n]
+    body = (int.from_bytes(data, 'big') ^ int.from_bytes(ks, 'big')).to_bytes(n, 'big')
+    return PACK_MAGIC + nonce + body
+
+
+def pack_decrypt(blob, key):
+    """解密；不是本程序加密的（旧服务器/普通 zip）原样返回，保持兼容"""
+    if not blob or not blob.startswith(PACK_MAGIC):
+        return blob
+    nonce = blob[len(PACK_MAGIC):len(PACK_MAGIC) + 8]
+    data = blob[len(PACK_MAGIC) + 8:]
+    n = len(data)
+    if n == 0:
+        return b''
+    blocks = (n + 31) // 32
+    ks = b''.join(hashlib.sha256(key + nonce + i.to_bytes(8, 'big')).digest()
+                  for i in range(blocks))[:n]
+    return (int.from_bytes(data, 'big') ^ int.from_bytes(ks, 'big')).to_bytes(n, 'big')
+
+
+def pack_manifest(zip_path):
+    """资源包内每个文件的 sha256 清单（客户端据此校验本地解压结果）"""
+    man = {}
+    try:
+        import zipfile as _zip
+        with _zip.ZipFile(zip_path, 'r') as z:
+            for info in z.infolist():
+                if info.is_dir():
+                    continue
+                name = str(info.filename).replace(chr(92), '/').lstrip('/')
+                if not name or '..' in name.split('/'):
+                    continue
+                man[name] = hashlib.sha256(z.read(info)).hexdigest()
+    except Exception as e:
+        print(f"[资源包] 生成清单失败 {zip_path}: {e}")
+        return {}
+    return man
+
+
+def pack_manifest_sig(files, key):
+    """给清单签名（HMAC），客户端先验签再校验文件 —— 中间人改包会被发现"""
+    import hmac as _hmac
+    payload = json.dumps(files, ensure_ascii=False, sort_keys=True).encode('utf-8')
+    return _hmac.new(key, payload, hashlib.sha256).hexdigest()
+
+
+def load_pack_secret():
+    """服务器私密密钥（首次运行随机生成，存 server_config.json）。
+
+    只通过登录包下发给客户端，用于解密资源包 / 校验清单签名 ——
+    别人抓到的 .zip 与清单都是乱码或验不过。
+    """
+    cfg_path = os.path.join(SERVER_DATA, 'server_config.json')
+    try:
+        cfg = {}
+        if os.path.exists(cfg_path):
+            with open(cfg_path, 'r', encoding='utf-8') as f:
+                cfg = json.load(f) or {}
+        secret = str(cfg.get('pack_secret') or '')
+        if len(secret) < 32:
+            secret = os.urandom(32).hex()
+            cfg['pack_secret'] = secret
+            try:
+                os.makedirs(SERVER_DATA, exist_ok=True)
+                with open(cfg_path, 'w', encoding='utf-8') as f:
+                    json.dump(cfg, f, ensure_ascii=False, indent=2)
+                print("[安全] 已生成服务器资源密钥 pack_secret")
+            except Exception as e:
+                print(f"[安全] pack_secret 写入失败: {e}")
+        return secret
+    except Exception as e:
+        print(f"[安全] 读取 pack_secret 失败: {e}")
+        return ''
+
+
 def load_json_safe(path, default):
     """容错加载 JSON：文件损坏时备份为 .corrupted 并返回默认值，避免整体崩溃"""
     if not os.path.exists(path):
@@ -287,6 +390,20 @@ def load_json_safe(path, default):
             shutil.copy2(path, path + '.corrupted')
         except Exception:
             pass
+        # 防丢失：save_json 每次写盘前都会留一份 .bak，这里用它恢复
+        try:
+            _bak = path + '.bak'
+            if os.path.exists(_bak):
+                with open(_bak, 'r', encoding='utf-8') as f:
+                    _data = json.load(f)
+                print(f"[恢复] 已用备份恢复: {_bak}", flush=True)
+                try:
+                    shutil.copy2(_bak, path)
+                except Exception:
+                    pass
+                return _data
+        except Exception as _be:
+            print(f"[恢复] 备份同样不可用: {_be}")
         return default
 
 def save_json_atomic(path, data):
@@ -2397,6 +2514,8 @@ class TCPHandler(socketserver.BaseRequestHandler):
             self.send_json({
                 'type': 'login_ok',
                 'data': {
+                    # 资源包密钥种子：客户端用它解密资源包、校验清单签名（不落盘、每次登录都发）
+                    'pack_secret': load_pack_secret(),
                     'server_uid': server_uid,
                     'uid': pdata['uid'],
                     'permission': player['permission'],
@@ -8825,7 +8944,63 @@ class ServerWindow(QMainWindow):
                 # 将目录设为 web_root，但不改变全局 os.getcwd()
                 super().__init__(*args, directory=web_root, **kwargs)
 
+            def _serve_pack(self):
+                """资源包 / 清单：加密 + 签名下发。
+
+                /resources/<menu_id>.zip       → 加密后的包（抓到也是乱码）
+                /resources/<menu_id>.manifest  → {files:{路径:sha256}, sig:HMAC}
+                返回 True 表示已处理（含 404）。
+                """
+                try:
+                    import urllib.parse as _up
+                    path = _up.unquote(str(self.path).split('?', 1)[0])
+                    if not path.startswith('/resources/'):
+                        return False
+                    name = path[len('/resources/'):]
+                    _secret = load_pack_secret()
+                    if name.endswith('.manifest'):
+                        mid = name[:-len('.manifest')].strip('/')
+                        zp = os.path.join(web_root, 'resources', '%s.zip' % mid)
+                        if not os.path.isfile(zp):
+                            self.send_error(404)
+                            return True
+                        files = pack_manifest(zp)
+                        body = json.dumps({'files': files,
+                                           'sig': pack_manifest_sig(files, pack_key(mid, _secret))},
+                                          ensure_ascii=False).encode('utf-8')
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json; charset=utf-8')
+                        self.send_header('Content-Length', str(len(body)))
+                        self.send_header('Cache-Control', 'no-store')
+                        self.end_headers()
+                        self.wfile.write(body)
+                        return True
+                    if name.endswith('.zip'):
+                        mid = name[:-len('.zip')].strip('/')
+                        zp = os.path.join(web_root, 'resources', '%s.zip' % mid)
+                        if not os.path.isfile(zp):
+                            self.send_error(404)
+                            return True
+                        with open(zp, 'rb') as f:
+                            blob = f.read()
+                        body = pack_encrypt(blob, pack_key(mid, _secret))
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/octet-stream')
+                        self.send_header('Content-Length', str(len(body)))
+                        self.send_header('Cache-Control', 'no-store')
+                        self.end_headers()
+                        self.wfile.write(body)
+                        print(f"[Web] 资源包 {mid} 加密下发（{len(blob)} → {len(body)} 字节）")
+                        return True
+                    return False
+                except Exception as e:
+                    print(f"[Web] 资源包加密下发失败: {e}")
+                    return False
+
             def do_GET(self):
+                # 资源包 / 清单：加密 + 签名（别人抓到是乱码）
+                if self._serve_pack():
+                    return
                 # 处理 API 请求（可扩展）
                 if self.path.startswith('/api/'):
                     self.handle_api()

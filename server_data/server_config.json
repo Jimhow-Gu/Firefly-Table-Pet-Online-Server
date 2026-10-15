@@ -10,5 +10,6 @@
   "server_name": "流萤桌宠服务器",
   "web_port": 8080,
   "max_players": 10,
-  "access_mode": "none"
+  "access_mode": "none",
+  "pack_secret": "e34f9526d5fe39e360e2a95fd5691d51fc844a1b0771229d85b8cf924b8089fb"
 }
