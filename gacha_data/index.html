@@ -2884,7 +2884,10 @@
                 }
                 return hit ? new Date(Date.now() + ms) : null;
             }
-            const t = raw.replace(' ', 'T');
+            // Python 的 isoformat() 会产出 6 位小数秒（2026-11-14T11:55:09.471783+08:00），
+            // JS 的 Date 只认最多 3 位 → 直接 Invalid Date，页面就会一直显示"永久"。
+            // 所以先把小数秒截断到 3 位再解析。
+            const t = raw.replace(' ', 'T').replace(/(\.\d{3})\d+/, '$1');
             const d = new Date(t);
             return isNaN(d.getTime()) ? null : d;
         }

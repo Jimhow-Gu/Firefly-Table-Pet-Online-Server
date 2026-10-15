@@ -7614,10 +7614,12 @@ class ContentBridge(QObject):
             expiry_iso = None
             if expiry and expiry.strip().lower() not in ('永久', 'permanent', ''):
                 delta, until_dt = parse_time_spec(expiry)
+                # 去掉微秒：Python 的 isoformat() 会产出 6 位小数秒（...09.471783+08:00），
+                # 而 JS 的 new Date() 只认最多 3 位 → 页面解析失败会一直显示"永久"
                 if until_dt:
-                    expiry_iso = until_dt.isoformat()
+                    expiry_iso = until_dt.replace(microsecond=0).isoformat()
                 elif delta:
-                    expiry_iso = (datetime.now(SERVER_TIMEZONE) + delta).isoformat()
+                    expiry_iso = (datetime.now(SERVER_TIMEZONE) + delta).replace(microsecond=0).isoformat()
             print(f"[saveMenu] 解析后的 expiry_iso = {expiry_iso}")
 
             # ----- 查找或创建菜单项 -----

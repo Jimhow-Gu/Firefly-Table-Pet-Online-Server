@@ -330,6 +330,14 @@ input:focus,select:focus{
 #loadingOverlay .dots span:nth-child(3) { animation-delay: .3s; }
 @keyframes lds { 0%,80%,100% { transform: scale(.6); opacity:.35; } 40% { transform: scale(1); opacity:1; } }
 #loadingOverlay.hidden { display: none; }
+
+        /* 卡池结束时间一行（管理页抽卡面板） */
+        .gp-time-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+            margin:10px 0 2px;padding:8px 10px;border-radius:8px;
+            background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);}
+        .gp-time-row .gp-time-label{font-size:12px;color:#c9c9c9;white-space:nowrap;}
+        .gp-time-row input{flex:1;min-width:180px;background:rgba(0,0,0,.35);color:#eee;
+            border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:6px 8px;font-size:13px;}
 </style>
 <body>
 <div id="loadingOverlay"><div>⏳ 正在加载…</div><div class="dots"><span></span><span></span><span></span></div></div>
@@ -409,6 +417,12 @@ input:focus,select:focus{
                         <!-- 有效期：与其它字段一样成对（label 左 / 输入框 右） -->
                         <label class="text-right pr-2 text-sm">有效期</label>
                         <input id="f_expiry" type="text" placeholder="永久 或 30D 或 2026-12-31">
+                        <!-- 抽卡菜单专用提示：菜单有效期 ≠ 卡池结束时间（用户常把这两个弄混） -->
+                        <div id="f_expiry_hint" class="text-yellow-400 text-xs hidden" style="grid-column:1 / -1;">
+                            ⓘ 这里是「菜单」有效期（到期后点开菜单会提示已过期）。
+                            卡池的结束时间请用下面「卡池」面板里的「卡池结束时间」设置，它决定卡池显示为期
+                            <b>限定</b> 还是 <b>常驻</b>。
+                        </div>
                     </div>
                     <!-- 上传状态移出网格，避免占用网格单元格导致后续字段错列 -->
                     <div id="uploadStatus" class="f-res-only" style="margin-top:6px;">上传中...</div>
@@ -538,6 +552,13 @@ input:focus,select:focus{
                     <label class="gp-publish" title="公开需已上传：卡池封面 + 侧边封面 + 配置抽卡道具">
                         <input type="checkbox" id="gpPublish"> 公开此卡池
                     </label>
+                </div>
+                <div class="gp-time-row">
+                    <span class="gp-time-label">卡池结束时间</span>
+                    <input id="gpEndTime" type="text" placeholder="永久 或 30D 或 2026-12-31（点【🔥 热更新】生效）">
+                    <button class="gp-btn-outline" id="gpTime7" type="button">+7天</button>
+                    <button class="gp-btn-outline" id="gpTime30" type="button">+30天</button>
+                    <button class="gp-btn-outline" id="gpTimeForever" type="button">永久</button>
                 </div>
                 <div class="gp-canvas" id="gpCanvas" title="点击上传卡池图片资源">
                     <span id="gpCanvasHint">上传卡池图片资源</span>
@@ -1320,7 +1341,9 @@ function gpParseTime(v) {
         }
         return hit ? new Date(Date.now() + ms) : null;
     }
-    const d = new Date(raw.replace(' ', 'T'));
+    // 同样是 Python isoformat() 的 6 位小数秒：JS 只认 3 位，先截断再解析
+    const _t2 = raw.replace(' ', 'T').replace(/(\.\d{3})\d+/, '$1');
+    const d = new Date(_t2);
     return isNaN(d.getTime()) ? null : d;
 }
 
@@ -1447,6 +1470,9 @@ function gpRender() {
     }
     const pb = document.getElementById('gpPublish');
     if (pb) pb.checked = !!p.published;
+    // 卡池结束时间输入框跟随当前池（空 = 永久）
+    const _te = document.getElementById('gpEndTime');
+    if (_te) _te.value = (p.end_time || p.expiry || '');
     // 卡池列表（绿色为当前）
     const list = document.getElementById('gpPoolList');
     if (list) {
@@ -1822,6 +1848,28 @@ function gpInitEvents() {
     if (a) a.addEventListener('click', function () { gpAddPool(); });
     const d = document.getElementById('gpDelPool');
     if (d) d.addEventListener('click', function () { gpDelPool(); });
+    // 卡池结束时间：写进当前池 → 标记待提交 → 点【🔥 热更新】生效
+    const _gpTimeApply = function (val) {
+        const p = gpCur();
+        if (!p) return;
+        p.end_time = (val === undefined || val === null || val === '') ? null : val;
+        p.expiry = p.end_time;          // 与旧字段保持一致（页面两种字段都读）
+        const _ti = document.getElementById('gpEndTime');
+        if (_ti) _ti.value = p.end_time || '';
+        gpMarkDirty();
+        gpRender();
+    };
+    const _gpTimeInput = document.getElementById('gpEndTime');
+    if (_gpTimeInput) {
+        _gpTimeInput.addEventListener('change', function () { _gpTimeApply(_gpTimeInput.value.trim()); });
+    }
+    const _gpT7 = document.getElementById('gpTime7');
+    if (_gpT7) _gpT7.addEventListener('click', function () { _gpTimeApply('7D'); });
+    const _gpT30 = document.getElementById('gpTime30');
+    if (_gpT30) _gpT30.addEventListener('click', function () { _gpTimeApply('30D'); });
+    const _gpTF = document.getElementById('gpTimeForever');
+    if (_gpTF) _gpTF.addEventListener('click', function () { _gpTimeApply(''); });
+
     const pb = document.getElementById('gpPublish');
     if (pb) pb.addEventListener('change', function () {
         const p = gpCur();
@@ -1971,6 +2019,9 @@ function setEditMode(mode) {
 function toggleResourceBox(node) {
     // 抽卡菜单不需要资源包：逐项隐藏（这些是网格的直接子项，逐个隐藏不会破坏"有效期"等行的对齐）
     const isGacha = node ? (node.type === 'gacha') : (f_type.value === 'gacha');
+    // 抽卡菜单：提示"菜单有效期 ≠ 卡池结束时间"
+    const _eh = document.getElementById('f_expiry_hint');
+    if (_eh) _eh.classList.toggle('hidden', !isGacha);
     document.querySelectorAll('.f-res-only').forEach(function (el) {
         el.classList.toggle('hidden', isGacha);
     });
