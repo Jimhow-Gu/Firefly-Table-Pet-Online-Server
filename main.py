@@ -9485,32 +9485,41 @@ class ServerWindow(QMainWindow):
         self._content_manager.show()
 
     def start_web_server(self):
-        """启动轻量级 HTTP 服务器，自动分配空闲端口，根目录为 server_data/webroot"""
+        """启动轻量级 HTTP 服务器，自动分配空闲端口，根目录为 server_data/webroot
+
+        端口选择必须"真的属于我们"：Windows 上 `bind()` 探测会被 SO_REUSEADDR 骗过
+        （实测：Steam 的 steamwebhelper 占着 127.0.0.1:8080，我们仍然 bind 成功，
+        于是客户端去 http://127.0.0.1:8080/... 拿到的是 Steam 的 404 →
+        物品图/卡池图全都下不来，背包和商店只能显示 emoji）。所以这里：
+          1) 先用 connect 探测端口是不是已经有别的服务在答话；
+          2) 起完服务再自检 /__firefly_web__ 标记页，不通过就换端口重来。
+        """
         import socketserver
         from http.server import SimpleHTTPRequestHandler
         import threading
         import socket
 
-        # 尝试从 8080 开始找空闲端口
-        port = 8080
-        max_port = 8099
-        while port <= max_port:
-            try:
-                test_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                test_sock.settimeout(1)
-                test_sock.bind(('0.0.0.0', port))
-                test_sock.close()
-                break
-            except OSError:
-                port += 1
-        else:
-            self.append_log("[Web服务] 未找到可用端口 (8080-8099 均被占用)")
-            return
-
-        # Web 根目录
         web_root = os.path.join(SERVER_DATA, 'webroot')
         _ensure_data_dirs()   # webroot/resources、gacha_images、custom_items、players 等一次建全
         resources_dir = os.path.join(web_root, 'resources')
+
+        def _port_has_other_service(port):
+            """能连上 = 已经有别的服务占着（绝不能用它）"""
+            try:
+                with socket.create_connection(('127.0.0.1', port), timeout=0.35):
+                    return True
+            except Exception:
+                return False
+
+        def _port_free_for_bind(port):
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(1)
+                s.bind(('0.0.0.0', port))
+                s.close()
+                return True
+            except OSError:
+                return False
 
         # 自定义 Handler，不改变当前工作目录，直接基于 web_root 提供文件
         class CustomHandler(SimpleHTTPRequestHandler):
@@ -9572,6 +9581,16 @@ class ServerWindow(QMainWindow):
                     return False
 
             def do_GET(self):
+                # 标记页：客户端/自检用来确认"这个端口上跑的确实是我们"
+                if str(self.path).split('?', 1)[0] == '/__firefly_web__':
+                    body = b'firefly-web-ok'
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/plain')
+                    self.send_header('Content-Length', str(len(body)))
+                    self.send_header('Cache-Control', 'no-store')
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
                 # 资源包 / 清单：加密 + 签名（别人抓到是乱码）
                 if self._serve_pack():
                     return
@@ -9610,21 +9629,67 @@ class ServerWindow(QMainWindow):
             def log_message(self, format, *args):
                 pass
 
-        # 创建服务器（允许端口复用，快速重启不再报地址占用）
+        # 选端口：connect 探测（别人在答话就跳过）+ 起完自检标记页，不通过就换下一个
         class _ReusableWebTCPServer(socketserver.TCPServer):
             allow_reuse_address = True
-        self.web_server = _ReusableWebTCPServer(('0.0.0.0', port), CustomHandler)
-        self.web_server_port = port
 
-        # 在后台线程运行
-        self.web_thread = threading.Thread(target=self.web_server.serve_forever, daemon=True)
-        self.web_thread.start()
+        started = False
+        _tried = []
+        for port in range(8080, 8100):
+            if _port_has_other_service(port):
+                if port == 8080:
+                    self.append_log(f"[Web服务] 端口 {port} 已被其它程序占用，自动换端口…")
+                _tried.append(port)
+                continue
+            if not _port_free_for_bind(port):
+                _tried.append(port)
+                continue
+            try:
+                _srv = _ReusableWebTCPServer(('0.0.0.0', port), CustomHandler)
+            except OSError as e:
+                _tried.append(port)
+                print(f"[Web] 端口 {port} 绑定失败: {e}")
+                continue
+            # 先跑起来再自检：必须能取到我们自己的标记页
+            # （否则说明这个端口实际被别人服务着 —— Steam 就爱占 8080）
+            _th = threading.Thread(target=_srv.serve_forever, daemon=True)
+            _th.start()
+            import urllib.request as _ur
+            _ok = False
+            for _attempt in range(8):
+                try:
+                    with _ur.urlopen(f'http://127.0.0.1:{port}/__firefly_web__', timeout=1.0) as _r:
+                        _ok = (_r.read(32) == b'firefly-web-ok')
+                    if _ok:
+                        break
+                except Exception:
+                    time.sleep(0.15)
+            if not _ok:
+                try:
+                    _srv.shutdown()
+                    _srv.server_close()
+                except Exception:
+                    pass
+                _tried.append(port)
+                self.append_log(f"[Web服务] 端口 {port} 自检不通过（可能被 Steam/其它程序占用），换下一个…")
+                continue
+            self.web_server = _srv
+            self.web_server_port = port
+            self.web_thread = _th
+            started = True
+            break
 
-        self.append_log(f"[Web服务] 已启动，端口 {port}，根目录 {web_root}")
+        if not started:
+            self.append_log("[Web服务] 未找到可用端口 (8080-8099 均被占用) —— "
+                            "物品图片/卡池图片会下不到，请先释放一个端口再重启服务器")
+            return
+        if _tried:
+            self.append_log(f"[Web服务] 已跳过被占用的端口：{_tried[0] if len(_tried) == 1 else _tried}")
+        self.append_log(f"[Web服务] 已启动，端口 {self.web_server_port}，根目录 {web_root}")
 
         # 保存端口到配置
         config = load_server_config()
-        config['web_port'] = port
+        config['web_port'] = self.web_server_port
         save_server_config(config)
 
     def stop_web_server(self):
