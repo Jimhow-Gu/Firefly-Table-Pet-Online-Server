@@ -1276,6 +1276,7 @@ function gpLoadPreview(node) {
             gachaConfigCache = cfg;
             gachaPools = (Array.isArray(cfg.pools) && cfg.pools.length)
                 ? cfg.pools.map(normalizePool) : [poolFromLegacy(cfg)];
+            gpMarkSaved();
             gpIndex = 0;
             if (cfg.active_pool) {
                 const i = gachaPools.findIndex(function (p) { return p.id === cfg.active_pool; });
@@ -1302,6 +1303,19 @@ function gpMarkDirty() {
     }
 }
 
+// 记录"确实已上传成功"的封面/侧封地址，作为上传失败时的回退目标
+// （失败时把本地预览撤掉、还原成上一次的地址，并取消公开）
+function gpMarkSaved() {
+    (gachaPools || []).forEach(function (p) {
+        if (!p) return;
+        const b = String(p.banner || '');
+        const s = String(p.side_banner || '');
+        if (b.indexOf('/gacha_images/') === 0) p._savedBanner = b;
+        if (s.indexOf('/gacha_images/') === 0) p._savedSide = s;
+    });
+}
+window.gpMarkSaved = gpMarkSaved;
+
 function gpClearDirty() {
     gpDirty = false;
     gpPendingImgs = {};
@@ -1315,10 +1329,12 @@ function gpClearDirty() {
 // 公开条件（与服务端一致）：封面/侧封必须真实上传，且配置了道具
 function gpPublishBlockers(p) {
     const miss = [];
-    // 封面：已上传（/gacha_images/）或刚选择的预览图（data:）都算有 ——
-    // 之前只认 /gacha_images/，导致"刚上传完封面点公开"仍提示要上传封面
+    // 封面：已上传（/gacha_images/）→ 有；刚选的本地预览（data:）→ 只有确实排在
+    // 本次提交的上传队列里才算有（否则就是"骗过校验"：预览图根本传不上去）
     const _b = String(p.banner || '');
-    const _hasBanner = _b.startsWith('/gacha_images/') || _b.indexOf('data:image/') === 0;
+    const _pendingBanner = !!gpPendingImgs['banner@' + p.id];
+    const _hasBanner = _b.startsWith('/gacha_images/') ||
+        (_b.indexOf('data:image/') === 0 && _pendingBanner);
     if (!_hasBanner) miss.push('卡池封面（需上传）');
     if (!((p.five_star_items || []).length || (p.four_star_items || []).length ||
           (p.three_star_items || []).length)) miss.push('抽卡道具（至少一条）');
@@ -1529,41 +1545,78 @@ function gpCommit(cb) {
     });
     // 2) 先上传暂存图片（按"kind@池id"归属，切池不会传错）
     const jobs = [];
+    const failed = [];
     gachaPools.forEach(function (p) {
         Object.keys(gpPendingImgs).forEach(function (key) {
             const at = key.lastIndexOf('@');
             const kind = at >= 0 ? key.slice(0, at) : key;
             const pid = at >= 0 ? key.slice(at + 1) : '';
             if (pid !== p.id) return;
+            const _b64 = gpPendingImgs[key];
             jobs.push(new Promise(function (resolve) {
-                bridge.uploadPoolImage(gpMenuId || 'm11', pid, kind, gpPendingImgs[key],
-                    function (url) {
-                        if (url) {
-                            if (kind === 'banner') p.banner = url;
-                            else if (kind === 'side') p.side_banner = url;
-                            else { p.ui = p.ui || {}; p.ui[kind] = url; }
-                        }
-                        resolve(!!url);
-                    });
+                let settled = false;
+                const done = function (url) {
+                    if (settled) return;      // 桥接回调可能重复/超时，只认第一次
+                    settled = true;
+                    if (url) {
+                        if (kind === 'banner') p.banner = url;
+                        else if (kind === 'side') p.side_banner = url;
+                        else { p.ui = p.ui || {}; p.ui[kind] = url; }
+                        delete gpPendingImgs[key];
+                    } else {
+                        // 上传失败：把本地预览撤掉，别让它骗过"公开此卡池"的校验
+                        failed.push((p.name || p.id) + ' 的 ' + kind);
+                        if (kind === 'banner') { p.banner = p._savedBanner || ''; p.published = false; }
+                        else if (kind === 'side') { p.side_banner = p._savedSide || ''; p.published = false; }
+                        else if (p.ui) { p.ui[kind] = ''; }
+                    }
+                    resolve(!!url);
+                };
+                try {
+                    bridge.uploadPoolImage(gpMenuId || 'm11', pid, kind, _b64, done);
+                } catch (e) {
+                    done('');
+                }
+                setTimeout(function () { done(''); }, 20000);   // 桥接没回也不卡死
             }));
         });
     });
     Promise.all(jobs).then(function () {
+        if (failed.length) {
+            toast('❌ 这些图片没上传成功：' + failed.join('、') + '（请重新上传；未成功的池子已自动取消公开）', 'error');
+        }
         // 3) 保存并广播（结果默认保持：直接落盘）
         const cfg = Object.assign({}, gachaConfigCache || {}, gpCur() || {});
-        cfg.pools = gachaPools.map(function (p) { return p; });
+        cfg.pools = gachaPools.map(function (p) {
+            // 兜底：万一还有本地预览（data:）没传上去，绝不写进配置
+            const _clean = Object.assign({}, p);
+            ['banner', 'side_banner'].forEach(function (k) {
+                if (String(_clean[k] || '').indexOf('data:') === 0) _clean[k] = '';
+            });
+            if (_clean.ui) {
+                _clean.ui = Object.assign({}, _clean.ui);
+                Object.keys(_clean.ui).forEach(function (k) {
+                    if (String(_clean.ui[k] || '').indexOf('data:') === 0) _clean.ui[k] = '';
+                });
+            }
+            return _clean;
+        });
         cfg.active_pool = (gpCur() || {}).id || '';
         gachaConfigCache = cfg;
         if (!bridge) { toast('桥接未就绪', 'error'); if (cb) cb(false); return; }
         bridge.saveGachaConfig(JSON.stringify(cfg), function (ok) {
-            if (ok) {
+            if (ok && !failed.length) {
                 gpClearDirty();
+                gpMarkSaved();
                 gpRender();
                 toast('✅ 已更新：结果已保存并热更新给所有在线玩家', 'ok');
+            } else if (ok) {
+                gpClearDirty();
+                gpRender();
             } else {
                 toast('保存失败，请看服务端日志', 'error');
             }
-            if (cb) cb(ok);
+            if (cb) cb(ok && !failed.length);
         });
     });
 }
@@ -2357,6 +2410,7 @@ function loadGachaConfig() {
             gachaPools = (Array.isArray(config.pools) && config.pools.length)
                 ? config.pools.map(normalizePool)
                 : [poolFromLegacy(config)];
+            gpMarkSaved();
             activePoolIndex = 0;
             if (config.active_pool) {
                 const idx = gachaPools.findIndex(function (p) { return p.id === config.active_pool; });
@@ -2728,6 +2782,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (_poolTimeChanged) {
                     // 先提交卡池（保存 + 广播），菜单也照常保存 —— 用户改完一处就够，不必再找热更新
                     try { gpCommit(); } catch (e) { console.error('卡池时间提交失败', e); }
+                } else if (typeof gpDirty !== 'undefined' && gpDirty && typeof gpCommit === 'function') {
+                    // 卡池面板有未提交的改动（含刚选的封面图）→ 点【确定】也一起落盘，
+                    // 免得"传了封面点确定，结果根本没上传"（用户反馈）
+                    try { gpCommit(); } catch (e) { console.error('卡池提交失败', e); }
                 }
                 bridge.saveMenu(selectedId, label, type, data, tooltip, resource_required, resource_url, icon_type, icon, expiry, function(success) {
                     if (success) {

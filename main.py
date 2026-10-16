@@ -2530,10 +2530,12 @@ class TCPHandler(socketserver.BaseRequestHandler):
                 is_admin = real_uid.lower().startswith('admin')
                 # 确保 uid 字段正确（保留前缀）
                 uid_field = real_uid  # 客户端传来的已经是 user-xxx 或 admin-xxx
-                # 生成默认名称：注销用户 + 随机 10 位数字
+                # 生成默认名称：开拓者- + 随机 10 位数字
                 # （不使用客户端传来的原昵称；也不使用 UID——UID 会重复使用，会撞名）
+                # 以前这里是"注销用户xxxx"，跟注销账号的显示名撞了：
+                # 新玩家一登录就被提示"注销用户… 改为 我的名字"，像刚被销号（用户反馈）
                 _rand_digits = ''.join(random.choice('0123456789') for _ in range(10))
-                default_name = f"注销用户{_rand_digits}"
+                default_name = f"开拓者-{_rand_digits}"
 
                 pdata = {
                     'name': default_name,
@@ -8069,6 +8071,18 @@ class ContentBridge(QObject):
         写入 webroot/gacha_images 并更新配置、广播热更新，返回可访问 URL（失败返回空串）"""
         import base64
         import re as _re
+
+        def _fail(msg):
+            """失败一定要说出来：以前只 print（打包成窗口程序后 stdout 是空的，
+            管理员什么都看不到，页面还以为"已上传"）"""
+            print(f'[卡池图片] 上传失败：{msg}')
+            try:
+                if getattr(self, 'window', None) is not None:
+                    self.window.append_log(f"❌ [卡池图片] 上传失败：{msg}")
+            except Exception:
+                pass
+            return ''
+
         try:
             def _safe(s, d='x'):
                 s = _re.sub(r'[^0-9A-Za-z_\-]', '', str(s or ''))[:40]
@@ -8079,37 +8093,50 @@ class ContentBridge(QObject):
             kind = _safe(kind, 'banner')
             raw = (b64 or '').strip()
             if not raw:
-                return ''
+                return _fail('页面没有传来图片数据')
             if ',' in raw[:64]:
                 raw = raw.split(',', 1)[1]
-            blob = base64.b64decode(raw)
+            try:
+                blob = base64.b64decode(raw)
+            except Exception as e:
+                return _fail(f'图片数据不是合法 base64（{e}）')
             if not blob:
-                return ''
-            if len(blob) > 8 * 1024 * 1024:
-                print('[卡池图片] 图片过大（上限 8MB）')
-                return ''
+                return _fail('图片数据是空的')
+            if len(blob) > 24 * 1024 * 1024:
+                return _fail('图片过大（上限 24MB，请压缩后再传）')
+            if blob[:8] != b'\x89PNG\r\n\x1a\n':
+                # 不是 PNG 也允许（浏览器认扩展名），但记一笔，方便排查"传了没反应"
+                print(f'[卡池图片] 注意：{kind}__{pool_id} 不是 PNG（前 8 字节 {blob[:8]!r}）')
             dest_dir = os.path.join(SERVER_DATA, 'webroot', 'gacha_images', menu_id)
             os.makedirs(dest_dir, exist_ok=True)
-            # 版本化文件名：同名资源重复上传也会生成新文件（客户端/浏览器按 URL 即时刷新）
-            fname = f'{kind}__{pool_id}.png'
+            import uuid as _uuid
+            fname = f'{kind}__{pool_id}_{_uuid.uuid4().hex[:8]}.png'
+            with open(os.path.join(dest_dir, fname), 'wb') as f:
+                f.write(blob)
+            url = f'/gacha_images/{menu_id}/{fname}'
+            # 同一个 池+用途 只保留最新一张：老写法先按 "<kind>__<pool_id>." 清理，
+            # 但文件名其实是 "<kind>__<pool_id>_<随机>.png"（下划线），永远匹配不上，
+            # 于是每传一次就多留一份（实测攒了 90+ 张）。这里按前缀真清理。
             try:
                 for old_fn in os.listdir(dest_dir):
-                    if old_fn.startswith(f'{kind}__{pool_id}.') and old_fn != fname:
+                    if old_fn == fname:
+                        continue
+                    if old_fn.startswith(f'{kind}__{pool_id}_') or old_fn == f'{kind}__{pool_id}.png':
                         try:
                             os.remove(os.path.join(dest_dir, old_fn))
                         except Exception:
                             pass
             except Exception:
                 pass
-            fname = f'{kind}__{pool_id}_{uuid.uuid4().hex[:8]}.png'
-            with open(os.path.join(dest_dir, fname), 'wb') as f:
-                f.write(blob)
-            url = f'/gacha_images/{menu_id}/{fname}'
+            # 写配置（池子找不到也照样把文件留好；随后页面会带着 URL 再存一次配置）
             cfg_path = os.path.join(SERVER_DATA, 'gacha_config.json')
             cfg = {}
             if os.path.exists(cfg_path):
-                with open(cfg_path, 'r', encoding='utf-8') as f:
-                    cfg = json.load(f) or {}
+                try:
+                    with open(cfg_path, 'r', encoding='utf-8') as f:
+                        cfg = json.load(f) or {}
+                except Exception:
+                    cfg = {}
             cfg = normalize_gacha_pools(cfg, GACHA_MIN_DEFAULTS)
             pool = get_gacha_pool(cfg, pool_id)
             if pool is not None:
@@ -8133,10 +8160,14 @@ class ContentBridge(QObject):
                 except Exception:
                     pass
             print(f'[卡池图片] 已上传 {kind}（卡池 {pool_id}，菜单 {menu_id}）→ {url}')
+            try:
+                if getattr(self, 'window', None) is not None:
+                    self.window.append_log(f"🖼️ [卡池图片] 已上传 {kind}（卡池 {pool_id}）→ {url}")
+            except Exception:
+                pass
             return url
         except Exception as e:
-            print(f'[卡池图片] 上传失败: {e}')
-            return ''
+            return _fail(f'异常 {type(e).__name__}: {e}')
 
     @pyqtSlot(str, str, result=bool)
     def uploadGachaCover(self, menu_id, b64):
@@ -8213,6 +8244,35 @@ class ContentBridge(QObject):
                 print(f"[卡池] 保存内容不是合法 JSON: {e}")
                 return False
             data = normalize_gacha_pools(data, _minimal_defaults)
+            # 绝不把 base64 预览图写进配置：页面上的 data: URL 只是本地预览，
+            # 真图必须由 uploadPoolImage 落盘。写进配置会：①玩家端一行都显示不出来
+            # （页面只认 /gacha_images/）②"公开此卡池"的校验被本地预览骗过（用户反馈）
+            try:
+                _stripped = []
+                for _p in (data.get('pools') or []):
+                    if not isinstance(_p, dict):
+                        continue
+                    for _k in ('banner', 'side_banner'):
+                        if str(_p.get(_k) or '').startswith('data:'):
+                            _p[_k] = ''
+                            _p['published'] = False
+                            _stripped.append('%s.%s' % (_p.get('id'), _k))
+                    _ui = _p.get('ui')
+                    if isinstance(_ui, dict):
+                        for _k, _v in list(_ui.items()):
+                            if str(_v or '').startswith('data:'):
+                                _ui[_k] = ''
+                                _stripped.append('%s.ui.%s' % (_p.get('id'), _k))
+                if _stripped:
+                    msg = '已丢弃未上传成功的 base64 预览图：%s' % ('、'.join(_stripped))
+                    print('[卡池] ' + msg)
+                    try:
+                        if getattr(self, 'window', None) is not None:
+                            self.window.append_log('⚠️ [卡池] ' + msg)
+                    except Exception:
+                        pass
+            except Exception as _e:
+                print(f'[卡池] 清理 base64 预览图失败: {_e}')
             config_json = json.dumps(data, ensure_ascii=False, indent=2)
             with open(path, 'w', encoding='utf-8') as f:
                 f.write(config_json)
