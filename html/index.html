@@ -1463,14 +1463,22 @@ function gpRender() {
     const hint = document.getElementById('gpCanvasHint');
     if (img && hint) {
         const b = p.banner || '';
-        const _uploaded = String(b || '').indexOf('/gacha_images/') === 0 ||
-            String(b || '').indexOf('data:image/') === 0;
+        const _isUploaded = String(b).indexOf('/gacha_images/') === 0;
+        const _uploaded = _isUploaded || String(b || '').indexOf('data:image/') === 0;
         if (_uploaded && gpIsImgSrc(b)) {
             img.classList.remove('hidden');
             img.src = gpAbs(b);
             img.style.display = 'block';
             hint.style.display = 'none';
-            img.onerror = function () { img.style.display = 'none'; hint.style.display = ''; };
+            // 预览加载不出来（常见原因：服务端 Web 端口没在跑 / 没拿到 gpWebBase）
+            // 也要说清"图已经传上去了"，不能退回"点击上传卡池图片资源"让人以为没上传
+            img.onerror = function () {
+                img.style.display = 'none';
+                hint.style.display = '';
+                hint.textContent = _isUploaded
+                    ? '✅ 封面已上传（预览需要服务端 Web 端口在运行；玩家端不受影响）'
+                    : '已选择本地封面（点【🔥 热更新】提交生效）';
+            };
         } else {
             img.classList.add('hidden');
             img.style.display = 'none';

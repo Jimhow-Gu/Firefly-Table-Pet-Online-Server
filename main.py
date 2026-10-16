@@ -7958,6 +7958,17 @@ class ContentBridge(QObject):
                 it = items_map.get(g.get('id'))
                 g['emoji'] = (it or {}).get('icon') or ('🍰' if g.get('id') == 'cake' else '🎁')
             g['category'] = self.normalize_shop_category(g)
+            # 图片字段补齐：商店记录里往往没有 image（物品图是挂在物品上的），
+            # 客户端商店就只会显示 emoji 礼盒（用户反馈）。这里按物品 id 补上
+            # 物品自己上传的展示图与版本号，客户端就能显示真图。
+            try:
+                _it = items_map.get(g.get('id'))
+                if _it and not g.get('image') and _it.get('image'):
+                    g['image'] = _it.get('image')
+                    if _it.get('ver') is not None:
+                        g['ver'] = _it.get('ver')
+            except Exception:
+                pass
         have = {g.get('id') for g in goods}
         for b in self.BUILTIN_SHOP_ITEMS:
             if b['id'] not in have:
