@@ -8076,6 +8076,32 @@ class ContentBridge(QObject):
             print(f'[Web基地址] 获取失败: {e}')
             return ''
 
+    @pyqtSlot(str, result=str)
+    def localFileUrl(self, rel):
+        """把 webroot 里的相对路径（/gacha_images/xxx.png）转成本地 file:// 地址。
+
+        管理页本身是本地文件加载的，所以可以直接用 file:// 预览刚上传的图 ——
+        这样即使 Web 端口没起（或被 Steam 之类的程序占用），封面预览也一直是图片，
+        不会变成"封面已上传"的文字提示（用户要求）。
+        """
+        try:
+            from PyQt5.QtCore import QUrl
+            p = str(rel or '').strip()
+            if not p or p.startswith('http') or '..' in p or '\\' in p:
+                return ''
+            # 关键：只能用 webroot 里面的文件。绝对路径/盘符（C:/...）在 os.path.join
+            # 里会把前面的路径整体丢掉，必须用 abspath + 前缀校验挡掉（否则等于任意文件预览）
+            base = os.path.abspath(os.path.join(SERVER_DATA, 'webroot'))
+            abs_path = os.path.abspath(os.path.join(base, p.lstrip('/').replace('/', os.sep)))
+            if not (abs_path == base or abs_path.startswith(base + os.sep)):
+                return ''
+            if not os.path.isfile(abs_path):
+                return ''
+            return QUrl.fromLocalFile(abs_path).toString()
+        except Exception as e:
+            print(f'[本地预览] 转换失败: {e}')
+            return ''
+
     @pyqtSlot(str, str, str, str, result=str)
     def uploadPoolImage(self, menu_id, pool_id, kind, b64):
         """管理页面里直接上传卡池图片（封面 banner / 右上角物品 res1、res2）
